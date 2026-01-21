@@ -1,0 +1,7 @@
+BasedOnStyle: LLVM
+ColumnLimit: 110
+IndentWidth: 4
+BreakBeforeBraces: Linux
+AlignAfterOpenBracket: Align
+PointerAlignment: Left
+AllowShortFunctionsOnASingleLine: None
