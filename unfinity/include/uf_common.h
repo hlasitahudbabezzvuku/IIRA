@@ -10,11 +10,6 @@
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  * */
 
-#include <assert.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h> // IWYU pragma: keep
-
 /*
  * These macros should help by making the GNU attributes easier to write.
  * */
