@@ -1,5 +1,15 @@
 #pragma once
 
+/*
+ * @brief Wrappers for standard memory allocation/deallocation functions.
+ *
+ * Use this to wrap all memory operations => It does null checking for you and panics when it fails, so you
+ * don't have to care about OOM handling. This module (for now) doesn't support advanced memory management
+ * techniques like regions (group/tagged allocations) or areas (allocate once and then reuse).
+ *
+ * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
+ * */
+
 #include "uf_common.h"
 
 #include <stddef.h>
