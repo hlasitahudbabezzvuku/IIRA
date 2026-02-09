@@ -24,7 +24,7 @@ void uf_mem_freep(void** ptr);
 
 #define _autofree_ _cleanup_(uf_mem_freep)
 
-#define uf_free_null(ptr)                                                                                    \
+#define uf_mem_free_null(ptr)                                                                                \
     ({                                                                                                       \
         typeof(ptr)* _p_ = &(ptr);                                                                           \
         uf_mem_free(*_p_);                                                                                   \
