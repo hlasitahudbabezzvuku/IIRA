@@ -1,3 +1,7 @@
+/*
+ * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
+ * */
+
 #include "uf_memory.h"
 #include "uf_logger.h"
 

@@ -1,3 +1,7 @@
+/*
+ * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
+ * */
+
 #include "uf_logger.h"
 
 #include <stdarg.h>
