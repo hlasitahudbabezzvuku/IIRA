@@ -19,6 +19,7 @@
 #define _alloc_size_(...) __attribute__((alloc_size(__VA_ARGS__)))
 #define _noreturn_ __attribute__((noreturn))
 #define _cleanup_(x) __attribute__((cleanup(x)))
+#define _aligned_(x) __attribute__((aligned(x)))
 
 /*
  * These macros are meant for optimizations in places where one resolute of a condition is much more likely
