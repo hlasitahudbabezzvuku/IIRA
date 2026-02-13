@@ -14,6 +14,19 @@ While we are excited to share our progress, please note that IIRA is at this mom
 
 ### Goal: The Living Laboratory
 
-Most educational languages are "toys" - simplified models built only for demonstration. Most professional languages are "monsters"—complex systems with decades of legacy code that are impossible for a student to navigate.
+Most educational languages are "toys" - simplified models built only for demonstration. Most professional languages are "monsters" - complex systems with decades of legacy code that are impossible for a student to navigate.
 
 IIRA aims to be the **middle ground**. We are building a language capable of solving real-world problems, but with a codebase designed to be read, understood, and modified by students. You aren't just learning from a textbook; you are learning by building a tool that actually works.
+
+
+
+### A Project Built for Participation
+
+Anyone regardless of experience can join. Whether you want to fix a typo in the docs, optimize a frontend pass, or design a new standard library module, you are **welcome** here.
+
+We believe in giving credit where it's due. Under our **Mozilla Public License 2.0** licensing model, your contributions belong to the **community**, but the ownership of your work **stays with you**. Every time you contribute a new file or lead a major change, your name goes at the top of that file. You aren't just an anonymous "contributor #69"; you are an **author** of the **IIRA ecosystem**.
+
+*So IIRA in short:*
+- Collaborative, Open, Professional, Independent
+- Your Name == Your Code
+
