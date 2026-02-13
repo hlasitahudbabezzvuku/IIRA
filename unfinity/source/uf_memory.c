@@ -1,6 +1,6 @@
-/*
+/**
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
- * */
+ **/
 
 #include "uf_memory.h"
 #include "uf_common.h"
@@ -78,9 +78,9 @@ void uf_mem_freep(void** ptr)
     }
 }
 
-/*
+/**
  * Regions (arena/linear allocators)
- * */
+ **/
 
 struct UfMemRegionChunk {
     struct UfMemRegionChunk* next;
