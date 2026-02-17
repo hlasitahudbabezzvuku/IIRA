@@ -55,9 +55,10 @@ void uf_mem_freep(void** ptr);
 typedef struct UfMemRegion UfMemRegion;
 
 UfMemRegion* uf_mem_region_new(size_t block_size) _nodiscard_;
-void* uf_mem_region_alloc(UfMemRegion*, size_t size) _malloc_ _nodiscard_ _alloc_size_(2);
-void uf_mem_region_reset(UfMemRegion*);
+
 void uf_mem_region_free(UfMemRegion*);
 void uf_mem_region_freep(UfMemRegion**);
-
 #define _autoregion_ _cleanup_(uf_mem_region_freep)
+
+void* uf_mem_region_alloc(UfMemRegion*, size_t size) _malloc_ _nodiscard_ _alloc_size_(2);
+void uf_mem_region_reset(UfMemRegion*);
