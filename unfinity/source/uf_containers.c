@@ -33,7 +33,7 @@ UfConVector* uf_con_vector_new(size_t element_size)
 {
     uf_assert(element_size > 0);
 
-    UfConVector* vec = uf_mem_calloc(1, sizeof(UfConVector));
+    UfConVector* vec = uf_mem_zalloc(sizeof(UfConVector));
     vec->element_size = element_size;
     vec->length = 0;
     vec->capacity = VEC_INITIAL_CAPACITY;
