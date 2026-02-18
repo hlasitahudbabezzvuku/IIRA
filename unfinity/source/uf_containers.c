@@ -33,13 +33,13 @@ UfConVector* uf_con_vector_new(size_t element_size)
 {
     uf_assert(element_size > 0);
 
-    UfConVector* vec = uf_mem_zalloc(sizeof(UfConVector));
-    vec->element_size = element_size;
-    vec->length = 0;
-    vec->capacity = VEC_INITIAL_CAPACITY;
-    vec->data = uf_mem_calloc(vec->capacity, element_size);
+    UfConVector* vector = uf_mem_zalloc(sizeof(UfConVector));
+    vector->element_size = element_size;
+    vector->length = 0;
+    vector->capacity = VEC_INITIAL_CAPACITY;
+    vector->data = uf_mem_calloc(vector->capacity, element_size);
 
-    return vec;
+    return vector;
 }
 
 void uf_con_vector_free(UfConVector* vector)
@@ -69,15 +69,15 @@ static void _vec_ensure_capacity(UfConVector* vector, size_t needed)
         return;
     }
 
-    size_t new_cap = vector->capacity;
-    while (new_cap < needed) {
-        if (ckd_mul(&new_cap, new_cap, VEC_GROWTH_FACTOR)) {
+    size_t new_capacity = vector->capacity;
+    while (new_capacity < needed) {
+        if (ckd_mul(&new_capacity, new_capacity, VEC_GROWTH_FACTOR)) {
             uf_log_panic("Vector capacity overflow");
         }
     }
 
     size_t total_bytes;
-    if (ckd_mul(&total_bytes, new_cap, vector->element_size)) {
+    if (ckd_mul(&total_bytes, new_capacity, vector->element_size)) {
         uf_log_panic("Vector size in bytes overflow");
     }
 
@@ -86,7 +86,7 @@ static void _vec_ensure_capacity(UfConVector* vector, size_t needed)
     size_t old_bytes = vector->capacity * vector->element_size;
     memset(vector->data + old_bytes, 0, total_bytes - old_bytes);
 
-    vector->capacity = new_cap;
+    vector->capacity = new_capacity;
 }
 
 void* uf_con_vector_push(UfConVector* vector, const void* data)
@@ -127,9 +127,9 @@ void uf_con_vector_remove(UfConVector* vector, size_t index)
 
     size_t tail_count = vector->length - 1 - index;
     if (tail_count > 0) {
-        uint8_t* dest = vector->data + (index * vector->element_size);
-        uint8_t* src = dest + vector->element_size;
-        memmove(dest, src, tail_count * vector->element_size);
+        uint8_t* destination = vector->data + (index * vector->element_size);
+        uint8_t* source = destination + vector->element_size;
+        memmove(destination, source, tail_count * vector->element_size);
     }
 
     vector->length--;
