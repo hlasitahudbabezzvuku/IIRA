@@ -44,11 +44,11 @@ UfConVector* uf_con_vector_new(size_t element_size)
 
 void uf_con_vector_free(UfConVector* vector)
 {
-    if (!vector) {
+    if _unlikely_ (!vector) {
         return;
     }
 
-    if (vector->data) {
+    if _likely_ (vector->data) {
         uf_mem_free(vector->data);
     }
 
@@ -57,7 +57,7 @@ void uf_con_vector_free(UfConVector* vector)
 
 void uf_con_vector_freep(UfConVector** ptr)
 {
-    if (ptr && *ptr) {
+    if _likely_ (ptr && *ptr) {
         uf_con_vector_free(*ptr);
         *ptr = nullptr;
     }
@@ -71,13 +71,13 @@ static void _vec_ensure_capacity(UfConVector* vector, size_t needed)
 
     size_t new_capacity = vector->capacity;
     while (new_capacity < needed) {
-        if (ckd_mul(&new_capacity, new_capacity, VEC_GROWTH_FACTOR)) {
+        if _unlikely_ (ckd_mul(&new_capacity, new_capacity, VEC_GROWTH_FACTOR)) {
             uf_log_panic("Vector capacity overflow");
         }
     }
 
     size_t total_bytes;
-    if (ckd_mul(&total_bytes, new_capacity, vector->element_size)) {
+    if _unlikely_ (ckd_mul(&total_bytes, new_capacity, vector->element_size)) {
         uf_log_panic("Vector size in bytes overflow");
     }
 
@@ -96,7 +96,7 @@ void* uf_con_vector_push(UfConVector* vector, const void* data)
     _vec_ensure_capacity(vector, vector->length + 1);
 
     uint8_t* target = vector->data + (vector->length * vector->element_size);
-    if (data) {
+    if _likely_ (data) {
         memcpy(target, data, vector->element_size);
     } else {
         memset(target, 0, vector->element_size);
@@ -110,7 +110,7 @@ void* uf_con_vector_get(UfConVector* vector, size_t index)
 {
     uf_assert(vector != nullptr);
 
-    if (_unlikely_(index >= vector->length)) {
+    if _unlikely_ (index >= vector->length) {
         uf_log_panic("Vector index out of bounds: %zu >= %zu", index, vector->length);
     }
 
@@ -121,7 +121,7 @@ void uf_con_vector_remove(UfConVector* vector, size_t index)
 {
     uf_assert(vector != nullptr);
 
-    if (_unlikely_(index >= vector->length)) {
+    if _unlikely_ (index >= vector->length) {
         uf_log_panic("Vector index out of bounds: %zu >= %zu", index, vector->length);
     }
 
@@ -149,7 +149,7 @@ void uf_con_vector_reserve(UfConVector* vector, size_t capacity)
 {
     uf_assert(vector != nullptr);
 
-    if (capacity > vector->capacity) {
+    if _likely_ (capacity > vector->capacity) {
         _vec_ensure_capacity(vector, capacity);
     }
 }
@@ -198,12 +198,12 @@ UfConMap* uf_con_map_new(void)
 
 void uf_con_map_free(UfConMap* map)
 {
-    if (!map) {
+    if _unlikely_ (!map) {
         return;
     }
 
     for (size_t i = 0; i < map->capacity; ++i) {
-        if (map->entries[i].key) {
+        if _likely_ (map->entries[i].key) {
             uf_mem_free(map->entries[i].key);
         }
     }
@@ -214,7 +214,7 @@ void uf_con_map_free(UfConMap* map)
 
 void uf_con_map_freep(UfConMap** ptr)
 {
-    if (ptr && *ptr) {
+    if _likely_ (ptr && *ptr) {
         uf_con_map_free(*ptr);
         *ptr = nullptr;
     }
@@ -260,10 +260,10 @@ bool uf_con_map_put(UfConMap* map, const char* key, void* value)
     uf_assert(map != nullptr);
     uf_assert(key != nullptr);
 
-    if ((map->occupied + 1) * MAP_LOAD_FACTOR_DEN >= map->capacity * MAP_LOAD_FACTOR_NUM) {
+    if _unlikely_ ((map->occupied + 1) * MAP_LOAD_FACTOR_DEN >= map->capacity * MAP_LOAD_FACTOR_NUM) {
         size_t new_capacity;
 
-        if (ckd_mul(&new_capacity, map->capacity, MAP_GROWTH_FACTOR)) {
+        if _unlikely_ (ckd_mul(&new_capacity, map->capacity, MAP_GROWTH_FACTOR)) {
             uf_log_panic("Map capacity overflow");
         }
 
@@ -307,7 +307,9 @@ bool uf_con_map_put(UfConMap* map, const char* key, void* value)
 
 void* uf_con_map_get(const UfConMap* map, const char* key)
 {
-    if (!map || !key) {
+    uf_assert(map != nullptr);
+
+    if _unlikely_ (!key) {
         return nullptr;
     }
 
@@ -318,11 +320,11 @@ void* uf_con_map_get(const UfConMap* map, const char* key)
     do {
         const struct MapEntry* entry = &map->entries[index];
 
-        if (entry->state == MAP_SLOT_EMPTY) {
+        if _unlikely_ (entry->state == MAP_SLOT_EMPTY) {
             return nullptr;
         }
 
-        if (entry->state == MAP_SLOT_OCCUPIED) {
+        if _likely_ (entry->state == MAP_SLOT_OCCUPIED) {
             if (entry->hash == hash && strcmp(entry->key, key) == 0) {
                 return entry->value;
             }
@@ -338,7 +340,7 @@ bool uf_con_map_remove(UfConMap* map, const char* key)
 {
     uf_assert(map != nullptr);
 
-    if (!key) {
+    if _unlikely_ (!key) {
         return false;
     }
 
@@ -349,11 +351,11 @@ bool uf_con_map_remove(UfConMap* map, const char* key)
     do {
         struct MapEntry* entry = &map->entries[index];
 
-        if (entry->state == MAP_SLOT_EMPTY) {
+        if _unlikely_ (entry->state == MAP_SLOT_EMPTY) {
             return false;
         }
 
-        if (entry->state == MAP_SLOT_OCCUPIED) {
+        if _likely_ (entry->state == MAP_SLOT_OCCUPIED) {
             if (entry->hash == hash && strcmp(entry->key, key) == 0) {
                 uf_mem_free(entry->key);
                 entry->key = nullptr;
@@ -377,7 +379,9 @@ size_t uf_con_map_length(const UfConMap* map)
 
 bool uf_con_map_next(const UfConMap* map, size_t* iterator, const char** out_key, void** out_value)
 {
-    if (!map || !iterator) {
+    uf_assert(map != nullptr);
+
+    if _unlikely_ (!iterator) {
         return false;
     }
 
@@ -385,12 +389,12 @@ bool uf_con_map_next(const UfConMap* map, size_t* iterator, const char** out_key
         struct MapEntry* entry = &map->entries[*iterator];
         (*iterator)++;
 
-        if (entry->state == MAP_SLOT_OCCUPIED) {
-            if (out_key) {
+        if _likely_ (entry->state == MAP_SLOT_OCCUPIED) {
+            if _likely_ (out_key) {
                 *out_key = entry->key;
             }
 
-            if (out_value) {
+            if _likely_ (out_value) {
                 *out_value = entry->value;
             }
 
