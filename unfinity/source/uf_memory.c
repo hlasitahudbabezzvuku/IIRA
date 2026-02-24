@@ -78,9 +78,9 @@ void uf_mem_freep(void** ptr)
     }
 }
 
-/**
+/*
  * Regions (arena/linear allocators)
- **/
+ */
 
 struct UfMemRegionChunk {
     struct UfMemRegionChunk* next;

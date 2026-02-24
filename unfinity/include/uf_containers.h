@@ -19,11 +19,11 @@
 
 #include <stddef.h>
 
-/**
+/*
  * Those functions and structures are for Vectors. Vectors are simply put a resizable/dynamic arrays. Do not
  * confuse them with Lists (linked-lists). You can read about Vectors here:
  * https://en.wikipedia.org/wiki/Dynamic_array
- **/
+ */
 
 typedef struct UfConVector UfConVector;
 
@@ -40,11 +40,11 @@ void* uf_con_vector_get(UfConVector*, size_t index) _nodiscard_;
 void uf_con_vector_reserve(UfConVector*, size_t capacity);
 void uf_con_vector_remove(UfConVector*, size_t index);
 
-/**
+/*
  * Those functions and structures are for Maps. Map is just a list of key-value pairs (a dictionary if you
  * will). Maps are implemented as hash tables. You can read about them here:
  * https://en.wikipedia.org/wiki/Hash_table
- **/
+ */
 
 typedef struct UfConMap UfConMap;
 

@@ -18,9 +18,9 @@
 #define MAP_LOAD_FACTOR_DEN 4
 #define MAP_GROWTH_FACTOR 2
 
-/**
+/*
  * Vector
- **/
+ */
 
 struct UfConVector {
     uint8_t* data;
@@ -154,9 +154,9 @@ void uf_con_vector_reserve(UfConVector* vector, size_t capacity)
     }
 }
 
-/**
+/*
  * Map
- **/
+ */
 
 static size_t _hash_with_fnv1a(const char* string)
 {
@@ -273,13 +273,13 @@ bool uf_con_map_put(UfConMap* map, const char* key, void* value)
     size_t hash = _hash_with_fnv1a(key);
     size_t index = hash & (map->capacity - 1);
 
-    /**
+    /*
      * Here we use linear probing to solve the collisions. It's form of open addressing. Linear probing is
      * probably simplest yet really fast way of resolving collisions within the map's key storage.
      *
      * Here you can read about liner probing: https://en.wikipedia.org/wiki/Linear_probing
      * And here you can read about open addressing: https://en.wikipedia.org/wiki/Open_addressing
-     **/
+     */
     while (true) {
         struct MapEntry* entry = &map->entries[index];
 

@@ -10,9 +10,9 @@
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
-/**
+/*
  * These macros should help by making the GNU attributes easier to write.
- **/
+ */
 
 #define _nodiscard_ __attribute__((warn_unused_result))
 #define _malloc_ __attribute__((malloc))
@@ -21,11 +21,11 @@
 #define _cleanup_(x) __attribute__((cleanup(x)))
 #define _aligned_(x) __attribute__((aligned(x)))
 
-/**
+/*
  * These macros are meant for optimizations in places where one resolute of a condition is much likelier
  * (e.g., error return value checking, assertion, and null checks). Don't use them where you are uncertain of
  * the condition resolute.
- **/
+ */
 
 #define _likely_(x) (__builtin_expect(!!(x), 1))
 #define _unlikely_(x) (__builtin_expect(!!(x), 0))

@@ -45,12 +45,12 @@ void uf_mem_freep(void** ptr);
         *_p_ = nullptr;                                                                                      \
     })
 
-/**
+/*
  * Those functions are for working with Regions (arena/linear allocations). The main benefit of using them is
  * that you don't have to worry about freeing individual allocations. It's preferred to use Regions over
  * standard allocators if possible. It vastly simplifies the memory management complexity while having little
  * to no downsides for most use cases. Also... you'll look like real developer :D.
- **/
+ */
 
 typedef struct UfMemRegion UfMemRegion;
 
