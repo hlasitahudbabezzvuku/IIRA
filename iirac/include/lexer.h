@@ -1,5 +1,10 @@
 #pragma once
 
+/**
+ * @brief Simple Lexer for the IIRA language.
+ * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
+ **/
+
 #include "uf_common.h"
 
 #include <stdbool.h>
