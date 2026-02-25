@@ -1,7 +1,7 @@
 ---@diagnostic disable: undefined-global
 
 set_project("IIRA")
-set_version("0.1.0")
+set_version("0.1.0-prealpha (" .. os.host() .. ")")
 
 add_rules("mode.debug", "mode.release")
 set_defaultmode("debug")
@@ -34,4 +34,8 @@ target("iirac", function()
     add_deps("unfinity")
     add_includedirs("iirac/include")
     add_files("iirac/source/*.c")
+    on_load(function(target)
+        target:add("defines", "PROJECT_NAME=\"" .. target:name() .. "\"")
+        target:add("defines", "PROJECT_VERSION=\"" .. target:version() .. "\"")
+    end)
 end)
