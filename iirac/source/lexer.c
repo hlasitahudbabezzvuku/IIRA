@@ -249,9 +249,19 @@ LexerContext* lexer_context_new(const char* filepath)
     context->string_pool = uf_con_map_new();
 
     /* Here we register our keywords. */
-    _register_keyword(context, "var", LEXER_TOK_KEY_VAR);
     _register_keyword(context, "as", LEXER_TOK_KEY_AS);
+    _register_keyword(context, "break", LEXER_TOK_KEY_BREAK);
+    _register_keyword(context, "case", LEXER_TOK_KEY_CASE);
+    _register_keyword(context, "continue", LEXER_TOK_KEY_CONTINUE);
+    _register_keyword(context, "default", LEXER_TOK_KEY_DEFAULT);
+    _register_keyword(context, "do", LEXER_TOK_KEY_DO);
+    _register_keyword(context, "else", LEXER_TOK_KEY_ELSE);
+    _register_keyword(context, "for", LEXER_TOK_KEY_FOR);
+    _register_keyword(context, "if", LEXER_TOK_KEY_IF);
     _register_keyword(context, "return", LEXER_TOK_KEY_RETURN);
+    _register_keyword(context, "switch", LEXER_TOK_KEY_SWITCH);
+    _register_keyword(context, "var", LEXER_TOK_KEY_VAR);
+    _register_keyword(context, "while", LEXER_TOK_KEY_WHILE);
 
     /* Bootstrapping the line counter (first line at byte 0) */
     uf_con_vector_push(context->lines, &(uint32_t){0});
