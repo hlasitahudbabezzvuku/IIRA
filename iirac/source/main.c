@@ -13,6 +13,8 @@
 enum FlagType {
     FLAG_SET,     /* Flag that sets a bool to true */
     FLAG_CONSUME, /* Flag that consumes the next argument */
+    FLAG_HELP,    /* Special flag to print help */
+    FLAG_VERSION, /* Special flag to print version */
 };
 
 struct Flag {
@@ -34,6 +36,20 @@ struct Config {
 static struct Config config = {};
 
 static const struct Flag FLAGS[] = {
+    {
+        .type = FLAG_HELP,
+        .long_name = "help",
+        .short_name = 'h',
+        .config_var_ptr = nullptr,
+        .description = "Print this help message and exit",
+    },
+    {
+        .type = FLAG_VERSION,
+        .long_name = "version",
+        .short_name = 'v',
+        .config_var_ptr = nullptr,
+        .description = "Print version information and exit",
+    },
     {
         .type = FLAG_SET,
         .long_name = "no-warn",
@@ -58,6 +74,33 @@ static const struct Flag FLAGS[] = {
 };
 
 static constexpr size_t FLAGS_COUNT = sizeof(FLAGS) / sizeof(FLAGS[0]);
+
+static void print_usage()
+{
+    puts("Usage: iirac [OPTIONS] <file1> [file2 ...]");
+    puts("Options:");
+
+    for (size_t i = 0; i < FLAGS_COUNT; i++) {
+        const struct Flag* opt = &FLAGS[i];
+
+        char short_str_buffer[8] = "    ";
+        if (opt->short_name != '\0') {
+            snprintf(short_str_buffer, sizeof(short_str_buffer), "-%c, ", opt->short_name);
+        }
+
+        const char* type_hint = (opt->type == FLAG_CONSUME) ? " <val>" : "";
+        char combined_name_buffer[64];
+        snprintf(combined_name_buffer, sizeof(combined_name_buffer), "%s%s", opt->long_name, type_hint);
+
+        printf("  %s--%-20s %s\n", short_str_buffer, combined_name_buffer, opt->description);
+    }
+    putchar('\n');
+}
+
+static void print_version()
+{
+    printf("%s version %s %s\n", PROJECT_NAME, PROJECT_VERSION, __DATE__);
+}
 
 static bool parse_arguments(int argc, char* argv[], UfConVector* input_files)
 {
@@ -91,6 +134,16 @@ static bool parse_arguments(int argc, char* argv[], UfConVector* input_files)
                             uf_log_err("Option '--%s' requires an argument", flag->long_name);
                             return false;
                         }
+                        break;
+
+                    case FLAG_HELP:
+                        print_usage();
+                        exit(EXIT_SUCCESS);
+                        break;
+
+                    case FLAG_VERSION:
+                        print_version();
+                        exit(EXIT_SUCCESS);
                         break;
                     }
                     break;
