@@ -2,6 +2,7 @@
 
 #include "uf_common.h"
 #include "uf_containers.h"
+#include "uf_logger.h"
 #include "uf_memory.h"
 
 #include <ctype.h>
@@ -500,4 +501,61 @@ void lexer_get_line_col(const LexerContext* context, uint32_t byte_offset, uint3
         uint32_t line_start = *(const uint32_t*)uf_con_vector_get(context->lines, match_index);
         *out_col = (byte_offset - line_start) + 1;
     }
+}
+
+/*
+ * Helper function for printing the tokens into the standard output. It's used to print the lexer output when
+ * appropriate flag is used for compilation of particular unit.
+ */
+
+const char* _token_type_to_string[] = {
+    "LEXER_TOK_EOF",          "LEXER_TOK_ERROR",        "LEXER_TOK_IDENTIFIER",  "LEXER_TOK_NUMBER",
+    "LEXER_TOK_STRING",       "LEXER_TOK_KEY_AS",       "LEXER_TOK_KEY_BREAK",   "LEXER_TOK_KEY_CASE",
+    "LEXER_TOK_KEY_CONTINUE", "LEXER_TOK_KEY_DEFAULT",  "LEXER_TOK_KEY_DO",      "LEXER_TOK_KEY_ELSE",
+    "LEXER_TOK_KEY_FOR",      "LEXER_TOK_KEY_IF",       "LEXER_TOK_KEY_RETURN",  "LEXER_TOK_KEY_SWITCH",
+    "LEXER_TOK_KEY_VAR",      "LEXER_TOK_KEY_WHILE",    "LEXER_TOK_LBRACE",      "LEXER_TOK_RBRACE",
+    "LEXER_TOK_LPAREN",       "LEXER_TOK_RPAREN",       "LEXER_TOK_LBRACKET",    "LEXER_TOK_RBRACKET",
+    "LEXER_TOK_QUESTION",     "LEXER_TOK_COLON",        "LEXER_TOK_SEMICOLON",   "LEXER_TOK_COMMA",
+    "LEXER_TOK_DOT",          "LEXER_TOK_DOLLAR",       "LEXER_TOK_ASSIGN",      "LEXER_TOK_PLUS",
+    "LEXER_TOK_MINUS",        "LEXER_TOK_STAR",         "LEXER_TOK_SLASH",       "LEXER_TOK_PERCENT",
+    "LEXER_TOK_PLUS_ASSIGN",  "LEXER_TOK_MINUS_ASSIGN", "LEXER_TOK_STAR_ASSIGN", "LEXER_TOK_SLASH_ASSIGN",
+    "LEXER_TOK_EQ",           "LEXER_TOK_NEQ",          "LEXER_TOK_LT",          "LEXER_TOK_GT",
+    "LEXER_TOK_LTE",          "LEXER_TOK_GTE",          "LEXER_TOK_AND",         "LEXER_TOK_OR",
+    "LEXER_TOK_NOT",          "LEXER_TOK_BIT_AND",      "LEXER_TOK_BIT_OR",      "LEXER_TOK_BIT_XOR",
+    "LEXER_TOK_BIT_NOT",
+};
+
+void lexer_print_debug(const LexerContext* context)
+{
+    size_t token_count = 0;
+    const struct LexerToken* tokens = lexer_get_tokens(context, &token_count);
+
+    for (size_t j = 0; j < token_count; j++) {
+        const struct LexerToken* token = &tokens[j];
+
+        uint32_t line = 0;
+        uint32_t column = 0;
+        lexer_get_line_col(context, token->byte_offset, &line, &column);
+
+        printf("[%3u:%-3u] %6u:%-3u  %-24s", line, column, token->byte_offset, token->length,
+               _token_type_to_string[token->type]);
+
+        if (token->text) {
+            if (token->type == LEXER_TOK_STRING) {
+                printf("\"%s\"\n", token->text);
+            } else if (token->type == LEXER_TOK_ERROR) {
+                printf("\e[1;%im%s\e[%im\n", UF_COLOR_RED, token->text, UF_COLOR_RESET);
+            } else {
+                printf("%s\n", token->text);
+            }
+        } else {
+            putchar('\n');
+        }
+
+        if (token->type == LEXER_TOK_EOF) {
+            break;
+        }
+    }
+
+    uf_log_debug("Total Tokens: %zu", token_count);
 }

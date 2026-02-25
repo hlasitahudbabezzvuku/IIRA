@@ -90,6 +90,7 @@ void lexer_context_free(LexerContext* ctx);
 void lexer_context_freep(LexerContext** ctx_ptr);
 #define _autolexer_ _cleanup_(lexer_context_freep)
 
-void lexer_process(LexerContext*);
 const struct LexerToken* lexer_get_tokens(const LexerContext*, size_t* out_count) _nodiscard_;
 void lexer_get_line_col(const LexerContext*, uint32_t byte_offset, uint32_t* out_line, uint32_t* out_col);
+
+void lexer_print_debug(const LexerContext*); /* Can be enabled by a compiler flag */
