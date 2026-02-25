@@ -49,6 +49,8 @@ enum UfColor {
 void _uf_log(enum UfLogLevel level, const char* file, int line, const char* format, ...)
     __attribute__((format(printf, 4, 5)));
 
+void uf_log_set_level(const enum UfLogLevel);
+
 #define uf_log_debug(format, ...) _uf_log(UF_LOG_DEBUG, __FILE__, __LINE__, format, ##__VA_ARGS__)
 #define uf_log_info(format, ...) _uf_log(UF_LOG_INFO, __FILE__, __LINE__, format, ##__VA_ARGS__)
 #define uf_log_warn(format, ...) _uf_log(UF_LOG_WARNING, __FILE__, __LINE__, format, ##__VA_ARGS__)
