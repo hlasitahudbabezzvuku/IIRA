@@ -79,6 +79,20 @@ static const struct Flag FLAGS[] = {
         .config_var_ptr = &config.debug,
         .description = "Enable debug output (overrides the --verbrose flag)",
     },
+    {
+        .type = FLAG_SET,
+        .long_name = "show-lexer-output",
+        .short_name = 0,
+        .config_var_ptr = &config.show_lexer_output,
+        .description = "Print the generated tokens and spatial data to standard output",
+    },
+    {
+        .type = FLAG_SET,
+        .long_name = "show-parser-output",
+        .short_name = 0,
+        .config_var_ptr = &config.show_parser_output,
+        .description = "Print the parsed AST to standard output",
+    },
 };
 
 static constexpr size_t FLAGS_COUNT = sizeof(FLAGS) / sizeof(FLAGS[0]);
