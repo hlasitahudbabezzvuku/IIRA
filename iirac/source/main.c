@@ -163,5 +163,22 @@ static bool parse_arguments(int argc, char* argv[], UfConVector* input_files)
 
 int main(int argc, char* argv[])
 {
+    _autovector_ UfConVector* input_files = uf_con_vector_new(sizeof(const char*));
+
+    if (!parse_arguments(argc, argv, input_files)) {
+        return EXIT_FAILURE;
+    }
+
+    if (config.no_warn) {
+        uf_log_set_level(UF_LOG_ERROR);
+    }
+
+    if (config.verbose) {
+        uf_log_set_level(UF_LOG_INFO);
+    }
+
+    if (config.debug) {
+        uf_log_set_level(UF_LOG_DEBUG);
+    }
     return EXIT_SUCCESS;
 }
