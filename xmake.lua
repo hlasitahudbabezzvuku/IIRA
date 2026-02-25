@@ -1,4 +1,4 @@
----@diagnostic disable: undefined-global
+---@diagnostic disable: undefined-global, undefined-field
 
 set_project("IIRA")
 set_version("0.1.0-prealpha (" .. os.host() .. ")")
