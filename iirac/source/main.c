@@ -1,5 +1,13 @@
 #include "lexer.h"
 
+/**
+ * @brief This is the main entry point of the whole compiler.
+ *
+ * TODO: A little introduction into the compiler architecture.
+ *
+ * @author: Frantisek Lednicky (HlasitaHudbaBezZvuku)
+ **/
+
 #include "uf_containers.h"
 #include "uf_logger.h"
 
