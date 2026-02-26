@@ -10,12 +10,14 @@
 #include "lexer.h"
 #include "uf_containers.h"
 #include "uf_logger.h"
+#include <stdio.h>
 
-int main(int argc, char* argv[])
+int main(const int argc, const char* argv[])
 {
+    Config config = {};
     _autovector_ UfConVector* input_files = uf_con_vector_new(sizeof(const char*));
 
-    if (!arg_process(argc, argv, input_files)) {
+    if (!arg_process(&config, argc, argv, input_files)) {
         return EXIT_FAILURE;
     }
 

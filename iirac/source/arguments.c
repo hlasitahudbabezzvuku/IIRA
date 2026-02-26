@@ -14,7 +14,7 @@ void arg_print_usage()
     puts("Options:");
 
     for (size_t i = 0; i < flags_count; i++) {
-        const struct Flag* opt = &default_flags[i];
+        const Flag* opt = &default_flags[i];
 
         char short_str_buffer[8] = "    ";
         if (opt->short_name != '\0') {
@@ -35,7 +35,7 @@ void arg_print_version()
     printf("%s version %s - %s\n", PROJECT_NAME, PROJECT_VERSION, __DATE__);
 }
 
-bool arg_process(int argc, char* argv[], UfConVector* input_files)
+bool arg_process(const Config* config, const int argc, const char* argv[], UfConVector* input_files)
 {
     for (int i = 1; i < argc; i++) {
         const char* argument = argv[i];
@@ -47,22 +47,23 @@ bool arg_process(int argc, char* argv[], UfConVector* input_files)
             bool matched = false;
 
             for (size_t j = 0; j < flags_count; j++) {
-                const struct Flag* flag = &default_flags[j];
+                const Flag* flag = &default_flags[j];
 
                 /* Match long or short name */
                 if ((is_long && strcmp(flag_name, flag->long_name) == 0) ||
                     (!is_long && flag_name[0] == flag->short_name && flag_name[1] == '\0')) {
 
                     matched = true;
+                    void* config_field = (char*)config + flag->config_field_offset;
 
                     switch (flag->type) {
                     case FLAG_SET:
-                        *(bool*)flag->config_var_ptr = true;
+                        *(bool*)config_field = true;
                         break;
 
                     case FLAG_CONSUME:
                         if (i + 1 < argc) {
-                            *(const char**)flag->config_var_ptr = argv[++i];
+                            *(const char**)config_field = argv[++i];
                         } else {
                             uf_log_err("Option '--%s' requires an argument", flag->long_name);
                             return false;
