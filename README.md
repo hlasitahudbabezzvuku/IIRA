@@ -16,7 +16,7 @@ Hi, I'm František Lednický and this is IIRA. A programming language built by a
 > [!note]
 > Right now, this is a "solo" project. It's just me working on it.
 
-The goal is to create something that other students can dive into to see how compilers work. Most modern compilers are massive behemoths that take 40 minutes just to compile. IIRA on the other hand doesn't aim to be like C++, Rust, Zig, or Carbon. It's meant to be used for learning how their compilers work by building their younger, slightly more approachable sibling.
+The goal is to create something that other students can dive into to see how compilers work. Most modern compilers are massive behemoths that take 40 minutes just to compile. IIRA on the other hand doesn't aim to be like C++, Rust, Zig, or Carbon. It's meant to be used for learning how compilers for such languages work by building their younger, **more approachable** sibling.
 
 > [!warning]
 > While I am excited to share my progress, please note that IIRA is its very **early stages**. I welcome early feedback and discussions, but I recommend against using IIRA for anything beyond simple experimentation. If you find a bug or have a suggestion, feel free to open an issue.
@@ -55,46 +55,50 @@ source.iira --> | lexer | --> | pareser | --> | semantics analyzer | --> | graph
 ```
 
 
-<h4>1. Lexer</h4>
+<h3>1. Lexer</h3>
 
 It scans the entirety of the source file buffer in one pass, generating a flat array of **Tokens**. This helps the cache-locality of the data while also making the whole architecture a lot simpler.
 
-<h4>2. Parser</h4>
+<h3>2. Parser</h3>
 
 It consumes the Token Vector, creating the **Abstract Syntax Tree (AST)**. Statements and block-level constructs (Tables, Type declarations) are parsed via standard [Recursive Descent](https://en.wikipedia.org/wiki/Recursive_descent_parser/) parser. Expressions (math, dot-notation method calls) are delegated to the [Operator Precedence](https://en.wikipedia.org/wiki/Operator-precedence_parser/) parser. The AST node structures are put into a linear memory arena. This guarantees cache-local child node resolution via standard C pointers. When encountering an error, it will insert an error placeholder and continue parsing until it synchronizes to the next statement boundary (e.g., `;` or `}`) to report multiple errors per compilation unit.
 
 
-<h4>3. Semantics Analyzer</h4>
+<h3>3. Semantics Analyzer</h3>
 
 It will ensure that the parsed AST "makes sense". If it finds any errors, it will report them to the **Diagnostics Engine**, and continue the same way the Parser did.
 
 
-<h4>4. Graph Builder & IL Emitter</h4>
+<h3>4. Graph Builder & IL Emitter</h3>
 
 The IR building is implemented as a **Two-Pass Intermediate Object Model**. There are two modules, each handling one pass:
 - Pass 1 (Lowering - Graph Builder): It translates the AST nodes into an in-memory graph of QBE structures, thus contructing a **QBE Object Graph**. Memory is again managed via a linear memory arena.
-- Pass 2 (Serialization - IL Emitter): It traverses the QBE Object Graph and builds strictly formatted textual QBE IL. 
+- Pass 2 (Serialization - IL Emitter): It traverses the QBE Object Graph and builds strictly formatted textual **QBE IL**. 
 
 
 <br><h2>Repository Layout</h2>
 
 There are two projects in this repository:
-1. UnFinity: My in-house minimal utility library
-2. iirac: The IIRA compiler itself
+1. **UnFinity**: My in-house minimal utility library
+2. **iirac**: The IIRA compiler itself
 
 > [!note]
 > There are no external dependencies aside from ASan, UBSan, and the C standard library (libc).
 
-**UnFinity** has several modules:
-- uf_common - Common functionality used across other modules
-- uf_memory - Wrappers for standard memory allocation/deallocation functions
-- uf_logger - Simple logging module designed for printing to terminal
-- uf_containers - Container structures for efficient data handling
+**UnFinity** includes several modules:
+- *uf_common* - Common functionality used across other modules
+- *uf_memory* - Wrappers for standard memory allocation/deallocation functions
+- *uf_logger* - Simple logging module designed for printing to terminal
+- *uf_containers* - Container structures for efficient data handling
 
-**iirac** also has several modules:
-- arguments: Argument parsing
-- lexer: The lexer implementation
+**iirac** also includes several modules:
+- *arguments* - Argument parsing
+- *lexer* - The lexer implementation
 - TODO
+
+> [!important]
+> IIRA uses [Xmake](https://xmake.io/) as the main build system. You have to install it first via you package manager.
+
 
 <br><h2>Contribute</h2>
 
