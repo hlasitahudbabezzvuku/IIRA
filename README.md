@@ -7,7 +7,7 @@
         <img src="https://img.shields.io/badge/C_LANGUAGE-161b22?style=for-the-badge&logo=c&logoColor=58a6ff&labelColor=21262d">
         <img src="https://img.shields.io/badge/XMAKE-161b22?style=for-the-badge&logo=make&logoColor=d2a8ff&labelColor=21262d">
     </div>
-</div>
+</div><br><br>
 
 > *"Hey you, you're finally awake. You were trying to cross the border into Compiler Development, right?"*
 
@@ -21,14 +21,14 @@ The goal is to create something that other students can dive into to see how com
 > While I am excited to share my progress, please note that IIRA is its very **early stages**. I welcome early feedback and discussions, but I recommend against using IIRA for anything beyond simple experimentation. If you find a bug or have a suggestion, feel free to open an issue.
 
 
-## Design
+<br><h2>Design</h2>
 
 > *"A human's concept of love requires admiration, attraction, devotion, and respect. Conclusion; I am 50% in Love."*
 
 TODO
 
 
-## Contribute
+<br><h2>Contribute</h2>
 
 Anyone regardless of experience can join. Whether you want to fix a typo in the docs, optimize a semantics analyzer pass, or design a new module, you are **welcome** here.
 
@@ -41,7 +41,7 @@ But before you open a Pull Request:
 I believe in giving credit where it's due. Under the **Mozilla Public License 2.0** licensing model, your contributions belong to the **community**, but the ownership of your work **stays with you**. Every time you contribute a new file or lead a major change, your name goes at the top of that file. You aren't just an anonymous "contributor #69"; you are an **author**.
 
 
-## License
+<br><h2>License</h2>
 
 IIRA is licensed under the MPL 2.0. This is a weak-copyleft license that protects the compiler source code while allowing you to use the language to build any application (proprietary or open source) without restrictions. See the [LICENSE](LICENSE) file for more information.
 
