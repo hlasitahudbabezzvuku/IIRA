@@ -1,3 +1,7 @@
+/**
+ * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
+ **/
+
 #include "lexer.h"
 
 #include "uf_common.h"
