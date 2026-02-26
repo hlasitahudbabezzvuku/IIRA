@@ -42,6 +42,26 @@ But before you open a Pull Request:
 I believe in giving credit where it's due. Under the **Mozilla Public License 2.0** licensing model, your contributions belong to the **community**, but the ownership of your work **stays with you**. Every time you contribute a new file or lead a major change, your name goes at the top of that file. You aren't just an anonymous "contributor #69"; you are an **author**.
 
 
+<br><h2>Repository Layout</h2>
+
+There are two projects in this repository:
+1. UnFinity: My in-house minimal utility library
+2. iirac: The IIRA compiler itself
+
+> [!info]
+> There are no external dependencies aside from ASan, UBSan, and the C standard library (libc).
+
+**UnFinity** has several modules:
+- uf_common - Common functionality used across other modules
+- uf_memory - Wrappers for standard memory allocation/deallocation functions
+- uf_logger - Simple logging module designed for printing to terminal
+- uf_containers - Container structures for efficient data handling
+
+**iirac** also has several modules:
+- arguments: Argument parsing
+- lexer: The lexer implementation
+- TODO
+
 <br><h2>License</h2>
 
 IIRA is licensed under the MPL 2.0. This is a weak-copyleft license that protects the compiler source code while allowing you to use the language to build any application (proprietary or open source) without restrictions. See the [LICENSE](LICENSE) file for more information.
