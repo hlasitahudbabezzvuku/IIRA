@@ -11,9 +11,10 @@
 
 > *"Hey you, you're finally awake. You were trying to cross the border into Compiler Development, right?"*
 
-Hi, I'm HlasitaHudbaBezZvuku and this is IIRA.
+Hi, I'm František Lednický and this is IIRA. A programming language built by a students, for students.
 
-IIRA is a programming language built by a students, for students. Right now, this is a "solo" project. It's just me working on it.
+> [!note]
+> Right now, this is a "solo" project. It's just me working on it.
 
 The goal is to create something that other students can dive into to see how compilers work. Most modern compilers are massive behemoths that take 40 minutes just to compile. IIRA on the other hand doesn't aim to be like C++, Rust, Zig, or Carbon. It's meant to be used for learning how their compilers work by building their younger, slightly more approachable sibling.
 
