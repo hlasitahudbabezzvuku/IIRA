@@ -1,6 +1,13 @@
-# <div align="center">IIRA</div>
-
-### <div align="center">A high-performance systems programming language built by students.</div>
+<div align="center">
+    <h1>IIRA</h1>
+    <h3>A high-performance systems programming language built by students.</h3><br>
+    <div>
+        <img src="https://img.shields.io/badge/OPEN_SOURCE-161b22?style=for-the-badge&logo=opensourceinitiative&logoColor=7ee787&labelColor=21262d">
+        <img src="https://img.shields.io/badge/LINUX-161b22?style=for-the-badge&logo=linux&logoColor=ffa657&labelColor=21262d">
+        <img src="https://img.shields.io/badge/C_LANGUAGE-161b22?style=for-the-badge&logo=c&logoColor=58a6ff&labelColor=21262d">
+        <img src="https://img.shields.io/badge/XMAKE-161b22?style=for-the-badge&logo=make&logoColor=d2a8ff&labelColor=21262d">
+    </div>
+</div>
 
 > *"Hey you, you're finally awake. You were trying to cross the border into Compiler Development, right?"*
 
