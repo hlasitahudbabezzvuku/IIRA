@@ -12,29 +12,31 @@
 #include <stddef.h>
 #include <stdint.h>
 
+enum LexerSymbolType {
+    LEXER_SYM_IDENTIFIER = 0,
+    LEXER_SYM_NUMBER,
+    LEXER_SYM_STRING,
+
+    /* Keywords */
+    LEXER_SYM_KEY_AS,
+    LEXER_SYM_KEY_BREAK,
+    LEXER_SYM_KEY_CASE,
+    LEXER_SYM_KEY_CONTINUE,
+    LEXER_SYM_KEY_DEFAULT,
+    LEXER_SYM_KEY_DO,
+    LEXER_SYM_KEY_ELSE,
+    LEXER_SYM_KEY_FOR,
+    LEXER_SYM_KEY_IF,
+    LEXER_SYM_KEY_RETURN,
+    LEXER_SYM_KEY_SWITCH,
+    LEXER_SYM_KEY_VAR,
+    LEXER_SYM_KEY_WHILE,
+};
+
 enum LexerTokenType {
     LEXER_TOK_EOF = 0,
     LEXER_TOK_ERROR,
-
-    /* Identifiers & Literals */
-    LEXER_TOK_IDENTIFIER,
-    LEXER_TOK_NUMBER,
-    LEXER_TOK_STRING,
-
-    /* Keywords */
-    LEXER_TOK_KEY_AS,
-    LEXER_TOK_KEY_BREAK,
-    LEXER_TOK_KEY_CASE,
-    LEXER_TOK_KEY_CONTINUE,
-    LEXER_TOK_KEY_DEFAULT,
-    LEXER_TOK_KEY_DO,
-    LEXER_TOK_KEY_ELSE,
-    LEXER_TOK_KEY_FOR,
-    LEXER_TOK_KEY_IF,
-    LEXER_TOK_KEY_RETURN,
-    LEXER_TOK_KEY_SWITCH,
-    LEXER_TOK_KEY_VAR,
-    LEXER_TOK_KEY_WHILE,
+    LEXER_TOK_SYMBOL,
 
     /* Punctuation */
     LEXER_TOK_LBRACE,    // {
@@ -76,12 +78,21 @@ enum LexerTokenType {
     LEXER_TOK_BIT_NOT,      // ~
 };
 
+typedef struct LexerSymbol LexerSymbol;
+struct LexerSymbol {
+    enum LexerSymbolType type;
+    const char* text;
+};
+
 typedef struct LexerToken LexerToken;
 struct LexerToken {
     enum LexerTokenType type;
     uint32_t offset;
     uint32_t length;
-    const char* text; /* Pointer to region-backed deduplicated string that gives us O(1) comparison. */
+    union {
+        const struct LexerSymbol* symbol; /* Valid if type is LEXER_TOK_SYMBOL */
+        const char* error_message;        /* Valid if type is LEXER_TOK_ERROR */
+    };
 };
 
 typedef struct LexerContext LexerContext;

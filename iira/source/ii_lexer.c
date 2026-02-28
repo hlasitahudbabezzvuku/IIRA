@@ -24,74 +24,103 @@ struct LexerContext {
     const char* file_buffer;
     size_t file_size;
 
-    UfMemRegion* universal_arena;
     UfConVector* tokens;
-    UfConMap* string_pool;
+    UfConMap* symbol_dictionary;
+    UfMemRegion* symbol_arena;
 
     uint32_t current_index;
     uint32_t start_index;
 };
 
-struct Record {
-    enum LexerTokenType type;
-    const char* text;
-};
+/*
+ * Those helper functions wraps around the LexerContext struct. They separate the boring, repeating segments
+ * from the active lexical analysis logic.
+ */
 
-static void _push_token(LexerContext* context, enum LexerTokenType type, const char* text)
+static inline void _push_token(LexerContext* context, enum LexerTokenType type)
 {
-    uint32_t length = context->current_index - context->start_index;
-    struct LexerToken token = {type, context->start_index, length, text};
+    LexerToken token = {
+        .type = type,
+        .offset = context->start_index,
+        .length = context->current_index - context->start_index,
+        .symbol = nullptr,
+    };
     uf_con_vector_push(context->tokens, &token);
 }
 
-static void _register_keyword(LexerContext* context, const char* keyword, enum LexerTokenType type)
+static inline void _push_token_symbol(LexerContext* context, const LexerSymbol* symbol)
 {
-    struct Record* record = uf_mem_region_alloc(context->universal_arena, sizeof(struct Record));
-    record->type = type;
-    record->text = keyword;
-
-    uf_con_map_put(context->string_pool, keyword, record);
+    LexerToken token = {
+        .type = LEXER_TOK_SYMBOL,
+        .offset = context->start_index,
+        .length = context->current_index - context->start_index,
+        .symbol = symbol,
+    };
+    uf_con_vector_push(context->tokens, &token);
 }
 
-static const struct Record* _register_string(LexerContext* context, enum LexerTokenType fallback_type)
+static inline void _push_token_error(LexerContext* context, const char* message)
+{
+    LexerToken token = {
+        .type = LEXER_TOK_ERROR,
+        .offset = context->start_index,
+        .length = context->current_index - context->start_index,
+        .error_message = message,
+    };
+    uf_con_vector_push(context->tokens, &token);
+}
+
+static void _register_keyword(LexerContext* context, const char* keyword, enum LexerSymbolType type)
+{
+    LexerSymbol* symbol = uf_mem_region_alloc(context->symbol_arena, sizeof(LexerSymbol));
+    symbol->type = type;
+    symbol->text = keyword;
+
+    uf_con_map_put(context->symbol_dictionary, keyword, symbol);
+}
+
+static const LexerSymbol* _intern_string(LexerContext* context, enum LexerSymbolType fallback_type)
 {
     uint32_t length = context->current_index - context->start_index;
     const char* raw = &context->file_buffer[context->start_index];
 
-    char stack_buf[LEXER_MAX_IDENTIFIER];
+    char stack_buffer[LEXER_MAX_IDENTIFIER];
     bool fits_in_stack = length < LEXER_MAX_IDENTIFIER;
 
     char* search_str = nullptr;
     if _likely_ (fits_in_stack) {
-        memcpy(stack_buf, raw, length);
-        stack_buf[length] = '\0';
-        search_str = stack_buf;
+        memcpy(stack_buffer, raw, length);
+        stack_buffer[length] = '\0';
+        search_str = stack_buffer;
     } else {
-        search_str = uf_mem_region_alloc(context->universal_arena, length + 1);
+        search_str = uf_mem_region_alloc(context->symbol_arena, length + 1);
         memcpy(search_str, raw, length);
         search_str[length] = '\0';
     }
 
-    const struct Record* existing = uf_con_map_get(context->string_pool, search_str);
+    const LexerSymbol* existing = uf_con_map_get(context->symbol_dictionary, search_str);
     if (existing != nullptr) {
         return existing;
     }
 
-    char* final_str = fits_in_stack ? uf_mem_region_alloc(context->universal_arena, length + 1) : search_str;
+    char* final_str = fits_in_stack ? uf_mem_region_alloc(context->symbol_arena, length + 1) : search_str;
     if (fits_in_stack) {
         memcpy(final_str, search_str, length + 1);
     }
 
-    struct Record* record = uf_mem_region_alloc(context->universal_arena, sizeof(struct Record));
-    record->type = fallback_type;
-    record->text = final_str;
+    LexerSymbol* symbol = uf_mem_region_alloc(context->symbol_arena, sizeof(LexerSymbol));
+    symbol->type = fallback_type;
+    symbol->text = final_str;
 
-    uf_con_map_put(context->string_pool, final_str, record);
-    return record;
+    uf_con_map_put(context->symbol_dictionary, final_str, symbol);
+    return symbol;
 }
 
 /*
- * Internal helper functions to make writing the lexing functions much easier.
+ * Internal helper functions to make writing the lexing functions much easier. They mainly help with iterating
+ * over the source file buffer, managing the index, lookup, and EOF for us. That prevents us from shooting
+ * ourselves in the foot (e.g., forgetting that we have to count the newlines inside a multiline comment :D,
+ * what an amazing thing to debug).
  */
 
 static inline bool _is_end(const LexerContext* context)
@@ -138,30 +167,32 @@ static inline bool _match(LexerContext* context, char expected)
 }
 
 /*
- * Those are the helper functions that are dispatched by the lexer's main loop. Each should handle one type to
- * token. The above functions are used inside those functions to wrap around the `LexerContext` struct's
- * fields, and prevent us from shooting ourselves to foot (e.g., forgetting to count new lines inside
- * multiline comment :D, what an amazing thing to debug).
+ * Those are the helper functions, meant to be dispatched by the lexer's main loop. Each should handle one
+ * type of token.
  */
 
 static void _scan_number(LexerContext* context)
 {
     char first = context->file_buffer[context->start_index];
+
     if (first == '0') {
-        char next = _peek(context);
-        if (next == 'x' || next == 'X') {
+        switch (_peek(context)) {
+        case 'x':
+        case 'X':
             _advance(context); /* Consume the character "X" */
             while (isxdigit(_peek(context))) {
                 _advance(context);
             }
             goto scan_suffix;
-        } else if (next == 'b' || next == 'B') {
+        case 'b':
+        case 'B':
             _advance(context); /* Consume the character "B" */
             while (_peek(context) == '0' || _peek(context) == '1') {
                 _advance(context);
             }
             goto scan_suffix;
-        } else if (next == 'o' || next == 'O') {
+        case 'o':
+        case 'O':
             _advance(context); /* Consume the character "O" */
             while (_peek(context) >= '0' && _peek(context) <= '7') {
                 _advance(context);
@@ -182,15 +213,15 @@ static void _scan_number(LexerContext* context)
     }
 
 scan_suffix: /* Yes, It's a `goto`. But, as you can see, it actually helps to simplify the logic without the
-                need to separate it into multiple smaller functions. It isn't always bad :D. */
+                need to separate this function into two smaller functions. It isn't always bad :D. */
 
     char p = _peek(context);
     if (p == 'f' || p == 'F' || p == 'd' || p == 'D') {
         _advance(context);
     }
 
-    const struct Record* record = _register_string(context, LEXER_TOK_NUMBER);
-    _push_token(context, record->type, record->text);
+    const LexerSymbol* symbol = _intern_string(context, LEXER_SYM_NUMBER);
+    _push_token_symbol(context, symbol);
 }
 
 static void _scan_string(LexerContext* context)
@@ -200,7 +231,7 @@ static void _scan_string(LexerContext* context)
     }
 
     if (_is_end(context)) {
-        _push_token(context, LEXER_TOK_ERROR, "Unterminated string literal");
+        _push_token_error(context, "Unterminated string literal");
         return;
     }
 
@@ -208,14 +239,14 @@ static void _scan_string(LexerContext* context)
 
     context->start_index++;   /* Skip opening quote */
     context->current_index--; /* Skip closing quote */
-    const struct Record* rec = _register_string(context, LEXER_TOK_STRING);
-
+    const LexerSymbol* symbol = _intern_string(context, LEXER_SYM_STRING);
     context->start_index--;
     context->current_index++;
-    _push_token(context, LEXER_TOK_STRING, rec->text);
+
+    _push_token_symbol(context, symbol);
 }
 
-/* This is the main Lexer pipeline. It uses dispatcher functions for more readable logic flow. */
+/* This is the main Lexer loop. It uses dispatcher functions for more readable logic flow. */
 LexerContext* ii_lexer_context_new(SourceManager* manager)
 {
     LexerContext* context = uf_mem_zalloc(sizeof(LexerContext));
@@ -223,24 +254,24 @@ LexerContext* ii_lexer_context_new(SourceManager* manager)
     context->file_buffer = ii_src_get_buffer(manager);
     context->file_size = ii_src_get_size(manager);
 
-    context->universal_arena = uf_mem_region_new(LEXER_ARENA_BLOCK_SIZE);
-    context->tokens = uf_con_vector_new(sizeof(struct LexerToken));
-    context->string_pool = uf_con_map_new();
+    context->tokens = uf_con_vector_new(sizeof(LexerToken));
+    context->symbol_dictionary = uf_con_map_new();
+    context->symbol_arena = uf_mem_region_new(LEXER_ARENA_BLOCK_SIZE);
 
     /* Here we register our keywords. */
-    _register_keyword(context, "as", LEXER_TOK_KEY_AS);
-    _register_keyword(context, "break", LEXER_TOK_KEY_BREAK);
-    _register_keyword(context, "case", LEXER_TOK_KEY_CASE);
-    _register_keyword(context, "continue", LEXER_TOK_KEY_CONTINUE);
-    _register_keyword(context, "default", LEXER_TOK_KEY_DEFAULT);
-    _register_keyword(context, "do", LEXER_TOK_KEY_DO);
-    _register_keyword(context, "else", LEXER_TOK_KEY_ELSE);
-    _register_keyword(context, "for", LEXER_TOK_KEY_FOR);
-    _register_keyword(context, "if", LEXER_TOK_KEY_IF);
-    _register_keyword(context, "return", LEXER_TOK_KEY_RETURN);
-    _register_keyword(context, "switch", LEXER_TOK_KEY_SWITCH);
-    _register_keyword(context, "var", LEXER_TOK_KEY_VAR);
-    _register_keyword(context, "while", LEXER_TOK_KEY_WHILE);
+    _register_keyword(context, "as", LEXER_SYM_KEY_AS);
+    _register_keyword(context, "break", LEXER_SYM_KEY_BREAK);
+    _register_keyword(context, "case", LEXER_SYM_KEY_CASE);
+    _register_keyword(context, "continue", LEXER_SYM_KEY_CONTINUE);
+    _register_keyword(context, "default", LEXER_SYM_KEY_DEFAULT);
+    _register_keyword(context, "do", LEXER_SYM_KEY_DO);
+    _register_keyword(context, "else", LEXER_SYM_KEY_ELSE);
+    _register_keyword(context, "for", LEXER_SYM_KEY_FOR);
+    _register_keyword(context, "if", LEXER_SYM_KEY_IF);
+    _register_keyword(context, "return", LEXER_SYM_KEY_RETURN);
+    _register_keyword(context, "switch", LEXER_SYM_KEY_SWITCH);
+    _register_keyword(context, "var", LEXER_SYM_KEY_VAR);
+    _register_keyword(context, "while", LEXER_SYM_KEY_WHILE);
 
     /* This is where we dispatch our helper functions for lexing (scanners). */
     while (!_is_end(context)) {
@@ -255,8 +286,8 @@ LexerContext* ii_lexer_context_new(SourceManager* manager)
             while (isalnum(_peek(context)) || _peek(context) == '_') {
                 _advance(context);
             }
-            const struct Record* record = _register_string(context, LEXER_TOK_IDENTIFIER);
-            _push_token(context, record->type, record->text);
+            const LexerSymbol* symbol = _intern_string(context, LEXER_SYM_IDENTIFIER);
+            _push_token_symbol(context, symbol);
             continue;
         }
 
@@ -273,81 +304,81 @@ LexerContext* ii_lexer_context_new(SourceManager* manager)
         }
 
         switch (ch) {
-        /* Single character punctuation */
+        /* Single character punctuation. */
         case '{':
-            _push_token(context, LEXER_TOK_LBRACE, nullptr);
+            _push_token(context, LEXER_TOK_LBRACE);
             break;
         case '}':
-            _push_token(context, LEXER_TOK_RBRACE, nullptr);
+            _push_token(context, LEXER_TOK_RBRACE);
             break;
         case '(':
-            _push_token(context, LEXER_TOK_LPAREN, nullptr);
+            _push_token(context, LEXER_TOK_LPAREN);
             break;
         case ')':
-            _push_token(context, LEXER_TOK_RPAREN, nullptr);
+            _push_token(context, LEXER_TOK_RPAREN);
             break;
         case '[':
-            _push_token(context, LEXER_TOK_LBRACKET, nullptr);
+            _push_token(context, LEXER_TOK_LBRACKET);
             break;
         case ']':
-            _push_token(context, LEXER_TOK_RBRACKET, nullptr);
+            _push_token(context, LEXER_TOK_RBRACKET);
             break;
         case '?':
-            _push_token(context, LEXER_TOK_QUESTION, nullptr);
+            _push_token(context, LEXER_TOK_QUESTION);
             break;
         case ':':
-            _push_token(context, LEXER_TOK_COLON, nullptr);
+            _push_token(context, LEXER_TOK_COLON);
             break;
         case ';':
-            _push_token(context, LEXER_TOK_SEMICOLON, nullptr);
+            _push_token(context, LEXER_TOK_SEMICOLON);
             break;
         case ',':
-            _push_token(context, LEXER_TOK_COMMA, nullptr);
+            _push_token(context, LEXER_TOK_COMMA);
             break;
         case '.':
-            _push_token(context, LEXER_TOK_DOT, nullptr);
+            _push_token(context, LEXER_TOK_DOT);
             break;
         case '$':
-            _push_token(context, LEXER_TOK_DOLLAR, nullptr);
+            _push_token(context, LEXER_TOK_DOLLAR);
             break;
         case '~':
-            _push_token(context, LEXER_TOK_BIT_NOT, nullptr);
+            _push_token(context, LEXER_TOK_BIT_NOT);
             break;
         case '^':
-            _push_token(context, LEXER_TOK_BIT_XOR, nullptr);
+            _push_token(context, LEXER_TOK_BIT_XOR);
             break;
         case '%':
-            _push_token(context, LEXER_TOK_PERCENT, nullptr);
+            _push_token(context, LEXER_TOK_PERCENT);
             break;
 
-        /* Two-character operators. We are using the match() function to make you job easier. */
+        /* Two-character operators. We are using the match() function to make the it easier. */
         case '=':
-            _push_token(context, _match(context, '=') ? LEXER_TOK_EQ : LEXER_TOK_ASSIGN, nullptr);
+            _push_token(context, _match(context, '=') ? LEXER_TOK_EQ : LEXER_TOK_ASSIGN);
             break;
         case '!':
-            _push_token(context, _match(context, '=') ? LEXER_TOK_NEQ : LEXER_TOK_NOT, nullptr);
+            _push_token(context, _match(context, '=') ? LEXER_TOK_NEQ : LEXER_TOK_NOT);
             break;
         case '<':
-            _push_token(context, _match(context, '=') ? LEXER_TOK_LTE : LEXER_TOK_LT, nullptr);
+            _push_token(context, _match(context, '=') ? LEXER_TOK_LTE : LEXER_TOK_LT);
             break;
         case '>':
-            _push_token(context, _match(context, '=') ? LEXER_TOK_GTE : LEXER_TOK_GT, nullptr);
+            _push_token(context, _match(context, '=') ? LEXER_TOK_GTE : LEXER_TOK_GT);
             break;
         case '+':
-            _push_token(context, _match(context, '=') ? LEXER_TOK_PLUS_ASSIGN : LEXER_TOK_PLUS, nullptr);
+            _push_token(context, _match(context, '=') ? LEXER_TOK_PLUS_ASSIGN : LEXER_TOK_PLUS);
             break;
         case '-':
-            _push_token(context, _match(context, '=') ? LEXER_TOK_MINUS_ASSIGN : LEXER_TOK_MINUS, nullptr);
+            _push_token(context, _match(context, '=') ? LEXER_TOK_MINUS_ASSIGN : LEXER_TOK_MINUS);
             break;
         case '*':
-            _push_token(context, _match(context, '=') ? LEXER_TOK_STAR_ASSIGN : LEXER_TOK_STAR, nullptr);
+            _push_token(context, _match(context, '=') ? LEXER_TOK_STAR_ASSIGN : LEXER_TOK_STAR);
             break;
 
         case '&':
-            _push_token(context, _match(context, '&') ? LEXER_TOK_AND : LEXER_TOK_BIT_AND, nullptr);
+            _push_token(context, _match(context, '&') ? LEXER_TOK_AND : LEXER_TOK_BIT_AND);
             break;
         case '|':
-            _push_token(context, _match(context, '|') ? LEXER_TOK_OR : LEXER_TOK_BIT_OR, nullptr);
+            _push_token(context, _match(context, '|') ? LEXER_TOK_OR : LEXER_TOK_BIT_OR);
             break;
 
         case '/':
@@ -370,11 +401,10 @@ LexerContext* ii_lexer_context_new(SourceManager* manager)
                 }
 
                 if _unlikely_ (!terminated) {
-                    _push_token(context, LEXER_TOK_ERROR, "Unterminated multi-line comment");
+                    _push_token_error(context, "Unterminated multi-line comment");
                 }
             } else {
-                _push_token(context, _match(context, '=') ? LEXER_TOK_SLASH_ASSIGN : LEXER_TOK_SLASH,
-                            nullptr);
+                _push_token(context, _match(context, '=') ? LEXER_TOK_SLASH_ASSIGN : LEXER_TOK_SLASH);
             }
             break;
 
@@ -383,14 +413,14 @@ LexerContext* ii_lexer_context_new(SourceManager* manager)
             break;
 
         default:
-            _push_token(context, LEXER_TOK_ERROR, "Unexpected character");
+            _push_token_error(context, "Unexpected character");
             break;
         }
     }
 
     /* EOF token signals that we reached the very end of the file. Good job! */
     context->start_index = context->current_index;
-    _push_token(context, LEXER_TOK_EOF, nullptr);
+    _push_token(context, LEXER_TOK_EOF);
 
     return context;
 }
@@ -402,8 +432,8 @@ void ii_lexer_context_free(LexerContext* context)
     }
 
     uf_con_vector_free(context->tokens);
-    uf_con_map_free(context->string_pool);
-    uf_mem_region_free(context->universal_arena);
+    uf_con_map_free(context->symbol_dictionary);
+    uf_mem_region_free(context->symbol_arena);
 
     uf_mem_free(context);
 }
@@ -431,50 +461,48 @@ const LexerToken* ii_lexer_get_tokens(const LexerContext* context, size_t* out_c
  */
 
 const char* _token_type_to_string[] = {
-    "LEXER_TOK_EOF",          "LEXER_TOK_ERROR",        "LEXER_TOK_IDENTIFIER",  "LEXER_TOK_NUMBER",
-    "LEXER_TOK_STRING",       "LEXER_TOK_KEY_AS",       "LEXER_TOK_KEY_BREAK",   "LEXER_TOK_KEY_CASE",
-    "LEXER_TOK_KEY_CONTINUE", "LEXER_TOK_KEY_DEFAULT",  "LEXER_TOK_KEY_DO",      "LEXER_TOK_KEY_ELSE",
-    "LEXER_TOK_KEY_FOR",      "LEXER_TOK_KEY_IF",       "LEXER_TOK_KEY_RETURN",  "LEXER_TOK_KEY_SWITCH",
-    "LEXER_TOK_KEY_VAR",      "LEXER_TOK_KEY_WHILE",    "LEXER_TOK_LBRACE",      "LEXER_TOK_RBRACE",
-    "LEXER_TOK_LPAREN",       "LEXER_TOK_RPAREN",       "LEXER_TOK_LBRACKET",    "LEXER_TOK_RBRACKET",
-    "LEXER_TOK_QUESTION",     "LEXER_TOK_COLON",        "LEXER_TOK_SEMICOLON",   "LEXER_TOK_COMMA",
-    "LEXER_TOK_DOT",          "LEXER_TOK_DOLLAR",       "LEXER_TOK_ASSIGN",      "LEXER_TOK_PLUS",
-    "LEXER_TOK_MINUS",        "LEXER_TOK_STAR",         "LEXER_TOK_SLASH",       "LEXER_TOK_PERCENT",
-    "LEXER_TOK_PLUS_ASSIGN",  "LEXER_TOK_MINUS_ASSIGN", "LEXER_TOK_STAR_ASSIGN", "LEXER_TOK_SLASH_ASSIGN",
-    "LEXER_TOK_EQ",           "LEXER_TOK_NEQ",          "LEXER_TOK_LT",          "LEXER_TOK_GT",
-    "LEXER_TOK_LTE",          "LEXER_TOK_GTE",          "LEXER_TOK_AND",         "LEXER_TOK_OR",
-    "LEXER_TOK_NOT",          "LEXER_TOK_BIT_AND",      "LEXER_TOK_BIT_OR",      "LEXER_TOK_BIT_XOR",
-    "LEXER_TOK_BIT_NOT",
+    "LEXER_TOK_EOF",          "LEXER_TOK_ERROR",       "LEXER_TOK_SYMBOL",       "LEXER_TOK_LBRACE",
+    "LEXER_TOK_RBRACE",       "LEXER_TOK_LPAREN",      "LEXER_TOK_RPAREN",       "LEXER_TOK_LBRACKET",
+    "LEXER_TOK_RBRACKET",     "LEXER_TOK_QUESTION",    "LEXER_TOK_COLON",        "LEXER_TOK_SEMICOLON",
+    "LEXER_TOK_COMMA",        "LEXER_TOK_DOT",         "LEXER_TOK_DOLLAR",       "LEXER_TOK_ASSIGN",
+    "LEXER_TOK_PLUS",         "LEXER_TOK_MINUS",       "LEXER_TOK_STAR",         "LEXER_TOK_SLASH",
+    "LEXER_TOK_PERCENT",      "LEXER_TOK_PLUS_ASSIGN", "LEXER_TOK_MINUS_ASSIGN", "LEXER_TOK_STAR_ASSIGN",
+    "LEXER_TOK_SLASH_ASSIGN", "LEXER_TOK_EQ",          "LEXER_TOK_NEQ",          "LEXER_TOK_LT",
+    "LEXER_TOK_GT",           "LEXER_TOK_LTE",         "LEXER_TOK_GTE",          "LEXER_TOK_AND",
+    "LEXER_TOK_OR",           "LEXER_TOK_NOT",         "LEXER_TOK_BIT_AND",      "LEXER_TOK_BIT_OR",
+    "LEXER_TOK_BIT_XOR",      "LEXER_TOK_BIT_NOT",
 };
 
 void ii_lexer_print_debug(const LexerContext* context)
 {
     size_t token_count = 0;
-    const struct LexerToken* tokens = ii_lexer_get_tokens(context, &token_count);
+    const LexerToken* tokens = ii_lexer_get_tokens(context, &token_count);
 
     for (size_t j = 0; j < token_count; j++) {
-        const struct LexerToken* token = &tokens[j];
+        const LexerToken* token = &tokens[j];
         SourceLocation locaction = ii_src_resolve_location(context->source_manager, token->offset);
 
-        printf("[%3u:%-3u] %6u:%-3u  %-24s", locaction.line, locaction.column, token->offset, token->length,
-               _token_type_to_string[token->type]);
+        printf("\e[1;%im[%3u:%-3u]\e[%im  %s", UF_COLOR_BLACK_LIGHT, locaction.line, locaction.column,
+               UF_COLOR_RESET, _token_type_to_string[token->type]);
 
-        if (token->text) {
-            if (token->type == LEXER_TOK_STRING) {
-                printf("\"%s\"\n", token->text);
-            } else if (token->type == LEXER_TOK_ERROR) {
-                printf("\e[1;%im%s\e[%im\n", UF_COLOR_RED, token->text, UF_COLOR_RESET);
-            } else {
-                printf("%s\n", token->text);
+        if (token->type == LEXER_TOK_SYMBOL) {
+            switch (token->symbol->type) {
+            case LEXER_SYM_IDENTIFIER:
+                printf(" -> \e[1;%im%s", UF_COLOR_WHITE_LIGHT, token->symbol->text);
+                break;
+            case LEXER_SYM_NUMBER:
+                printf(" -> \e[1;%im%s", UF_COLOR_YELLOW_LIGHT, token->symbol->text);
+                break;
+            case LEXER_SYM_STRING:
+                printf(" -> \e[1;%im\"%s\"", UF_COLOR_GREEN_LIGHT, token->symbol->text);
+                break;
+            default:
+                printf(" -> \e[1;%im%s", UF_COLOR_BLUE_LIGHT, token->symbol->text);
             }
-        } else {
-            putchar('\n');
+        } else if (token->type == LEXER_TOK_ERROR) {
+            printf("\e[1;%im%s", UF_COLOR_RED_LIGHT, token->error_message);
         }
 
-        if (token->type == LEXER_TOK_EOF) {
-            break;
-        }
+        printf("\e[%im\n", UF_COLOR_RESET);
     }
-
-    uf_log_debug("Total Tokens: %zu", token_count);
 }
