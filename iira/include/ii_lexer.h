@@ -5,6 +5,7 @@
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
+#include "ii_source_manager.h"
 #include "uf_common.h"
 
 #include <stdbool.h>
@@ -85,12 +86,11 @@ struct LexerToken {
 
 typedef struct LexerContext LexerContext;
 
-LexerContext* ii_lexer_context_new(const char* filepath) _nodiscard_;
+LexerContext* ii_lexer_context_new(SourceManager*) _nodiscard_;
 void ii_lexer_context_free(LexerContext*);
 void ii_lexer_context_freep(LexerContext**);
 #define _autolexer_ _cleanup_(ii_lexer_context_freep)
 
 const struct LexerToken* ii_lexer_get_tokens(const LexerContext*, size_t* out_count) _nodiscard_;
-void ii_lexer_get_line_col(const LexerContext*, uint32_t offset, uint32_t* out_line, uint32_t* out_column);
 
 void ii_lexer_print_debug(const LexerContext*); /* Can be enabled by a flag */

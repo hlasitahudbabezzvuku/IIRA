@@ -3,20 +3,15 @@
  **/
 
 #include "ii_lexer.h"
-
+#include "ii_source_manager.h"
 #include "uf_common.h"
 #include "uf_containers.h"
 #include "uf_logger.h"
 #include "uf_memory.h"
 
 #include <ctype.h>
-#include <fcntl.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 #define LEXER_ARENA_BLOCK_SIZE (64 * 1024) /* 64 kilobytes blocks for strings */
 #define LEXER_MAX_IDENTIFIER 256           /* Max size for stack-based fast interning */
@@ -25,13 +20,12 @@
 #define IS_INDENT_PART(ch) (isalnum(ch) || ch == '_')
 
 struct LexerContext {
-    int file_descriptor;
-    size_t file_size;
+    SourceManager* source_manager;
     const char* file_buffer;
+    size_t file_size;
 
-    UfMemRegion* arena;
+    UfMemRegion* universal_arena;
     UfConVector* tokens;
-    UfConVector* lines;
     UfConMap* string_pool;
 
     uint32_t current_index;
@@ -52,7 +46,7 @@ static void _push_token(LexerContext* context, enum LexerTokenType type, const c
 
 static void _register_keyword(LexerContext* context, const char* keyword, enum LexerTokenType type)
 {
-    struct Record* record = uf_mem_region_alloc(context->arena, sizeof(struct Record));
+    struct Record* record = uf_mem_region_alloc(context->universal_arena, sizeof(struct Record));
     record->type = type;
     record->text = keyword;
 
@@ -73,7 +67,7 @@ static const struct Record* _register_string(LexerContext* context, enum LexerTo
         stack_buf[length] = '\0';
         search_str = stack_buf;
     } else {
-        search_str = uf_mem_region_alloc(context->arena, length + 1);
+        search_str = uf_mem_region_alloc(context->universal_arena, length + 1);
         memcpy(search_str, raw, length);
         search_str[length] = '\0';
     }
@@ -83,12 +77,12 @@ static const struct Record* _register_string(LexerContext* context, enum LexerTo
         return existing;
     }
 
-    char* final_str = fits_in_stack ? uf_mem_region_alloc(context->arena, length + 1) : search_str;
+    char* final_str = fits_in_stack ? uf_mem_region_alloc(context->universal_arena, length + 1) : search_str;
     if (fits_in_stack) {
         memcpy(final_str, search_str, length + 1);
     }
 
-    struct Record* record = uf_mem_region_alloc(context->arena, sizeof(struct Record));
+    struct Record* record = uf_mem_region_alloc(context->universal_arena, sizeof(struct Record));
     record->type = fallback_type;
     record->text = final_str;
 
@@ -127,8 +121,7 @@ static inline char _advance(LexerContext* context)
 {
     char ch = context->file_buffer[context->current_index++];
     if _unlikely_ (ch == '\n') {
-        uint32_t next_line_offset = context->current_index;
-        uf_con_vector_push(context->lines, &next_line_offset);
+        ii_src_add_newline(context->source_manager, context->current_index);
     }
 
     return ch;
@@ -223,34 +216,15 @@ static void _scan_string(LexerContext* context)
 }
 
 /* This is the main Lexer pipeline. It uses dispatcher functions for more readable logic flow. */
-LexerContext* ii_lexer_context_new(const char* filepath)
+LexerContext* ii_lexer_context_new(SourceManager* manager)
 {
-    int file_descriptor = open(filepath, O_RDONLY);
-    if (file_descriptor < 0) {
-        return nullptr;
-    }
-
-    struct stat file_stat;
-    if (fstat(file_descriptor, &file_stat) < 0 || !S_ISREG(file_stat.st_mode) || file_stat.st_size == 0) {
-        close(file_descriptor);
-        return nullptr;
-    }
-
-    size_t file_size = (size_t)file_stat.st_size;
-    const char* map = mmap(nullptr, file_size, PROT_READ, MAP_PRIVATE, file_descriptor, 0);
-    if (map == MAP_FAILED) {
-        close(file_descriptor);
-        return nullptr;
-    }
-
     LexerContext* context = uf_mem_zalloc(sizeof(LexerContext));
-    context->file_descriptor = file_descriptor;
-    context->file_size = file_size;
-    context->file_buffer = map;
+    context->source_manager = manager;
+    context->file_buffer = ii_src_get_buffer(manager);
+    context->file_size = ii_src_get_size(manager);
 
-    context->arena = uf_mem_region_new(LEXER_ARENA_BLOCK_SIZE);
+    context->universal_arena = uf_mem_region_new(LEXER_ARENA_BLOCK_SIZE);
     context->tokens = uf_con_vector_new(sizeof(struct LexerToken));
-    context->lines = uf_con_vector_new(sizeof(uint32_t));
     context->string_pool = uf_con_map_new();
 
     /* Here we register our keywords. */
@@ -267,9 +241,6 @@ LexerContext* ii_lexer_context_new(const char* filepath)
     _register_keyword(context, "switch", LEXER_TOK_KEY_SWITCH);
     _register_keyword(context, "var", LEXER_TOK_KEY_VAR);
     _register_keyword(context, "while", LEXER_TOK_KEY_WHILE);
-
-    /* Bootstrapping the line counter (first line at byte 0) */
-    uf_con_vector_push(context->lines, &(uint32_t){0});
 
     /* This is where we dispatch our helper functions for lexing (scanners). */
     while (!_is_end(context)) {
@@ -430,18 +401,9 @@ void ii_lexer_context_free(LexerContext* context)
         return;
     }
 
-    if (context->file_buffer != nullptr && context->file_size > 0) {
-        munmap((void*)context->file_buffer, context->file_size);
-    }
-
-    if (context->file_descriptor >= 0) {
-        close(context->file_descriptor);
-    }
-
     uf_con_vector_free(context->tokens);
-    uf_con_vector_free(context->lines);
     uf_con_map_free(context->string_pool);
-    uf_mem_region_free(context->arena);
+    uf_mem_region_free(context->universal_arena);
 
     uf_mem_free(context);
 }
@@ -461,50 +423,6 @@ const LexerToken* ii_lexer_get_tokens(const LexerContext* context, size_t* out_c
     }
 
     return (const LexerToken*)uf_con_vector_get(context->tokens, 0);
-}
-
-void ii_lexer_get_line_col(const LexerContext* context, uint32_t offset, uint32_t* out_line,
-                        uint32_t* out_column)
-{
-    size_t lines = uf_con_vector_length(context->lines);
-    if (lines == 0) {
-        if (out_line)
-            *out_line = 1;
-        if (out_column)
-            *out_column = 1;
-        return;
-    }
-
-    /*
-     * We are using binary search to find the correct line we are on. It's really the fastest way to search
-     * through a sorted set. You can read more about it here: https://en.wikipedia.org/wiki/Binary_search.
-     */
-    size_t low = 0;
-    size_t high = lines - 1;
-    size_t match_index = 0;
-
-    while (low <= high) {
-        size_t mid = low + (high - low) / 2;
-        uint32_t line_index = *(const uint32_t*)uf_con_vector_get(context->lines, mid);
-
-        if (line_index <= offset) {
-            match_index = mid;
-            low = mid + 1;
-        } else {
-            if (mid == 0)
-                break;
-            high = mid - 1;
-        }
-    }
-
-    if (out_line) {
-        *out_line = (uint32_t)(match_index + 1);
-    }
-
-    if (out_column) {
-        uint32_t line_start = *(const uint32_t*)uf_con_vector_get(context->lines, match_index);
-        *out_column = (offset - line_start) + 1;
-    }
 }
 
 /*
@@ -536,12 +454,9 @@ void ii_lexer_print_debug(const LexerContext* context)
 
     for (size_t j = 0; j < token_count; j++) {
         const struct LexerToken* token = &tokens[j];
+        SourceLocation locaction = ii_src_resolve_location(context->source_manager, token->offset);
 
-        uint32_t line = 0;
-        uint32_t column = 0;
-        ii_lexer_get_line_col(context, token->offset, &line, &column);
-
-        printf("[%3u:%-3u] %6u:%-3u  %-24s", line, column, token->offset, token->length,
+        printf("[%3u:%-3u] %6u:%-3u  %-24s", locaction.line, locaction.column, token->offset, token->length,
                _token_type_to_string[token->type]);
 
         if (token->text) {
