@@ -11,28 +11,28 @@
 
 > *"Hey you, you're finally awake. You were trying to cross the border into Compiler Development, right?"*
 
-Hi, I'm František Lednický and this is IIRA. A programming language built by a students, for students.
+Hi, I'm František Lednický and this is IIRA. A programming language built by students, for students.
 
 > [!note]
 > Right now, this is a "solo" project. It's just me working on it.
 
-The goal is to create something that other students can dive into to see how compilers work. Most modern compilers are massive behemoths that take 40 minutes just to compile. IIRA on the other hand doesn't aim to be like C++, Rust, Zig, or Carbon. It's meant to be used for learning how compilers for such languages work by building their younger, **more approachable** sibling.
+The goal is to create something that other students can dive into to see how compilers work. Most modern compilers are massive behemoths that take 40 minutes just to compile. IIRA, on the other hand, doesn't aim to be like C++, Rust, Zig, or Carbon. It's meant to be used for learning how compilers for such languages work by building their younger, **more approachable** sibling.
 
 > [!warning]
-> While I am excited to share my progress, please note that IIRA is its very **early stages**. I welcome early feedback and discussions, but I recommend against using IIRA for anything beyond simple experimentation. If you find a bug or have a suggestion, feel free to open an issue.
+> While I am excited to share my progress, please note that IIRA is in its very **early stages**. I welcome early feedback and discussions, but I recommend against using IIRA for anything beyond simple experimentation. If you find a bug or have a suggestion, feel free to open an issue.
 
 
 <br><h2>Design</h2>
 
 > *"A human's concept of love requires admiration, attraction, devotion, and respect. Conclusion; I am 50% in Love."*
 
-*TODO: Simple Design Document for the IIRA's philosophy and syntax.*
+*TODO: Simple Design Document for IIRA's philosophy and syntax.*
 
 
 <br><h2>Architecture</h2>
 
 Standard compiler architecture looks something like this:
-```
+```text
            ------------     -----------     -------------     ----------
 source --> | frontend | --> | backend | --> | assembler | --> | linker | --> a.out
            ------------     -----------     -------------     ----------
@@ -40,13 +40,13 @@ source --> | frontend | --> | backend | --> | assembler | --> | linker | --> a.o
                        qbe il         assembly           object
 ```
 
-The frontend is responsible for parsing the language and constructing a machine-independent **Intermediate Representation (IR)** represented in **Intermediate Language (IL)**. The backend then optimizes this IR, and turns it into compilable machine-specific assembly.
+The frontend is responsible for parsing the language and constructing a machine-independent **Intermediate Representation (IR)** represented in **Intermediate Language (IL)**. The backend then optimizes this IR and turns it into compilable, machine-specific assembly.
 
 > [!note]
-> IIRA uses [QBE](https://c9x.me/compile/docs.html) as it's backend, which means that we can focus **purely** onto building the frontend.
+> IIRA uses [QBE](https://c9x.me/compile/docs.html) as its backend, which means that we can focus **purely** on building the frontend.
 
 IIRA's frontend architecture looks like this:
-```
+```text
                 ---------     -----------     ----------------------     -----------------     --------------
 source.iira --> | lexer | --> | pareser | --> | semantics analyzer | --> | graph builder | --> | il emitter | --> source.qbe
                 ---------     -----------     ----------------------     -----------------     --------------
@@ -70,7 +70,7 @@ There are three projects in this repository (for now):
 **unfinity** includes:
 - *uf_common* - Common functionality used across other modules
 - *uf_memory* - Wrappers for standard memory allocation/deallocation functions
-- *uf_logger* - Simple logging module designed for printing to terminal
+- *uf_logger* - Simple logging module designed for printing to the terminal
 - *uf_containers* - Container structures for efficient data handling
 
 **iira** includes:
@@ -81,13 +81,13 @@ There are three projects in this repository (for now):
 - *iic_arguments* - Argument parsing
 - TODO
 
-> [!important]
-> IIRA uses [Xmake](https://xmake.io/) as the main build system. You have to install it first via you package manager.
+>[!important]
+> IIRA uses [Xmake](https://xmake.io/) as the main build system. You have to install it first via your package manager.
 
 
 <br><h2>Contribute</h2>
 
-Anyone regardless of experience can join. Whether you want to fix a typo in the docs, optimize a semantics analyzer pass, or design a new module, you are **welcome** here.
+Anyone, regardless of experience, can join. Whether you want to fix a typo in the docs, optimize a semantic analyzer pass, or design a new module, you are **welcome** here.
 
 But before you open a Pull Request:
 - Check the **issues**. I don't want to end up with two people trying to kill the same boss.
