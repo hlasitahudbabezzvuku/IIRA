@@ -7,6 +7,7 @@
  **/
 
 #include "ii_lexer.h"
+#include "ii_source_manager.h"
 #include "iic_arguments.h"
 #include "uf_containers.h"
 #include "uf_logger.h"
@@ -42,22 +43,28 @@ int main(const int argc, const char* argv[])
     }
 
     for (size_t i = 0; i < input_files_count; i++) {
-        const char* filepath = *(const char**)uf_con_vector_get(input_files, i);
-        uf_log_info("Starting: %s", filepath);
+        const char* file_path = *(const char**)uf_con_vector_get(input_files, i);
+        uf_log_info("Starting compilation: %s", file_path);
 
-        uf_log_debug("Lexing...");
+        uf_log_debug("Creating SourceManager for file '%s'", file_path);
+        _autosrc_ SourceManager* source_manager = ii_src_manager_new(file_path);
+        if (!source_manager) {
+            uf_log_err("Could not open file '%s'", file_path);
+            continue;
+        }
 
-        _autolexer_ LexerContext* context = ii_lexer_context_new(filepath);
-        if (!context) {
-            uf_log_err("Could not open or process file '%s'", filepath);
+        uf_log_debug("Creating LexerContext for file '%s'", file_path);
+        _autolexer_ LexerContext* lexer_context = ii_lexer_context_new(source_manager);
+        if (!lexer_context) {
+            uf_log_err("Lexer could not process file '%s'", file_path);
             continue;
         }
 
         if (config.show_lexer_output) {
-            ii_lexer_print_debug(context);
+            ii_lexer_print_debug(lexer_context);
         }
 
-        uf_log_info("Finished: %s", filepath);
+        uf_log_info("Compilation finished: %s", file_path);
     }
 
     return EXIT_SUCCESS;
