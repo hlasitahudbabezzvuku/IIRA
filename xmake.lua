@@ -23,16 +23,23 @@ else
 end
 
 target("unfinity", function()
-    set_kind("$(kind)")
+    set_kind("shared")
     add_includedirs("unfinity/include", { public = true })
     add_files("unfinity/source/*.c")
+end)
+
+target("iira", function()
+    set_kind("shared")
+    add_deps("unfinity")
+    add_includedirs("iira/include", { public = true })
+    add_files("iira/source/*.c")
 end)
 
 target("iirac", function()
     set_kind("binary")
     set_default(true)
-    add_deps("unfinity")
-    add_includedirs("iirac/include")
+    add_deps("unfinity", "iira")
+    add_includedirs("iirac/include", { private = true })
     add_files("iirac/source/*.c")
     on_load(function(target)
         target:add("defines", "PROJECT_NAME=\"" .. target:name() .. "\"")
