@@ -2,19 +2,19 @@
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
-#include "arguments.h"
+#include "iic_arguments.h"
 #include "uf_logger.h"
 
 #include <stdio.h>
 #include <string.h>
 
-void arg_print_usage()
+void iic_arg_print_usage()
 {
     puts("Usage: iirac [OPTIONS] <file1> [file2 ...]");
     puts("Options:");
 
     for (size_t i = 0; i < flags_count; i++) {
-        const Flag* opt = &default_flags[i];
+        const CompilerFlag* opt = &default_flags[i];
 
         char short_str_buffer[8] = "    ";
         if (opt->short_name != '\0') {
@@ -30,12 +30,12 @@ void arg_print_usage()
     putchar('\n');
 }
 
-void arg_print_version()
+void iic_arg_print_version()
 {
     printf("%s version %s - %s\n", PROJECT_NAME, PROJECT_VERSION, __DATE__);
 }
 
-bool arg_process(const Config* config, const int argc, const char* argv[], UfConVector* input_files)
+bool iic_arg_process(const CompilerConfig* config, const int argc, const char* argv[], UfConVector* input_files)
 {
     for (int i = 1; i < argc; i++) {
         const char* argument = argv[i];
@@ -47,7 +47,7 @@ bool arg_process(const Config* config, const int argc, const char* argv[], UfCon
             bool matched = false;
 
             for (size_t j = 0; j < flags_count; j++) {
-                const Flag* flag = &default_flags[j];
+                const CompilerFlag* flag = &default_flags[j];
 
                 /* Match long or short name */
                 if ((is_long && strcmp(flag_name, flag->long_name) == 0) ||
@@ -71,12 +71,12 @@ bool arg_process(const Config* config, const int argc, const char* argv[], UfCon
                         break;
 
                     case FLAG_HELP:
-                        arg_print_usage();
+                        iic_arg_print_usage();
                         exit(EXIT_SUCCESS);
                         break;
 
                     case FLAG_VERSION:
-                        arg_print_version();
+                        iic_arg_print_version();
                         exit(EXIT_SUCCESS);
                         break;
                     }

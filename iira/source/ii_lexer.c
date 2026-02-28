@@ -2,7 +2,7 @@
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
-#include "lexer.h"
+#include "ii_lexer.h"
 
 #include "uf_common.h"
 #include "uf_containers.h"
@@ -223,7 +223,7 @@ static void _scan_string(LexerContext* context)
 }
 
 /* This is the main Lexer pipeline. It uses dispatcher functions for more readable logic flow. */
-LexerContext* lexer_context_new(const char* filepath)
+LexerContext* ii_lexer_context_new(const char* filepath)
 {
     int file_descriptor = open(filepath, O_RDONLY);
     if (file_descriptor < 0) {
@@ -424,7 +424,7 @@ LexerContext* lexer_context_new(const char* filepath)
     return context;
 }
 
-void lexer_context_free(LexerContext* context)
+void ii_lexer_context_free(LexerContext* context)
 {
     if (context == nullptr) {
         return;
@@ -446,15 +446,15 @@ void lexer_context_free(LexerContext* context)
     uf_mem_free(context);
 }
 
-void lexer_context_freep(LexerContext** context_ptr)
+void ii_lexer_context_freep(LexerContext** context_ptr)
 {
     if (context_ptr && *context_ptr) {
-        lexer_context_free(*context_ptr);
+        ii_lexer_context_free(*context_ptr);
         *context_ptr = nullptr;
     }
 }
 
-const LexerToken* lexer_get_tokens(const LexerContext* context, size_t* out_count)
+const LexerToken* ii_lexer_get_tokens(const LexerContext* context, size_t* out_count)
 {
     if (out_count) {
         *out_count = uf_con_vector_length(context->tokens);
@@ -463,15 +463,15 @@ const LexerToken* lexer_get_tokens(const LexerContext* context, size_t* out_coun
     return (const LexerToken*)uf_con_vector_get(context->tokens, 0);
 }
 
-void lexer_get_line_col(const LexerContext* context, uint32_t byte_offset, uint32_t* out_line,
-                        uint32_t* out_col)
+void ii_lexer_get_line_col(const LexerContext* context, uint32_t offset, uint32_t* out_line,
+                        uint32_t* out_column)
 {
     size_t lines = uf_con_vector_length(context->lines);
     if (lines == 0) {
         if (out_line)
             *out_line = 1;
-        if (out_col)
-            *out_col = 1;
+        if (out_column)
+            *out_column = 1;
         return;
     }
 
@@ -487,7 +487,7 @@ void lexer_get_line_col(const LexerContext* context, uint32_t byte_offset, uint3
         size_t mid = low + (high - low) / 2;
         uint32_t line_index = *(const uint32_t*)uf_con_vector_get(context->lines, mid);
 
-        if (line_index <= byte_offset) {
+        if (line_index <= offset) {
             match_index = mid;
             low = mid + 1;
         } else {
@@ -501,9 +501,9 @@ void lexer_get_line_col(const LexerContext* context, uint32_t byte_offset, uint3
         *out_line = (uint32_t)(match_index + 1);
     }
 
-    if (out_col) {
+    if (out_column) {
         uint32_t line_start = *(const uint32_t*)uf_con_vector_get(context->lines, match_index);
-        *out_col = (byte_offset - line_start) + 1;
+        *out_column = (offset - line_start) + 1;
     }
 }
 
@@ -529,19 +529,19 @@ const char* _token_type_to_string[] = {
     "LEXER_TOK_BIT_NOT",
 };
 
-void lexer_print_debug(const LexerContext* context)
+void ii_lexer_print_debug(const LexerContext* context)
 {
     size_t token_count = 0;
-    const struct LexerToken* tokens = lexer_get_tokens(context, &token_count);
+    const struct LexerToken* tokens = ii_lexer_get_tokens(context, &token_count);
 
     for (size_t j = 0; j < token_count; j++) {
         const struct LexerToken* token = &tokens[j];
 
         uint32_t line = 0;
         uint32_t column = 0;
-        lexer_get_line_col(context, token->byte_offset, &line, &column);
+        ii_lexer_get_line_col(context, token->offset, &line, &column);
 
-        printf("[%3u:%-3u] %6u:%-3u  %-24s", line, column, token->byte_offset, token->length,
+        printf("[%3u:%-3u] %6u:%-3u  %-24s", line, column, token->offset, token->length,
                _token_type_to_string[token->type]);
 
         if (token->text) {

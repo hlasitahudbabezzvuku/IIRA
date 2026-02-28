@@ -6,6 +6,7 @@
  **/
 
 #include "uf_containers.h"
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -17,8 +18,8 @@ enum FlagType {
     FLAG_VERSION, /* Special flag to print version */
 };
 
-typedef struct Flag Flag;
-struct Flag {
+typedef struct CompilerFlag CompilerFlag;
+struct CompilerFlag {
     enum FlagType type;
     const char* long_name;
     char short_name;
@@ -26,16 +27,18 @@ struct Flag {
     size_t config_field_offset;
 };
 
-typedef struct Config Config;
-struct Config {
+typedef struct CompilerConfig CompilerConfig;
+struct CompilerConfig {
     bool no_warn;
     bool verbose;
     bool debug;
+    const char* output_file;
+    const char* max_errors;
     bool show_lexer_output;
     bool show_parser_output;
 };
 
-static const Flag default_flags[] = {
+static const CompilerFlag default_flags[] = {
     {
         .type = FLAG_HELP,
         .long_name = "help",
@@ -55,40 +58,54 @@ static const Flag default_flags[] = {
         .long_name = "no-warn",
         .short_name = 's',
         .description = "Suppress all compilation warnings",
-        .config_field_offset = offsetof(Config, no_warn),
+        .config_field_offset = offsetof(CompilerConfig, no_warn),
     },
     {
         .type = FLAG_SET,
         .long_name = "verbose",
         .short_name = 0,
         .description = "Enable more descriptive output (overrides the --no-warn flag)",
-        .config_field_offset = offsetof(Config, verbose),
+        .config_field_offset = offsetof(CompilerConfig, verbose),
     },
     {
         .type = FLAG_SET,
         .long_name = "debug",
         .short_name = 0,
         .description = "Enable debug output (overrides the --verbrose flag)",
-        .config_field_offset = offsetof(Config, debug),
+        .config_field_offset = offsetof(CompilerConfig, debug),
+    },
+    {
+        .type = FLAG_CONSUME,
+        .long_name = "output",
+        .short_name = 'o',
+        .description = "Specify the output name (without suffix)",
+        .config_field_offset = offsetof(CompilerConfig, output_file),
+    },
+    {
+        .type = FLAG_CONSUME,
+        .long_name = "max-errors",
+        .short_name = 0,
+        .description = "Specify the maximum number of errors before exiting",
+        .config_field_offset = offsetof(CompilerConfig, max_errors),
     },
     {
         .type = FLAG_SET,
         .long_name = "show-lexer-output",
         .short_name = 0,
         .description = "Print the generated tokens and spatial data to standard output",
-        .config_field_offset = offsetof(Config, show_lexer_output),
+        .config_field_offset = offsetof(CompilerConfig, show_lexer_output),
     },
     {
         .type = FLAG_SET,
         .long_name = "show-parser-output",
         .short_name = 0,
         .description = "Print the parsed AST to standard output",
-        .config_field_offset = offsetof(Config, show_parser_output),
+        .config_field_offset = offsetof(CompilerConfig, show_parser_output),
     },
 };
 
 static const size_t flags_count = sizeof(default_flags) / sizeof(default_flags[0]);
 
-void arg_print_usage();
-void arg_print_version();
-bool arg_process(const Config*, const int32_t argc, const char* argv[], UfConVector* input_files);
+void iic_arg_print_usage();
+void iic_arg_print_version();
+bool iic_arg_process(const CompilerConfig*, const int32_t argc, const char* argv[], UfConVector* input_files);

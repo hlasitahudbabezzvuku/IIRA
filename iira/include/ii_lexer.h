@@ -78,19 +78,19 @@ enum LexerTokenType {
 typedef struct LexerToken LexerToken;
 struct LexerToken {
     enum LexerTokenType type;
-    uint32_t byte_offset;
+    uint32_t offset;
     uint32_t length;
     const char* text; /* Pointer to region-backed deduplicated string that gives us O(1) comparison. */
 };
 
 typedef struct LexerContext LexerContext;
 
-LexerContext* lexer_context_new(const char* filepath) _nodiscard_;
-void lexer_context_free(LexerContext* ctx);
-void lexer_context_freep(LexerContext** ctx_ptr);
-#define _autolexer_ _cleanup_(lexer_context_freep)
+LexerContext* ii_lexer_context_new(const char* filepath) _nodiscard_;
+void ii_lexer_context_free(LexerContext*);
+void ii_lexer_context_freep(LexerContext**);
+#define _autolexer_ _cleanup_(ii_lexer_context_freep)
 
-const struct LexerToken* lexer_get_tokens(const LexerContext*, size_t* out_count) _nodiscard_;
-void lexer_get_line_col(const LexerContext*, uint32_t byte_offset, uint32_t* out_line, uint32_t* out_col);
+const struct LexerToken* ii_lexer_get_tokens(const LexerContext*, size_t* out_count) _nodiscard_;
+void ii_lexer_get_line_col(const LexerContext*, uint32_t offset, uint32_t* out_line, uint32_t* out_column);
 
-void lexer_print_debug(const LexerContext*); /* Can be enabled by a compiler flag */
+void ii_lexer_print_debug(const LexerContext*); /* Can be enabled by a flag */

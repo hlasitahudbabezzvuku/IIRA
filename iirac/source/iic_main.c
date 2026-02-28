@@ -6,18 +6,19 @@
  * @author: Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
-#include "arguments.h"
-#include "lexer.h"
+#include "ii_lexer.h"
+#include "iic_arguments.h"
 #include "uf_containers.h"
 #include "uf_logger.h"
+
 #include <stdio.h>
 
 int main(const int argc, const char* argv[])
 {
-    Config config = {};
+    CompilerConfig config = {};
     _autovector_ UfConVector* input_files = uf_con_vector_new(sizeof(const char*));
 
-    if (!arg_process(&config, argc, argv, input_files)) {
+    if (!iic_arg_process(&config, argc, argv, input_files)) {
         return EXIT_FAILURE;
     }
 
@@ -36,7 +37,7 @@ int main(const int argc, const char* argv[])
     size_t input_files_count = uf_con_vector_length(input_files);
     if (!input_files_count) {
         uf_log_err("No input files provided");
-        arg_print_usage();
+        iic_arg_print_usage();
         return EXIT_FAILURE;
     }
 
@@ -46,14 +47,14 @@ int main(const int argc, const char* argv[])
 
         uf_log_debug("Lexing...");
 
-        _autolexer_ LexerContext* context = lexer_context_new(filepath);
+        _autolexer_ LexerContext* context = ii_lexer_context_new(filepath);
         if (!context) {
             uf_log_err("Could not open or process file '%s'", filepath);
             continue;
         }
 
         if (config.show_lexer_output) {
-            lexer_print_debug(context);
+            ii_lexer_print_debug(context);
         }
 
         uf_log_info("Finished: %s", filepath);
