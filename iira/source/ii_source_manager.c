@@ -92,3 +92,78 @@ size_t ii_src_get_size(const struct SourceManager* manager)
     return manager->file_size;
 }
 
+void ii_src_add_newline(SourceManager* manager, uint32_t offset)
+{
+    uint32_t next_line_start;
+    if (ckd_add(&next_line_start, offset, 1)) {
+        uf_log_panic("Source buffer offset arithmetic overflowed");
+    }
+
+    uf_con_vector_push(manager->newline_offsets, &next_line_start);
+}
+
+SourceLocation ii_src_resolve_location(const SourceManager* manager, uint32_t offset)
+{
+    SourceLocation location = {.line = 1, .column = 1};
+
+    size_t line_count = uf_con_vector_length(manager->newline_offsets);
+    if _unlikely_ (line_count == 0) {
+        return location;
+    }
+
+    /*
+     * We are using binary search to find the correct line we are on. It's really the fastest way to search
+     * through a sorted set. You can read more about it here: https://en.wikipedia.org/wiki/Binary_search.
+     */
+    size_t low = 0;
+    size_t high = line_count - 1;
+    size_t best_match = 0;
+
+    while (low <= high) {
+        size_t mid = low + (high - low) / 2;
+        const uint32_t* mid_offset = uf_con_vector_get(manager->newline_offsets, mid);
+
+        if (*mid_offset <= offset) {
+            best_match = mid;
+            low = mid + 1;
+        } else {
+            if (mid == 0)
+                break;
+            high = mid - 1;
+        }
+    }
+
+    const uint32_t* line_start = uf_con_vector_get(manager->newline_offsets, best_match);
+
+    location.line = (uint32_t)(best_match + 1);
+    location.column = (offset - *line_start) + 1;
+
+    return location;
+}
+
+const char* ii_src_resolve_line_bounds(const SourceManager* manager, uint32_t line, size_t* out_length)
+{
+    size_t line_count = uf_con_vector_length(manager->newline_offsets);
+    if (line == 0 || line > line_count) {
+        *out_length = 0;
+        return nullptr;
+    }
+
+    const uint32_t* start_offset = uf_con_vector_get(manager->newline_offsets, line - 1);
+    const char* line_ptr = manager->file_buffer + *start_offset;
+
+    uint32_t end_offset = (uint32_t)manager->file_size;
+    if (line < line_count) {
+        const uint32_t* next_offset = uf_con_vector_get(manager->newline_offsets, line);
+        end_offset = *next_offset - 1;
+    }
+
+    *out_length = (end_offset > *start_offset) ? (end_offset - *start_offset) : 0;
+
+    /* Yeah... I love Windows... */
+    if (*out_length > 0 && line_ptr[*out_length - 1] == '\r') {
+        *out_length -= 1;
+    }
+
+    return line_ptr;
+}
