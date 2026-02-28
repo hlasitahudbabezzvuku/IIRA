@@ -13,11 +13,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define LEXER_ARENA_BLOCK_SIZE (64 * 1024) /* 64 kilobytes blocks for strings */
-#define LEXER_MAX_IDENTIFIER 256           /* Max size for stack-based fast interning */
-
-#define IS_INDENT_START(ch) (isalpha(ch) || ch == '_')
-#define IS_INDENT_PART(ch) (isalnum(ch) || ch == '_')
+#define ARENA_BLOCK_SIZE (4 * 1024) /* 4 kilobytes blocks for strings */
+#define MAX_IDENTIFIER 256          /* Max size for stack-based fast interning */
 
 struct LexerContext {
     SourceManager* source_manager;
@@ -41,8 +38,11 @@ static inline void _push_token(LexerContext* context, enum LexerTokenType type)
 {
     LexerToken token = {
         .type = type,
-        .offset = context->start_index,
-        .length = context->current_index - context->start_index,
+        .span =
+            {
+                .offset = context->start_index,
+                .length = context->current_index - context->start_index,
+            },
         .symbol = nullptr,
     };
     uf_con_vector_push(context->tokens, &token);
@@ -52,8 +52,11 @@ static inline void _push_token_symbol(LexerContext* context, const LexerSymbol* 
 {
     LexerToken token = {
         .type = LEXER_TOK_SYMBOL,
-        .offset = context->start_index,
-        .length = context->current_index - context->start_index,
+        .span =
+            {
+                .offset = context->start_index,
+                .length = context->current_index - context->start_index,
+            },
         .symbol = symbol,
     };
     uf_con_vector_push(context->tokens, &token);
@@ -63,8 +66,11 @@ static inline void _push_token_error(LexerContext* context, const char* message)
 {
     LexerToken token = {
         .type = LEXER_TOK_ERROR,
-        .offset = context->start_index,
-        .length = context->current_index - context->start_index,
+        .span =
+            {
+                .offset = context->start_index,
+                .length = context->current_index - context->start_index,
+            },
         .error_message = message,
     };
     uf_con_vector_push(context->tokens, &token);
@@ -84,8 +90,8 @@ static const LexerSymbol* _intern_string(LexerContext* context, enum LexerSymbol
     uint32_t length = context->current_index - context->start_index;
     const char* raw = &context->file_buffer[context->start_index];
 
-    char stack_buffer[LEXER_MAX_IDENTIFIER];
-    bool fits_in_stack = length < LEXER_MAX_IDENTIFIER;
+    char stack_buffer[MAX_IDENTIFIER];
+    bool fits_in_stack = length < MAX_IDENTIFIER;
 
     char* search_str = nullptr;
     if _likely_ (fits_in_stack) {
@@ -256,7 +262,7 @@ LexerContext* ii_lexer_context_new(SourceManager* manager)
 
     context->tokens = uf_con_vector_new(sizeof(LexerToken));
     context->symbol_dictionary = uf_con_map_new();
-    context->symbol_arena = uf_mem_region_new(LEXER_ARENA_BLOCK_SIZE);
+    context->symbol_arena = uf_mem_region_new(ARENA_BLOCK_SIZE);
 
     /* Here we register our keywords. */
     _register_keyword(context, "as", LEXER_SYM_KEY_AS);
@@ -478,9 +484,9 @@ void ii_lexer_print_debug(const LexerContext* context)
     size_t token_count = 0;
     const LexerToken* tokens = ii_lexer_get_tokens(context, &token_count);
 
-    for (size_t j = 0; j < token_count; j++) {
-        const LexerToken* token = &tokens[j];
-        SourceLocation locaction = ii_src_resolve_location(context->source_manager, token->offset);
+    for (size_t i = 0; i < token_count; i++) {
+        const LexerToken* token = &tokens[i];
+        SourceLocation locaction = ii_src_resolve_location(context->source_manager, token->span.offset);
 
         printf("\e[1;%im[%3u:%-3u]\e[%im  %s", UF_COLOR_BLACK_LIGHT, locaction.line, locaction.column,
                UF_COLOR_RESET, _token_type_to_string[token->type]);

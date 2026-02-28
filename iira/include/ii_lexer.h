@@ -87,8 +87,7 @@ struct LexerSymbol {
 typedef struct LexerToken LexerToken;
 struct LexerToken {
     enum LexerTokenType type;
-    uint32_t offset;
-    uint32_t length;
+    SourceSpan span;
     union {
         const struct LexerSymbol* symbol; /* Valid if type is LEXER_TOK_SYMBOL */
         const char* error_message;        /* Valid if type is LEXER_TOK_ERROR */
