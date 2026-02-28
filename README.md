@@ -59,22 +59,26 @@ source.iira --> | lexer | --> | pareser | --> | semantics analyzer | --> | graph
 
 <br><h2>Repository Layout</h2>
 
-There are two projects in this repository:
-1. **UnFinity**: My in-house minimal utility library
-2. **iirac**: The IIRA compiler itself
+There are three projects in this repository (for now):
+1. **unfinity** (lib): Minimal utility library
+2. **iira** (lib): Shared components for IIRA's compiler, language server, and formatter
+3. **iirac**: The IIRA compiler frontend
 
 > [!note]
 > There are no external dependencies aside from ASan, UBSan, and the C standard library (libc).
 
-**UnFinity** includes several modules:
+**unfinity** includes:
 - *uf_common* - Common functionality used across other modules
 - *uf_memory* - Wrappers for standard memory allocation/deallocation functions
 - *uf_logger* - Simple logging module designed for printing to terminal
 - *uf_containers* - Container structures for efficient data handling
 
-**iirac** also includes several modules:
-- *arguments* - Argument parsing
-- *lexer* - The lexer implementation
+**iira** includes:
+- *ii_lexer* - IIRA's lexical analyzer
+- TODO
+
+**iirac** includes:
+- *iic_arguments* - Argument parsing
 - TODO
 
 > [!important]
