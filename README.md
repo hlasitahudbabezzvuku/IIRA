@@ -26,7 +26,7 @@ The goal is to create something that other students can dive into to see how com
 
 > *"A human's concept of love requires admiration, attraction, devotion, and respect. Conclusion; I am 50% in Love."*
 
-TODO
+*TODO: Simple Design Document for the IIRA's philosophy and syntax.*
 
 
 <br><h2>Architecture</h2>
@@ -54,26 +54,7 @@ source.iira --> | lexer | --> | pareser | --> | semantics analyzer | --> | graph
                          tokens       syntax tree                syntax tree              graph
 ```
 
-
-<h3>1. Lexer</h3>
-
-It scans the entirety of the source file buffer in one pass, generating a flat array of **Tokens**. This helps the cache-locality of the data while also making the whole architecture a lot simpler.
-
-<h3>2. Parser</h3>
-
-It consumes the Token Vector, creating the **Abstract Syntax Tree (AST)**. Statements and block-level constructs (Tables, Type declarations) are parsed via standard [Recursive Descent](https://en.wikipedia.org/wiki/Recursive_descent_parser/) parser. Expressions (math, dot-notation method calls) are delegated to the [Operator Precedence](https://en.wikipedia.org/wiki/Operator-precedence_parser/) parser. The AST node structures are put into a linear memory arena. This guarantees cache-local child node resolution via standard C pointers. When encountering an error, it will insert an error placeholder and continue parsing until it synchronizes to the next statement boundary (e.g., `;` or `}`) to report multiple errors per compilation unit.
-
-
-<h3>3. Semantics Analyzer</h3>
-
-It will ensure that the parsed AST "makes sense". If it finds any errors, it will report them to the **Diagnostics Engine**, and continue the same way the Parser did.
-
-
-<h3>4. Graph Builder & IL Emitter</h3>
-
-The IR building is implemented as a **Two-Pass Intermediate Object Model**. There are two modules, each handling one pass:
-- Pass 1 (Lowering - Graph Builder): It translates the AST nodes into an in-memory graph of QBE structures, thus contructing a **QBE Object Graph**. Memory is again managed via a linear memory arena.
-- Pass 2 (Serialization - IL Emitter): It traverses the QBE Object Graph and builds strictly formatted textual **QBE IL**. 
+*TODO: More detailed description.*
 
 
 <br><h2>Repository Layout</h2>
