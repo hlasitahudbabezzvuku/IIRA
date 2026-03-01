@@ -3,7 +3,7 @@
  **/
 
 #include "ii_diagnostics.h"
-#include "ii_source_manager.h"
+#include "ii_source.h"
 #include "uf_containers.h"
 #include "uf_logger.h"
 #include "uf_memory.h"

@@ -22,18 +22,17 @@ struct SourceLocation {
     uint32_t column;
 };
 
-typedef struct SourceManager SourceManager;
+typedef struct Source Source;
 
-enum DiagnosticLevel { DIAG_LEVEL_ERROR, DIAG_LEVEL_WARNING, DIAG_LEVEL_NOTE };
+Source* ii_src_new(const char* file_path) _nodiscard_;
+void ii_src_free(Source*);
+void ii_src_freep(Source**);
+#define _autosrc_ _cleanup_(ii_src_freep)
 
-SourceManager* ii_src_manager_new(const char* file_path) _nodiscard_;
-void ii_src_manager_free(SourceManager*);
-void ii_src_manager_freep(SourceManager**);
-#define _autosrc_ _cleanup_(ii_src_manager_freep)
+const char* ii_src_get_file_path(const Source*) _nodiscard_;
+const char* ii_src_get_buffer(const Source*) _nodiscard_;
+size_t ii_src_get_size(const Source*) _nodiscard_;
 
-const char* ii_src_get_buffer(const SourceManager*) _nodiscard_;
-size_t ii_src_get_size(const SourceManager*) _nodiscard_;
-
-void ii_src_add_newline(SourceManager*, uint32_t offset);
-SourceLocation ii_src_resolve_location(const SourceManager*, uint32_t offset) _nodiscard_;
-const char* ii_src_resolve_line_bounds(const SourceManager*, uint32_t line, size_t* out_length) _nodiscard_;
+void ii_src_add_newline(Source*, uint32_t offset);
+SourceLocation ii_src_resolve_location(const Source*, uint32_t offset) _nodiscard_;
+const char* ii_src_resolve_line_bounds(const Source*, uint32_t line, size_t* out_length) _nodiscard_;

@@ -5,7 +5,8 @@
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
-#include "ii_source_manager.h"
+#include "ii_diagnostics.h"
+#include "ii_source.h"
 #include "uf_common.h"
 
 #include <stdbool.h>
@@ -96,7 +97,7 @@ struct LexerToken {
 
 typedef struct LexerContext LexerContext;
 
-LexerContext* ii_lexer_context_new(SourceManager*) _nodiscard_;
+LexerContext* ii_lexer_context_new(Source*, DiagnosticContext*) _nodiscard_;
 void ii_lexer_context_free(LexerContext*);
 void ii_lexer_context_freep(LexerContext**);
 #define _autolexer_ _cleanup_(ii_lexer_context_freep)

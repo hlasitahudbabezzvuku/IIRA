@@ -6,8 +6,9 @@
  * @author: Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
+#include "ii_diagnostics.h"
 #include "ii_lexer.h"
-#include "ii_source_manager.h"
+#include "ii_source.h"
 #include "iic_arguments.h"
 #include "uf_containers.h"
 #include "uf_logger.h"
@@ -46,9 +47,9 @@ int main(const int argc, const char* argv[])
         const char* file_path = *(const char**)uf_con_vector_get(input_files, i);
         uf_log_info("Starting compilation: %s", file_path);
 
-        uf_log_debug("Creating SourceManager for file '%s'", file_path);
-        _autosrc_ SourceManager* source_manager = ii_src_manager_new(file_path);
-        if (!source_manager) {
+        uf_log_debug("Creating Source for file '%s'", file_path);
+        _autosrc_ Source* source = ii_src_new(file_path);
+        if (!source) {
             uf_log_err("Could not open file '%s'", file_path);
             continue;
         }

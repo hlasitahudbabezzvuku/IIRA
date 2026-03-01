@@ -3,7 +3,8 @@
  **/
 
 #include "ii_lexer.h"
-#include "ii_source_manager.h"
+#include "ii_diagnostics.h"
+#include "ii_source.h"
 #include "uf_common.h"
 #include "uf_containers.h"
 #include "uf_logger.h"
@@ -17,7 +18,7 @@
 #define MAX_IDENTIFIER 256          /* Max size for stack-based fast interning */
 
 struct LexerContext {
-    SourceManager* source_manager;
+    Source* source;
     const char* file_buffer;
     size_t file_size;
 
@@ -156,7 +157,7 @@ static inline char _advance(LexerContext* context)
 {
     char ch = context->file_buffer[context->current_index++];
     if _unlikely_ (ch == '\n') {
-        ii_src_add_newline(context->source_manager, context->current_index);
+        ii_src_add_newline(context->source, context->current_index);
     }
 
     return ch;
@@ -253,12 +254,12 @@ static void _scan_string(LexerContext* context)
 }
 
 /* This is the main Lexer loop. It uses dispatcher functions for more readable logic flow. */
-LexerContext* ii_lexer_context_new(SourceManager* manager)
+LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_context)
 {
     LexerContext* context = uf_mem_zalloc(sizeof(LexerContext));
-    context->source_manager = manager;
-    context->file_buffer = ii_src_get_buffer(manager);
-    context->file_size = ii_src_get_size(manager);
+    context->source = source;
+    context->file_buffer = ii_src_get_buffer(source);
+    context->file_size = ii_src_get_size(source);
 
     context->tokens = uf_con_vector_new(sizeof(LexerToken));
     context->symbol_dictionary = uf_con_map_new();
@@ -486,7 +487,7 @@ void ii_lexer_print_debug(const LexerContext* context)
 
     for (size_t i = 0; i < token_count; i++) {
         const LexerToken* token = &tokens[i];
-        SourceLocation locaction = ii_src_resolve_location(context->source_manager, token->span.offset);
+        SourceLocation locaction = ii_src_resolve_location(context->source, token->span.offset);
 
         printf("\e[1;%im[%3u:%-3u]\e[%im  %s", UF_COLOR_BLACK_LIGHT, locaction.line, locaction.column,
                UF_COLOR_RESET, _token_type_to_string[token->type]);
