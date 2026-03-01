@@ -63,7 +63,8 @@ static inline void _push_token_symbol(LexerContext* context, const LexerSymbol* 
     uf_con_vector_push(context->tokens, &token);
 }
 
-static inline void _push_token_error(LexerContext* context, const char* message)
+static inline void _push_token_error(LexerContext* context, DiagnosticContext* diag_context,
+                                     const char* message)
 {
     LexerToken token = {
         .type = LEXER_TOK_ERROR,
@@ -75,6 +76,7 @@ static inline void _push_token_error(LexerContext* context, const char* message)
         .error_message = message,
     };
     uf_con_vector_push(context->tokens, &token);
+    ii_diag_report(diag_context, UF_LOG_ERROR, token.span, message);
 }
 
 static void _register_keyword(LexerContext* context, const char* keyword, enum LexerSymbolType type)
@@ -222,8 +224,8 @@ static void _scan_number(LexerContext* context)
 scan_suffix: /* Yes, It's a `goto`. But, as you can see, it actually helps to simplify the logic without the
                 need to separate this function into two smaller functions. It isn't always bad :D. */
 
-    char p = _peek(context);
-    if (p == 'f' || p == 'F' || p == 'd' || p == 'D') {
+    char ch = _peek(context);
+    if (ch == 'f' || ch == 'F' || ch == 'd' || ch == 'D') {
         _advance(context);
     }
 
@@ -231,14 +233,14 @@ scan_suffix: /* Yes, It's a `goto`. But, as you can see, it actually helps to si
     _push_token_symbol(context, symbol);
 }
 
-static void _scan_string(LexerContext* context)
+static void _scan_string(LexerContext* context, DiagnosticContext* diag_context)
 {
     while (_peek(context) != '"' && !_is_end(context)) {
         _advance(context);
     }
 
     if (_is_end(context)) {
-        _push_token_error(context, "Unterminated string literal");
+        _push_token_error(context, diag_context, "Unterminated string literal");
         return;
     }
 
@@ -408,7 +410,7 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
                 }
 
                 if _unlikely_ (!terminated) {
-                    _push_token_error(context, "Unterminated multi-line comment");
+                    _push_token_error(context, diag_context, "Unterminated multi-line comment");
                 }
             } else {
                 _push_token(context, _match(context, '=') ? LEXER_TOK_SLASH_ASSIGN : LEXER_TOK_SLASH);
@@ -416,11 +418,11 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
             break;
 
         case '"':
-            _scan_string(context);
+            _scan_string(context, diag_context);
             break;
 
         default:
-            _push_token_error(context, "Unexpected character");
+            _push_token_error(context, diag_context, "Unexpected character");
             break;
         }
     }

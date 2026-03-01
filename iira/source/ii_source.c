@@ -99,12 +99,7 @@ size_t ii_src_get_size(const Source* source)
 
 void ii_src_add_newline(Source* source, uint32_t offset)
 {
-    uint32_t next_line_start;
-    if (ckd_add(&next_line_start, offset, 1)) {
-        uf_log_panic("Source buffer offset arithmetic overflowed");
-    }
-
-    uf_con_vector_push(source->newline_offsets, &next_line_start);
+    uf_con_vector_push(source->newline_offsets, &offset);
 }
 
 SourceLocation ii_src_resolve_location(const Source* source, uint32_t offset)
@@ -160,7 +155,7 @@ const char* ii_src_resolve_line_bounds(const Source* source, uint32_t line, size
     uint32_t end_offset = (uint32_t)source->file_size;
     if (line < line_count) {
         const uint32_t* next_offset = uf_con_vector_get(source->newline_offsets, line);
-        end_offset = *next_offset - 2;
+        end_offset = *next_offset - 1;
     }
 
     *out_length = (end_offset > *start_offset) ? (end_offset - *start_offset) : 0;
