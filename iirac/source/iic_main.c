@@ -54,8 +54,11 @@ int main(const int argc, const char* argv[])
             continue;
         }
 
+        uf_log_debug("Creating DiagnosticContext for file '%s'", file_path);
+        _autodiag_ DiagnosticContext* diagnostic_context = ii_diag_context_new(source);
+
         uf_log_debug("Creating LexerContext for file '%s'", file_path);
-        _autolexer_ LexerContext* lexer_context = ii_lexer_context_new(source_manager);
+        _autolexer_ LexerContext* lexer_context = ii_lexer_context_new(source, diagnostic_context);
         if (!lexer_context) {
             uf_log_err("Lexer could not process file '%s'", file_path);
             continue;
@@ -65,6 +68,7 @@ int main(const int argc, const char* argv[])
             ii_lexer_print_debug(lexer_context);
         }
 
+        ii_diag_output(diagnostic_context);
         uf_log_info("Compilation finished: %s", file_path);
     }
 
