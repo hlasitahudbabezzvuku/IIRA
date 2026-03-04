@@ -1,0 +1,10 @@
+// Test: Inline type initialization
+Point: {
+    x: Float;
+    y: Float;
+}
+
+main(): Int = {
+    var p: Point = { 1, 2 };
+    return 0;
+}

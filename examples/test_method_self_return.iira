@@ -1,0 +1,6 @@
+// Test: Method with self* parameter and return type
+Point: {
+    getSum(self*): Float = {
+        return 1;
+    }
+}

@@ -1,0 +1,4 @@
+// Test: Main function
+main(argc: Int, argv: Char**): Int = {
+    return 0;
+}

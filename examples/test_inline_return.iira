@@ -1,0 +1,4 @@
+// Test: Inline return type - properly formatted
+getCoords(): { x: Float; y: Float; } = {
+    return { 1, 2 };
+}

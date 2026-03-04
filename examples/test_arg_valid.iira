@@ -1,0 +1,12 @@
+// Test: Valid argument types
+Calculator: {
+    add(self*, a: Int, b: Int): Int = {
+        return a + b;
+    }
+}
+
+main(): Int = {
+    var calc: Calculator;
+    var result: Int = calc.add(1, 2);  // Both args are Int - should work
+    return result;
+}

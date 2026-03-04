@@ -1,0 +1,7 @@
+// Test: For loop
+main(): Int = {
+    for (var i: Int; i < 10; i = i + 1) {
+        return i;
+    }
+    return 0;
+}

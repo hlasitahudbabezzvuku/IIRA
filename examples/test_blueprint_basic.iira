@@ -1,0 +1,5 @@
+// Test: Basic blueprint declaration
+Point: {
+    x: Float;
+    y: Float;
+}
