@@ -25,3 +25,4 @@ void ii_diag_context_freep(DiagnosticContext**);
 void ii_diag_report(DiagnosticContext*, enum UfLogLevel level, struct SourceSpan span, const char* format,
                     ...);
 void ii_diag_output(DiagnosticContext*);
+uint32_t ii_diag_get_count(DiagnosticContext*, enum UfLogLevel level);

@@ -9,8 +9,10 @@
 #include "uf_memory.h"
 
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
 
 #define ARENA_BLOCK_SIZE (4 * 1024) /* 4 kilobytes blocks for strings */
 
@@ -24,6 +26,7 @@ struct DiagnosticContext {
     Source* source;
     UfConVector* diagnostics;
     UfMemRegion* messages;
+    uint32_t diagnostic_counter[UF_LOG_PANIC + 1];
 };
 
 static const char* _map_level_x_string[] = {
@@ -88,6 +91,7 @@ void ii_diag_report(DiagnosticContext* context, enum UfLogLevel level, SourceSpa
     };
 
     uf_con_vector_push(context->diagnostics, &diagnostic);
+    context->diagnostic_counter[level]++;
 }
 
 void ii_diag_output(DiagnosticContext* context)
@@ -156,4 +160,9 @@ void ii_diag_output(DiagnosticContext* context)
 
         putc('\n', _get_output_stream(diagnostic->level));
     }
+}
+
+uint32_t ii_diag_get_count(DiagnosticContext* context, enum UfLogLevel level)
+{
+    return context->diagnostic_counter[level];
 }
