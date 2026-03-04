@@ -14,6 +14,7 @@
 #include "uf_logger.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(const int argc, const char* argv[])
 {
@@ -69,6 +70,11 @@ int main(const int argc, const char* argv[])
         }
 
         ii_diag_output(diagnostic_context);
+        if (ii_diag_get_count(diagnostic_context, UF_LOG_ERROR) > 0) {
+            uf_log_info("Compilation failed due to errors: %s", file_path);
+            return EXIT_FAILURE;
+        }
+
         uf_log_info("Compilation finished: %s", file_path);
     }
 
