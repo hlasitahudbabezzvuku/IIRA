@@ -455,12 +455,8 @@ void ii_lexer_context_freep(LexerContext** context_ptr)
     }
 }
 
-const LexerToken* ii_lexer_get_tokens(const LexerContext* context, size_t* out_count)
+const LexerToken* ii_lexer_get_tokens(const LexerContext* context)
 {
-    if (out_count) {
-        *out_count = uf_con_vector_length(context->tokens);
-    }
-
     return (const LexerToken*)uf_con_vector_get(context->tokens, 0);
 }
 
@@ -484,10 +480,9 @@ const char* _token_type_to_string[] = {
 
 void ii_lexer_print_debug(const LexerContext* context)
 {
-    size_t token_count = 0;
-    const LexerToken* tokens = ii_lexer_get_tokens(context, &token_count);
+    const LexerToken* tokens = ii_lexer_get_tokens(context);
 
-    for (size_t i = 0; i < token_count; i++) {
+    for (size_t i = 0; i < uf_con_vector_length(context->tokens); i++) {
         const LexerToken* token = &tokens[i];
         SourceLocation locaction = ii_src_resolve_location(context->source, token->span.offset);
 
