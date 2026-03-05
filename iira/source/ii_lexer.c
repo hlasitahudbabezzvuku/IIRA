@@ -1,4 +1,15 @@
 /**
+ * Lexer is probably the most straight forward module in iira, so it's probably the best place to start
+ * learning how iirac works. Lexer's job is quite simple: read the file character by character and slice it to
+ * individual tokens and symbols, removing whitespace and comments in the process.
+ *
+ * Since IIRA has quite simple syntax, we really need just 2 actions when lexing:
+ * 1. Advance -> move to (consume) the next character.
+ * 2. Peek next -> peek what's the next character, without consuming it.
+ *
+ * When we combine those two actions with conditions and state, we can parse any valid IIRA source file.
+ * Yes... It's just giant state machine in the end :D.
+ *
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
@@ -126,10 +137,12 @@ static const LexerSymbol* _intern_string(LexerContext* context, enum LexerSymbol
 }
 
 /*
- * Internal helper functions to make writing the lexing functions much easier. They mainly help with iterating
- * over the source file buffer, managing the index, lookup, and EOF for us. That prevents us from shooting
- * ourselves in the foot (e.g., forgetting that we have to count the newlines inside a multiline comment :D,
- * what an amazing thing to debug).
+ * Internal helper functions to make writing the lexing functions much easier. They include out two basic
+ * actions (advance and peek next), with few other helpers for convenience.
+ *
+ * They exclusively us help with iterating over the source file buffer, managing the index, look ahead, and
+ * EOF for us. That prevents us from shooting ourselves in the foot (e.g., forgetting that we have to count
+ * the newlines inside a multiline comment :D, what an amazing thing to debug).
  */
 
 static inline bool _is_end(const LexerContext* context)
@@ -176,8 +189,8 @@ static inline bool _match(LexerContext* context, char expected)
 }
 
 /*
- * Those are the helper functions, meant to be dispatched by the lexer's main loop. Each should handle one
- * type of token.
+ * Those are the functions, meant to be dispatched by the lexer's main loop. They are really just series of
+ * our two basic actions (e.g., advance, and peek next). Each function should handle one type of symbol.
  */
 
 static void _scan_number(LexerContext* context)
@@ -282,7 +295,7 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
     _register_keyword(context, "var", LEXER_SYM_KEY_VAR);
     _register_keyword(context, "while", LEXER_SYM_KEY_WHILE);
 
-    /* This is where we dispatch our helper functions for lexing (scanners). */
+    /* This is where we dispatch our scanner functions. */
     while (!_is_end(context)) {
         context->start_index = context->current_index;
         char ch = _advance(context);
