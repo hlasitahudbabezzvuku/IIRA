@@ -171,7 +171,7 @@ static inline bool _match(LexerContext* context, char expected)
         return false;
     }
 
-    context->current_index++;
+    _advance(context);
     return true;
 }
 
