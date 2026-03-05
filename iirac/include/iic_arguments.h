@@ -36,6 +36,7 @@ struct CompilerConfig {
     const char* max_errors;
     bool show_lexer_output;
     bool show_parser_output;
+    bool show_analyzer_output;
 };
 
 static const CompilerFlag default_flags[] = {
@@ -101,6 +102,13 @@ static const CompilerFlag default_flags[] = {
         .short_name = 0,
         .description = "Print the parsed AST to standard output",
         .config_field_offset = offsetof(CompilerConfig, show_parser_output),
+    },
+    {
+        .type = FLAG_SET,
+        .long_name = "show-analyzer-output",
+        .short_name = 0,
+        .description = "Print the analyzed TAST to standard output",
+        .config_field_offset = offsetof(CompilerConfig, show_analyzer_output),
     },
 };
 
