@@ -2,12 +2,12 @@
  * This file contains the foundational examples for IIRA. 
  * The compiler must interpret these structures as flat memory blobs (C-compatible structs).
  *
- * A 'Blueprint' is an alias for a C struct. A 'method' is syntactic sugar for a function that
+ * A 'blueprint' is an alias for a C struct. A 'method' is syntactic sugar for a function that
  * takes 'self*' pointer, or 'self' value as the first argument. There is NO runtime metadata,
  * NO virtual tables, and NO hidden allocations.
  * 
  * Rules for the Compiler:
- * 1. 'Blueprint' is a static layout. No metadata allowed.
+ * 1. 'blueprint' is a static layout. No metadata allowed.
  * 2. 'self*' = reference (Pointer to current struct).
  * 3. 'self' = value (Copy of struct).
  * 4. Methods without 'self' or 'self*' = static functions (namespaced).
@@ -20,11 +20,11 @@
 // Types are memory layouts. 'Test1' is just an alias for Float (like 'typedef' in C).
 Test1: Float; 
 
-// Test2 is a single-member Blueprint, effectively a struct { Float value; }
-Test2: { value: Float; };
+// Test2 is a single-member blueprint, effectively a struct { Float value; }
+Test2: { value: Float; }
 
-// Initialization: Single-member Blueprints allow implicit conversion
-var t: Test2 = 0.5f; 
+// Initialization: Single-member blueprints allow implicit conversion
+var t: Test2 = 0.5f;
 
 // 2. Blueprints
 // Blueprints they are compile-time memory layouts, like structs in C, or classes in C++.
@@ -33,18 +33,18 @@ Point: {
     positionY: Float;     // Required field
 
     // Member Method (Reference): Modifies the point in-place - pass pointer to Point (reference).
-    move(self*, dx: Float, dy: Float) {
+    move(self*, dx: Float, dy: Float) = {
         self.positionX = self.positionX + dx;
         self.positionY = self.positionY + dy;
     }
 
     // Member Method (Value): Operates on a copy - pass full struct by value.
     distanceTo(self, to: Point): Float = {
-        var dx = self.positionX - to.positionX;
-        var dy = self.positionY - to.positionY;
+        var dx: Float = self.positionX - to.positionX;
+        var dy: Float = self.positionY - to.positionY;
         return $sqrt(dx * dx + dy * dy); // $ prefix denotes C-library interop
     }
-};
+}
 
 // 3. Contracts
 // Contracts enforce a structural requirement.
@@ -55,7 +55,7 @@ AnotherPoint: {
 }
 
 // 4. Blending
-// This flattens Blueprints into one memory blob. If you blend A and B, the compiler calculates
+// This flattens blueprints into one memory blob. If you blend A and B, the compiler calculates
 // the offsets for A and B. When you pass a pointer to the Blended type to a function expecting
 // A, the compiler performs 'Pointer Offset Mapping' by adding the offset of A to the pointer.
 // Syntax: 'Name: Parent1 { aliases }, Parent2 { aliases }, { ... }'
@@ -70,9 +70,9 @@ Plane: {
     fly(self*, s: Float): Bool = { return true; }
 }
 
-// SuperCar blends two Blueprints.
+// SuperCar blends two blueprints.
 // Collision resolved via explicit aliasing.
-SuperCar: Car { speed as carSpeed }, Plane { speed as planeSpeed }, Blueprint {
+SuperCar: Car { speed as carSpeed }, Plane { speed as planeSpeed }, {
     mode: Bool = false;
 
     // Multiple return values are allowed.
@@ -93,10 +93,10 @@ main(argc: Int, argv: Char**): UInt = {
     p1.positionX = 1;
 
     // Method chaining
-    var dist = p1.distanceTo({ 7, 8 });
+    var dist: Float = p1.distanceTo({ 7, 8 });
     
     // Static calling
-    var p2 = Point.distanceTo(p1, { 7, 8 });
+    var p2: Float = Point.distanceTo(p1, { 7, 8 });
 
     // Blueprint can be created implicitly.
     var person1: {
@@ -105,7 +105,7 @@ main(argc: Int, argv: Char**): UInt = {
 
         SayHello(self*) = {
             $printf("Hello\n");
-        };
+        }
     } = { "Todd", "Howard" };
 
     // 6. Derivation
@@ -129,4 +129,4 @@ main(argc: Int, argv: Char**): UInt = {
     person4.speak();
 
     return 0;
-};
+}
