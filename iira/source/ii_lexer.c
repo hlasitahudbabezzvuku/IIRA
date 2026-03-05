@@ -137,7 +137,7 @@ static inline bool _is_end(const LexerContext* context)
     return context->current_index >= context->file_size;
 }
 
-static inline char _peek(const LexerContext* context)
+static inline char _peek_current(const LexerContext* context)
 {
     if _unlikely_ (_is_end(context)) {
         return '\0';
@@ -185,38 +185,38 @@ static void _scan_number(LexerContext* context)
     char first = context->file_buffer[context->start_index];
 
     if (first == '0') {
-        switch (_peek(context)) {
+        switch (_peek_current(context)) {
         case 'x':
         case 'X':
             _advance(context); /* Consume the character "X" */
-            while (isxdigit(_peek(context))) {
+            while (isxdigit(_peek_current(context))) {
                 _advance(context);
             }
             goto scan_suffix;
         case 'b':
         case 'B':
             _advance(context); /* Consume the character "B" */
-            while (_peek(context) == '0' || _peek(context) == '1') {
+            while (_peek_current(context) == '0' || _peek_current(context) == '1') {
                 _advance(context);
             }
             goto scan_suffix;
         case 'o':
         case 'O':
             _advance(context); /* Consume the character "O" */
-            while (_peek(context) >= '0' && _peek(context) <= '7') {
+            while (_peek_current(context) >= '0' && _peek_current(context) <= '7') {
                 _advance(context);
             }
             goto scan_suffix;
         }
     }
 
-    while (isdigit(_peek(context))) {
+    while (isdigit(_peek_current(context))) {
         _advance(context);
     }
 
-    if (_peek(context) == '.' && isdigit(_peek_next(context))) {
+    if (_peek_current(context) == '.' && isdigit(_peek_next(context))) {
         _advance(context); /* Consume the character "." */
-        while (isdigit(_peek(context))) {
+        while (isdigit(_peek_current(context))) {
             _advance(context);
         }
     }
@@ -224,7 +224,7 @@ static void _scan_number(LexerContext* context)
 scan_suffix: /* Yes, It's a `goto`. But, as you can see, it actually helps to simplify the logic without the
                 need to separate this function into two smaller functions. It isn't always bad :D. */
 
-    char ch = _peek(context);
+    char ch = _peek_current(context);
     if (ch == 'f' || ch == 'F' || ch == 'd' || ch == 'D') {
         _advance(context);
     }
@@ -235,7 +235,7 @@ scan_suffix: /* Yes, It's a `goto`. But, as you can see, it actually helps to si
 
 static void _scan_string(LexerContext* context, DiagnosticContext* diag_context)
 {
-    while (_peek(context) != '"' && !_is_end(context)) {
+    while (_peek_current(context) != '"' && !_is_end(context)) {
         _advance(context);
     }
 
@@ -292,7 +292,7 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
         }
 
         if (isalpha(ch) || ch == '_') {
-            while (isalnum(_peek(context)) || _peek(context) == '_') {
+            while (isalnum(_peek_current(context)) || _peek_current(context) == '_') {
                 _advance(context);
             }
             const LexerSymbol* symbol = _intern_string(context, LEXER_SYM_IDENTIFIER);
@@ -306,7 +306,7 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
         }
 
         /* To handle the `.5f` shorthand we retroactively step back so `_scan_number` sees the dot. */
-        if (ch == '.' && isdigit(_peek(context))) {
+        if (ch == '.' && isdigit(_peek_current(context))) {
             context->current_index--;
             _scan_number(context);
             continue;
@@ -393,14 +393,14 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
         case '/':
             if (_match(context, '/')) {
                 /* Single-line comments. */
-                while (_peek(context) != '\n' && !_is_end(context)) {
+                while (_peek_current(context) != '\n' && !_is_end(context)) {
                     _advance(context);
                 }
             } else if (_match(context, '*')) {
                 /* Multiline C-style comments. */
                 bool terminated = false;
                 while (!_is_end(context)) {
-                    if (_peek(context) == '*' && _peek_next(context) == '/') {
+                    if (_peek_current(context) == '*' && _peek_next(context) == '/') {
                         _advance(context); /* Consume the star character */
                         _advance(context); /* Consume the slash character */
                         terminated = true;
