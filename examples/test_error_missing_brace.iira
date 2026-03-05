@@ -1,0 +1,6 @@
+// Test: Missing closing brace (should cause parser error)
+main(): Int = {
+    if true {
+        return 1;
+    return 0;
+}

@@ -1,0 +1,8 @@
+// Test: Complex expressions with many operators
+main(): Int = {
+    var x: Int = 1 + 2 * 3 - 4 / 2;
+    var y: Int = (1 + 2) * (3 - 4) / (2 + 1);
+    var c: Bool = (1 < 2) && (3 > 2) && (4 <= 5) && (6 >= 5);
+    var d: Bool = (1 == 1) && (2 != 3);
+    return x + y;
+}

@@ -1,0 +1,22 @@
+// Test: Static method (no self)
+Math: {
+    abs(n: Int): Int = {
+        if (n < 0) {
+            return -n;
+        }
+        return n;
+    }
+    
+    max(a: Int, b: Int): Int = {
+        if (a > b) {
+            return a;
+        }
+        return b;
+    }
+}
+
+main(): Int = {
+    var x: Int = Math.abs(-5);
+    var y: Int = Math.max(10, 20);
+    return x + y;
+}

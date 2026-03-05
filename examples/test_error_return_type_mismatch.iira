@@ -1,0 +1,4 @@
+// Test: Return type mismatch
+test(): Int = {
+    return 1.5;
+}
