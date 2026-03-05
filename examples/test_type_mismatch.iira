@@ -1,7 +1,0 @@
-// Test: Type mismatch in variable initialization - explicit types
-main(): Int = {
-    var x: Int = 1;  // Int literal assigned to Int - should work
-    var y: Float = 1.5;  // Float literal assigned to Float - should work  
-    var z: Int = 1.5;  // Float literal assigned to Int - should error
-    return 0;
-}

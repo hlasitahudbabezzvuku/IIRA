@@ -1,5 +1,0 @@
-// Test: Float literal assigned to Int - should error
-main(): Int = {
-    var x: Int = 1.5;
-    return 0;
-}

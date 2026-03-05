@@ -1,7 +1,7 @@
 // Test: Property access
 Point: {
-    x: Float;
-    y: Float;
+    x: Float = 0;
+    y: Float = 0;
 }
 
 main(): Int = {
