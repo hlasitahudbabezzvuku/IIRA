@@ -73,6 +73,11 @@ int main(const int argc, const char* argv[])
             ii_lexer_print_debug(lexer_context);
         }
 
+        if (config.stop_after_lexer) {
+            uf_log_info("Stopping after lexical analysis");
+            continue;
+        }
+
         ii_diag_output(diagnostic_context);
 
         if (ii_diag_get_count(diagnostic_context, UF_LOG_ERROR) > 0) {
