@@ -28,6 +28,8 @@ The goal is to create something that other students can dive into to see how com
 
 *TODO: Simple Design Document for IIRA's philosophy and syntax.*
 
+For now, you can read about IIRA's design in [this example](Example.iira) file.
+
 
 <br><h2>Architecture</h2>
 
