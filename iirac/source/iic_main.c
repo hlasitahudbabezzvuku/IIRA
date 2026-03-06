@@ -44,6 +44,8 @@ int main(const int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
+    bool ret = EXIT_SUCCESS;
+
     for (size_t i = 0; i < input_files_count; i++) {
         const char* file_path = *(const char**)uf_con_vector_get(input_files, i);
         uf_log_info("Starting compilation: %s", file_path);
@@ -52,6 +54,7 @@ int main(const int argc, const char* argv[])
         _autosrc_ Source* source = ii_src_new(file_path);
         if (!source) {
             uf_log_err("Could not open file '%s'", file_path);
+            ret = EXIT_FAILURE;
             continue;
         }
 
@@ -62,6 +65,7 @@ int main(const int argc, const char* argv[])
         _autolexer_ LexerContext* lexer_context = ii_lexer_context_new(source, diagnostic_context);
         if (!lexer_context) {
             uf_log_err("Lexer could not process file '%s'", file_path);
+            ret = EXIT_FAILURE;
             continue;
         }
 
@@ -70,13 +74,15 @@ int main(const int argc, const char* argv[])
         }
 
         ii_diag_output(diagnostic_context);
+
         if (ii_diag_get_count(diagnostic_context, UF_LOG_ERROR) > 0) {
             uf_log_info("Compilation failed due to errors: %s", file_path);
-            return EXIT_FAILURE;
+            ret = EXIT_FAILURE;
+            continue;
         }
 
         uf_log_info("Compilation finished: %s", file_path);
     }
 
-    return EXIT_SUCCESS;
+    return ret;
 }
