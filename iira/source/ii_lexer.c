@@ -55,7 +55,7 @@ static inline void _push_token(LexerContext* context, enum LexerTokenType type)
                 .offset = context->start_index,
                 .length = context->current_index - context->start_index,
             },
-        .symbol = nullptr,
+        .variant.symbol = nullptr,
     };
     uf_con_vector_push(context->tokens, &token);
 }
@@ -69,7 +69,7 @@ static inline void _push_token_symbol(LexerContext* context, const LexerSymbol* 
                 .offset = context->start_index,
                 .length = context->current_index - context->start_index,
             },
-        .symbol = symbol,
+        .variant.symbol = symbol,
     };
     uf_con_vector_push(context->tokens, &token);
 }
@@ -84,7 +84,7 @@ static inline void _push_token_error(LexerContext* context, DiagnosticContext* d
                 .offset = context->start_index,
                 .length = context->current_index - context->start_index,
             },
-        .error_message = message,
+        .variant.error_message = message,
     };
     uf_con_vector_push(context->tokens, &token);
     ii_diag_report(diag_context, UF_LOG_ERROR, token.span, message);
@@ -503,21 +503,21 @@ void ii_lexer_print_debug(const LexerContext* context)
                UF_COLOR_RESET, _token_type_to_string[token->type]);
 
         if (token->type == LEXER_TOK_SYMBOL) {
-            switch (token->symbol->type) {
+            switch (token->variant.symbol->type) {
             case LEXER_SYM_IDENTIFIER:
-                printf(" -> \e[1;%im%s", UF_COLOR_WHITE_LIGHT, token->symbol->text);
+                printf(" -> \e[1;%im%s", UF_COLOR_WHITE_LIGHT, token->variant.symbol->text);
                 break;
             case LEXER_SYM_NUMBER:
-                printf(" -> \e[1;%im%s", UF_COLOR_YELLOW_LIGHT, token->symbol->text);
+                printf(" -> \e[1;%im%s", UF_COLOR_YELLOW_LIGHT, token->variant.symbol->text);
                 break;
             case LEXER_SYM_STRING:
-                printf(" -> \e[1;%im\"%s\"", UF_COLOR_GREEN_LIGHT, token->symbol->text);
+                printf(" -> \e[1;%im\"%s\"", UF_COLOR_GREEN_LIGHT, token->variant.symbol->text);
                 break;
             default:
-                printf(" -> \e[1;%im%s", UF_COLOR_BLUE_LIGHT, token->symbol->text);
+                printf(" -> \e[1;%im%s", UF_COLOR_BLUE_LIGHT, token->variant.symbol->text);
             }
         } else if (token->type == LEXER_TOK_ERROR) {
-            printf("\e[1;%im%s", UF_COLOR_RED_LIGHT, token->error_message);
+            printf("\e[1;%im%s", UF_COLOR_RED_LIGHT, token->variant.error_message);
         }
 
         printf("\e[%im\n", UF_COLOR_RESET);
