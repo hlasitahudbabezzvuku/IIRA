@@ -292,6 +292,7 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
     _register_keyword(context, "if", LEXER_SYM_KEY_IF);
     _register_keyword(context, "return", LEXER_SYM_KEY_RETURN);
     _register_keyword(context, "switch", LEXER_SYM_KEY_SWITCH);
+    _register_keyword(context, "self", LEXER_SYM_KEY_SELF);
     _register_keyword(context, "var", LEXER_SYM_KEY_VAR);
     _register_keyword(context, "while", LEXER_SYM_KEY_WHILE);
 
