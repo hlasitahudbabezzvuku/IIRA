@@ -1,6 +1,0 @@
-// Test: Method with body
-Point: {
-    getSum(self*): int = {
-        return 69;
-    }
-}

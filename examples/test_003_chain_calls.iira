@@ -1,7 +1,7 @@
 // Test: Chained method calls
 Chain: {
-    getNext(self*): Chain = { return self; }
-    getValue(self*): int = { return 0; }
+    getNext(self): Chain = { return self; }
+    getValue(self): int = { return 0; }
 }
 
 main(): int = {
