@@ -37,6 +37,9 @@ struct CompilerConfig {
     bool show_lexer_output;
     bool show_parser_output;
     bool show_analyzer_output;
+    bool stop_after_lexer;
+    bool stop_after_parser;
+    bool stop_after_analyzer;
 };
 
 static const CompilerFlag default_flags[] = {
@@ -109,6 +112,27 @@ static const CompilerFlag default_flags[] = {
         .short_name = 0,
         .description = "Print the analyzed TAST to standard output",
         .config_field_offset = offsetof(CompilerConfig, show_analyzer_output),
+    },
+    {
+        .type = FLAG_SET,
+        .long_name = "stop-after-lexer",
+        .short_name = 0,
+        .description = "Stop after lexical analysis phase",
+        .config_field_offset = offsetof(CompilerConfig, stop_after_lexer),
+    },
+    {
+        .type = FLAG_SET,
+        .long_name = "stop-after-parser",
+        .short_name = 0,
+        .description = "Stop after parsing phase",
+        .config_field_offset = offsetof(CompilerConfig, stop_after_parser),
+    },
+    {
+        .type = FLAG_SET,
+        .long_name = "stop-after-analyzer",
+        .short_name = 0,
+        .description = "Stop after semantic analysis phase",
+        .config_field_offset = offsetof(CompilerConfig, stop_after_analyzer),
     },
 };
 
