@@ -1,0 +1,148 @@
+/*
+ * IIRA is at its core really simple. At the backend it behaves just like plain C. No vtables, no
+ * fancy memory management. IIRA is 100% FFI compliant. But at the frontend it has some interesting
+ * features.
+ *
+ * The main IIRA concept is a 'blueprint'... yes, finally a language that names its fundamental
+ * concepts after real-world examples in a way that makes sense :D. As you probably guessed, it's
+ * just like a 'struct' in C or 'class' in C++.
+ *
+ * Here is an example of simple blueprint:
+ */
+Point: {
+    positionX: float;
+    positionY: float = 0; /* We can provide default value, but we don't have to. */
+
+    /* Member function are called methods, just like in C++. Under the hood, it's just regular
+     * function that takes its parent blueprint as first argument via special 'self' keyword. */
+    distanceTo(self, to: Point): float = {
+        /* Code ... */
+    };
+
+    randomize
+
+    getSum(self): float = {
+        /* Code ... */
+    };
+
+    /* Of course, we can do method overloads base on their arguments: */
+    getSum(self, with: Point): float = {
+        /* Code ... */
+    };
+
+    getInverted(self): Point = {
+        /* We need to use the 'self' keyword when accessing member variables. Remember, it's just
+         * function that takes the blueprint as its first argument. */
+        return { -self.positionX, -self.positionY };
+    }
+
+    getMul(self): float; /* Method does not need to have a body, but calling such method without
+                            implementation will result into a compiler error. It's like C function
+                            declaration without implementation. */
+};
+
+/* Here is our Main function. You can see that it follow standard C main function signature. */
+main(argc: int, argv: char[]*): int = {
+    /* 
+     * IIRA has few primitive types:
+     * - int
+     * - long
+     * - double
+     * - float
+     * - bool
+     * - char
+     *
+     * Those are only types in IIRA that aren't categorized as blueprints.
+     */
+
+    var a: int = 42;
+    var b: long = 42;
+    var c: double = 6.9;
+    var d: float = 6.9f;
+    var e: char = 'e';
+    var f: bool = true;
+
+    /* IIRA has multiple ways of instantiating blueprints: */
+    var p1: Point = { positionX = 1, positionY = 2 };
+    var p2: Point = { 1, 2 };
+    var p3: Point = { positionY = 2 }; /* We defined positionY with default value. If it wasn't for
+                                          that, the compiler would throw an error. */ 
+    var p4: Point = {}; /* If no values are provided, the blueprint is zero initialized. */
+    var p5: Point;      /* Also zero initialized. */
+
+    var x1: int;        /* Primitive types are also zero initialized. */
+
+    p1.positionX = 3; /* After instantiating a blueprint, we can access and modify the values, and
+                         call methods on them. */
+
+    var x2: float = p1.getInverted().getInverted().getSum(); /* We can chain methods using dot. */
+
+    var x3: Point = Point.getInverted(p1); /* We can also call methods like this. */
+
+    $printf("%s\n", x); /* We can use dollar sign for interfacing with C code. It's FFI call. */
+
+    /* When we don't want to create whole blueprint for simple aggregate type, we can define our
+     * blueprint inline like tuples in C#. We can also use them in function arguments, return type,
+     * or field in other blueprint, just everywhere you can use standard named blueprint. */
+    var my_car_config: { max_speed_kmh: float; weight_kg: int; } = { 180, 1500 };
+
+    /* And now the most important feature of IIRA: we can also create blueprints directly from other
+     * variables. This is called prototypal blueprint inheritance. Remember that this only copies
+     * the blueprint, not the values. */
+    var other_car_config: my_car_config = { 240, 1300 };
+
+    /* To copy with values, we need to use the standard assignment. */
+    var my_car_copy: my_car_config = my_car_config;
+
+    /* When defining arrays, IIRA takes inspiration from languages like Java rather than C or C++.
+     * Arrays are annotated at type, not the name. */
+    var arr1: int[] = { 1, 2, 3 };
+    var arr2: int[] = { [0] = 1, [1] = 2, [2] = 3 }; /* We can also annotate specific index. */
+    var arr3: int[3]; /* When defining array without immediately providing values, we need to
+                         provide the size. Such array is also zero initialized. */
+
+    return 0;
+};
+
+/*
+ * Another thing about IIRA is that it supports zero-const multiple inheritance.
+ *
+ * The compiler flattens every blueprint into single shape. This means that creating one blueprint
+ * from other creates new shape, which is sum of those two blueprints.
+ *
+ * To counter the new offsets when calling methods and function that expect one of the parent types,
+ * the compiler automagically inserts 'ptr += sizeof(preceding_blueprints)' everywhere it needs to.
+ * This ensures that every function/method gets pointer that actually point to the blueprint it
+ * expects. This also automagically works with casts.
+ */
+Vehicle: { speed_kmh: int; }
+
+/* Methods in those blueprints can now access all members of Vehicle blueprint. */
+Boat: Vehicle, { /* Code ... */ }
+Plane: Vehicle, { /* Code ... */ }
+
+/*
+ * We can inherit from multiple predecessors, so there naturally will be conflicts. If there are any
+ * naming collisions, the compiler will complain. Thankfully, resolving them in IIRA is really easy.
+ * We simply use aliasing to 'rename' the colliding members. This can also be used to solve the
+ * triangle inheritance problem.
+ */
+Seaplane: Boat { speed as boatSpeed }, Plane { speed as planeSpeed }, {
+    /* Code ... */
+}
+
+/* IIRA also has one other quality of life feature: single field blueprint assignment shorthand.
+ * When blueprint has only one field, you can omit the curly braces on assignment. At the same
+ * time, the blueprint can have any number of functions. */
+Test: { value: float; };
+
+test(): void = {
+    x: Test = .5f;
+}
+
+/*
+ * IIRA doesn't have concept of namespaces. If you want to separate the logic into modules, you can
+ * use blueprints with no methods (just static functions). But you won't probably need it, since
+ * every file is blueprint by itself. This means that for accessing any blueprint, functions, or
+ * variable in this file, you could simply do 'Example.<whatever_you_want>'.
+ */
