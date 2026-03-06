@@ -1,5 +1,0 @@
-// Test: C function call
-main(): Int = {
-    $printf("Hello\n");
-    return 0;
-}

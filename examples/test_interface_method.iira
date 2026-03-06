@@ -1,5 +1,0 @@
-// Test: Interface method (no body, just semicolon)
-IPoint: {
-    getX(self*): Float;
-    getY(self*);
-}

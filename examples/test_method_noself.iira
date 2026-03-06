@@ -1,6 +1,0 @@
-// Test: Method without self* parameter (static method)
-Point: {
-    getSum(): Float = {
-        return 1;
-    }
-}

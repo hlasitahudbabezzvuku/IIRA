@@ -1,0 +1,6 @@
+// Test: Do-while loop with literal condition
+main(): int = {
+    do {
+        return 0;
+    } while (1);
+}

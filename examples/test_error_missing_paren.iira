@@ -1,5 +1,0 @@
-// Test: Missing closing parenthesis (should cause parser error)
-main(): Int = {
-    var x: Int = (1 + 2;
-    return 0;
-}

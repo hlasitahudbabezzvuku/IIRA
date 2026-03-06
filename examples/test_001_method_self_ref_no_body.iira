@@ -1,0 +1,4 @@
+// Test: Method with no body
+Point: {
+    getSum(self*): int;
+}

@@ -1,0 +1,6 @@
+// Test: Method with body
+Point: {
+    getSum(): int = {
+        return 69;
+    }
+}

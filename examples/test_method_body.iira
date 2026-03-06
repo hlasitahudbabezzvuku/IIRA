@@ -1,5 +1,0 @@
-// Test: Method with body
-Point: {
-    getSum() = {
-    }
-}

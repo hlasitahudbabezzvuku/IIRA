@@ -1,0 +1,5 @@
+// Test: Blueprint with default field values
+Point: {
+    x: float = 0;
+    y: float = 0;
+}

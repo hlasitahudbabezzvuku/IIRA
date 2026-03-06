@@ -1,9 +1,0 @@
-// Test: Type inheritance
-Animal: {
-    name: String;
-}
-
-Dog: Animal {
-    bark(self*) = {
-    };
-}

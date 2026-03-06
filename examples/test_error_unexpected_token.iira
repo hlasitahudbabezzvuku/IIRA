@@ -1,5 +1,0 @@
-// Test: Unexpected token (should cause parser error)
-main(): Int = {
-    var x: Int = @;
-    return 0;
-}

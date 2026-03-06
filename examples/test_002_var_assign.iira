@@ -1,0 +1,5 @@
+// Test: Variable declaration
+main(): int = {
+    var x: int = 69;
+    return 0;
+}

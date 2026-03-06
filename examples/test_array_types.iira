@@ -1,6 +1,0 @@
-// Test: Array types
-main(): Int = {
-    arr: Int[];
-    arr2: Float[];
-    return 0;
-}

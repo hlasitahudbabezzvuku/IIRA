@@ -1,7 +1,0 @@
-// Test: While loop
-main(): Int = {
-    while (1) {
-        return 1;
-    }
-    return 0;
-}

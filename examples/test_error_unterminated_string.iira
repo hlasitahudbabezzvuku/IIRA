@@ -1,5 +1,0 @@
-// Test: Unterminated string (should cause lexer error)
-main(): Int = {
-    var s: String = "this is unterminated;
-    return 0;
-}

@@ -1,0 +1,5 @@
+// Test: Blueprint with pointers
+Node: {
+    next: Node*;
+    prev: Node*;
+}

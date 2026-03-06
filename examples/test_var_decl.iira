@@ -1,7 +1,0 @@
-// Test: Variable declarations
-main(): Int = {
-    var x: Int;
-    var y: Float = 1.5;
-    var z: Int = 42;
-    return 0;
-}

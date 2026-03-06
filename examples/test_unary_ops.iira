@@ -1,7 +1,0 @@
-// Test: Unary operators
-main(): Int = {
-    var a: Int = 5;
-    var b: Int = -a;
-    var d: Int = ~~5;
-    return b + d;
-}

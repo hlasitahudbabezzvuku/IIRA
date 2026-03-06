@@ -1,5 +1,0 @@
-// Test: Int assigned to Float - should work
-main(): Int = {
-    var x: Int = 1;
-    return 0;
-}

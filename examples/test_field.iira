@@ -1,4 +1,0 @@
-// Test: field
-Point: {
-    x: Float;
-}

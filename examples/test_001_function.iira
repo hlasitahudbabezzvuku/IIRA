@@ -1,0 +1,4 @@
+// Test: Basic function declaration
+test(): int = {
+    return 0;
+}
