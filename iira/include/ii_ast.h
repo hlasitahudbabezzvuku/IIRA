@@ -95,3 +95,366 @@ struct Ast {
     size_t decl_count;
 };
 
+/* IIRA types are represented separately from expressions since they appear in multiple contexts. */
+struct AstType {
+    AstNode base;
+
+    /* Type kind determines which field is valid */
+    enum {
+        AST_TYPE_KIND_PRIMITIVE,
+        AST_TYPE_KIND_ARRAY,
+        AST_TYPE_KIND_POINTER,
+        AST_TYPE_KIND_BLUEPRINT,
+        AST_TYPE_KIND_ANON,
+    } kind;
+
+    union {
+        /* For primitive types: int, float, bool, char, etc. */
+        struct {
+            const char* name;
+        } primitive;
+
+        /* For array types: int[], float[], etc. */
+        struct {
+            struct AstType* element_type; // The type of array elements
+            struct AstExpr* size;         // Optional fixed size: int[10]
+        } array;
+
+        /* For pointer types: type* */
+        struct {
+            struct AstType* pointed_type;
+        } pointer;
+
+        /* For named blueprint types: Point, Vehicle, etc. */
+        struct {
+            const char* name;                  // Blueprint name
+            struct AstBlueprintDecl* resolved; // Resolved declaration (semantic phase)
+        } blueprint;
+
+        /* For anonymous blueprints: { x: int; y: float; } */
+        struct {
+            struct AstField** fields; // List of fields
+            size_t field_count;
+        } anon;
+    } variant;
+};
+
+/*
+ * Expression Nodes
+ *
+ * All expressions derive from this base. Expressions produce values and can appear on the right-hand side of
+ * assignments, as function arguments, etc.
+ */
+
+struct AstExpr {
+    AstNode base;
+    struct AstType* inferred_type; // Type inferred during semantic analysis
+};
+
+/* Literal */
+struct AstLiteral {
+    AstNode base;
+    struct AstType* inferred_type;
+
+    enum {
+        LITERAL_INT,
+        LITERAL_FLOAT,
+        LITERAL_STRING,
+        LITERAL_BOOL,
+        LITERAL_CHAR,
+    } kind;
+
+    union {
+        int64_t int_value;
+        double float_value;
+        const char* string_value;
+        bool bool_value;
+        char char_value;
+    } variant;
+};
+
+/* Identifier */
+struct AstIdent {
+    AstNode base;
+    struct AstType* inferred_type;
+
+    const char* name;
+
+    /* Semantic analysis: what does this identifier refer to? */
+    union {
+        struct AstDeclStmt* var_decl;     // Local variable or parameter
+        struct AstFuncDecl* func_decl;    // Function reference
+        struct AstBlueprintDecl* bp_decl; // Blueprint reference
+        struct AstField* field_decl;      // Blueprint field
+    } resolved;
+};
+
+/* Binary expression */
+struct AstBinaryExpr {
+    AstNode base;
+    struct AstType* inferred_type;
+
+    struct AstExpr* left;
+    struct AstExpr* right;
+    enum LexerTokenType op; // The operator token type
+};
+
+/* Unary expression */
+struct AstUnaryExpr {
+    AstNode base;
+    struct AstType* inferred_type;
+
+    struct AstExpr* operand;
+    enum LexerTokenType op;
+};
+
+/* Function/method call */
+struct AstCallExpr {
+    AstNode base;
+    struct AstType* inferred_type;
+
+    struct AstExpr* callee; // The function being called
+    struct AstExpr** args;  // Arguments passed
+    size_t arg_count;
+};
+
+/* Member access (e.g., 'object.field') */
+struct AstMemberExpr {
+    AstNode base;
+    struct AstType* inferred_type;
+
+    struct AstExpr* object; // The object being accessed
+    const char* member;     // The member name
+    bool is_method;         // True if this is a method call (for semantic)
+};
+
+/* Array subscript */
+struct AstIndexExpr {
+    AstNode base;
+    struct AstType* inferred_type;
+
+    struct AstExpr* array;
+    struct AstExpr* index;
+};
+
+/* Initialization */
+struct AstInitExpr {
+    AstNode base;
+    struct AstType* inferred_type;
+
+    struct AstType* target_type; // The type being initialized
+
+    /* For positional initialization (e.g., '{ 1, 2, 3 }') */
+    struct AstExpr** values;
+    size_t value_count;
+
+    /* For named initialization (e.g., '{ x = 1, y = 2 }') */
+    struct {
+        const char* name;
+        struct AstExpr* value;
+    }* named_values;
+    size_t named_value_count;
+};
+
+/* Type cast */
+struct AstCastExpr {
+    AstNode base;
+    struct AstType* inferred_type;
+
+    struct AstType* target_type;
+    struct AstExpr* expr;
+};
+
+/* FFI call */
+struct AstFfiExpr {
+    AstNode base;
+    struct AstType* inferred_type;
+
+    const char* function_name;
+    struct AstExpr** args;
+    size_t arg_count;
+};
+
+/*
+ * Now the statement nodes. Statements are executable units that don't produce values. They control flow and
+ * side effects.
+ */
+
+struct AstStmt {
+    AstNode base;
+};
+
+/* Block */
+struct AstBlock {
+    AstNode base;
+
+    struct AstStmt** statements; // Statements in the block
+    size_t stmt_count;
+    struct AstScope* local_scope; // Symbol table for this block, populated by semantic phase
+};
+
+/* Return statement */
+struct AstReturnStmt {
+    AstNode base;
+
+    struct AstExpr* value; // Value to return, or nullptr for void
+    void* exit_block;      // QBE basic block for return jump (filled by codegen)
+};
+
+/* Variable declaration */
+struct AstDeclStmt {
+    AstNode base;
+
+    const char* name;     // Variable name
+    struct AstType* type; // Declared type
+    struct AstExpr* init; // Optional initializer
+    bool is_var;          // true for "var x:", false for "x:" shorthand
+
+    struct AstType* resolved_type;   // Resolved to type (after type checking)
+    struct AstVarSlot* codegen_slot; // Code generation: where this variable lives
+};
+
+/* Expression statement (for function calls, assignments, etc.) */
+struct AstExprStmt {
+    AstNode base;
+
+    struct AstExpr* expr;
+};
+
+/* If statement */
+struct AstIfStmt {
+    AstNode base;
+
+    struct AstExpr* condition;
+    struct AstBlock* then_block;
+    struct AstBlock* else_block; // nullptr if no else clause
+};
+
+/* For loop */
+struct AstForStmt {
+    AstNode base;
+
+    struct AstStmt* init;      // Initialization (usually decl or expr)
+    struct AstExpr* condition; // Loop condition
+    struct AstExpr* iter;      // Iteration expression
+    struct AstBlock* body;
+
+    /* Code generation: control flow targets */
+    void* break_target;    // QBE basic block for break
+    void* continue_target; // QBE basic block for continue
+};
+
+/* While loop */
+struct AstWhileStmt {
+    AstNode base;
+
+    struct AstExpr* condition;
+    struct AstBlock* body;
+    bool is_do_while; // true for do-while, false for while
+
+    /* Code generation: control flow targets */
+    void* break_target;    // QBE basic block for break
+    void* continue_target; // QBE basic block for continue
+};
+
+/* Break statement: break; */
+struct AstBreakStmt {
+    AstNode base;
+};
+
+/* Continue statement: continue; */
+struct AstContinueStmt {
+    AstNode base;
+
+    /* Code generation: target loop */
+    void* target_loop; // Pointer to AstForStmt or AstWhileStmt
+};
+
+/*
+ * Scope / Symbol Table
+ *
+ * It's used during semantic analysis to track local variables and types, attached to AstBlock nodes.
+ */
+struct AstScope {
+    struct AstScope* parent; // Parent scope (nullptr for global)
+
+    /* Symbol maps - name -> declaration */
+    UfConMap* variables; // const char* -> AstDeclStmt*
+    UfConMap* types;     // const char* -> AstBlueprintDecl*
+    UfConMap* functions; // const char* -> AstFuncDecl*
+};
+
+/*
+ * Local Variable Slot (for code generation)
+ *
+ * Tracks where a local variable lives during code generation.
+ */
+struct AstVarSlot {
+    int slot;         // Stack offset or register index
+    bool in_register; // True if stored in register
+};
+
+/*
+ * And those are declaration nodes, aka top-level constructs that define types, functions, and data.
+ */
+
+/* Function parameter */
+struct AstParam {
+    AstNode base;
+
+    const char* name;
+    struct AstType* type;
+};
+
+/* Function declaration */
+struct AstFuncDecl {
+    AstNode base;
+
+    const char* name;
+    struct AstParam* params; // Function parameters
+    size_t param_count;
+    struct AstType* return_type; // Return type
+    struct AstBlock* body;       // Function body, nullptr for declaration only
+};
+
+/* Blueprint field */
+struct AstField {
+    AstNode base;
+
+    const char* name;
+    struct AstType* type;
+    struct AstExpr* default_value; // Optional default value
+};
+
+/* Blueprint method */
+struct AstMethod {
+    AstNode base;
+
+    const char* name;
+    bool is_static;          // Static method (no self parameter)
+    struct AstParam* params; // Parameters including self if not static
+    size_t param_count;
+    struct AstType* return_type;
+    struct AstBlock* body; // nullptr for declaration only
+};
+
+/* Blueprint declaration: name: { fields; methods; } */
+struct AstBlueprintDecl {
+    AstNode base;
+
+    const char* name;
+
+    /* Inheritance */
+    struct {
+        const char* name;  // Parent blueprint name
+        const char* alias; // Optional alias: speed as boatSpeed
+    }* parents;
+    size_t parent_count;
+
+    /* Members */
+    struct AstField* fields;
+    size_t field_count;
+
+    struct AstMethod* methods;
+    size_t method_count;
+};
