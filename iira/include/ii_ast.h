@@ -72,3 +72,20 @@ struct AstNode {
     SourceSpan span;       /* Source code location for error reporting */
 };
 
+/*
+ * This is the top-level container for the full AST. It's parser's job to create it. It should be then
+ * passed to semantic analyzer and QBE Graph Builder.
+ */
+typedef struct Ast Ast;
+struct Ast {
+    AstNode base;
+
+    /* For now, IIRA can have only functions and blueprints as the file root scope.
+     * TODO: add support for handling top-level members. */
+    union {
+        struct AstFuncDecl* func;
+        struct AstBlueprintDecl* blueprint;
+    }* declarations;
+    size_t decl_count;
+};
+
