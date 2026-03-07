@@ -7,6 +7,8 @@
 
 #include "ii_lexer.h"
 #include "uf_common.h"
+#include "uf_containers.h"
+#include "uf_memory.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -79,6 +81,10 @@ struct AstNode {
 typedef struct Ast Ast;
 struct Ast {
     AstNode base;
+
+    Source* source;
+    UfMemRegion* node_arena;
+    UfConVector* node_vector;
 
     /* For now, IIRA can have only functions and blueprints as the file root scope.
      * TODO: add support for handling top-level members. */
