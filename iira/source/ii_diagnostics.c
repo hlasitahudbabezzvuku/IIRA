@@ -79,7 +79,7 @@ void ii_diag_report(DiagnosticContext* context, enum UfLogLevel level, SourceSpa
 
     char* formatted_message = nullptr;
     if _likely_ (length >= 0) {
-        formatted_message = uf_mem_region_alloc(context->messages, (size_t)length + 1);
+        formatted_message = uf_mem_region_malloc(context->messages, (size_t)length + 1);
         vsnprintf(formatted_message, (size_t)length + 1, format, args);
     }
     va_end(args);

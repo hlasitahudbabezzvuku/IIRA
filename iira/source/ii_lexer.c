@@ -92,7 +92,7 @@ static inline void _push_token_error(LexerContext* context, DiagnosticContext* d
 
 static void _register_keyword(LexerContext* context, const char* keyword, enum LexerSymbolType type)
 {
-    LexerSymbol* symbol = uf_mem_region_alloc(context->symbol_arena, sizeof(LexerSymbol));
+    LexerSymbol* symbol = uf_mem_region_malloc(context->symbol_arena, sizeof(LexerSymbol));
     symbol->type = type;
     symbol->text = keyword;
 
@@ -113,7 +113,7 @@ static const LexerSymbol* _intern_string(LexerContext* context, enum LexerSymbol
         stack_buffer[length] = '\0';
         search_str = stack_buffer;
     } else {
-        search_str = uf_mem_region_alloc(context->symbol_arena, length + 1);
+        search_str = uf_mem_region_malloc(context->symbol_arena, length + 1);
         memcpy(search_str, raw, length);
         search_str[length] = '\0';
     }
@@ -123,12 +123,12 @@ static const LexerSymbol* _intern_string(LexerContext* context, enum LexerSymbol
         return existing;
     }
 
-    char* final_str = fits_in_stack ? uf_mem_region_alloc(context->symbol_arena, length + 1) : search_str;
+    char* final_str = fits_in_stack ? uf_mem_region_malloc(context->symbol_arena, length + 1) : search_str;
     if (fits_in_stack) {
         memcpy(final_str, search_str, length + 1);
     }
 
-    LexerSymbol* symbol = uf_mem_region_alloc(context->symbol_arena, sizeof(LexerSymbol));
+    LexerSymbol* symbol = uf_mem_region_malloc(context->symbol_arena, sizeof(LexerSymbol));
     symbol->type = fallback_type;
     symbol->text = final_str;
 

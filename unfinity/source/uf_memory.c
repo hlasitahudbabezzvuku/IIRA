@@ -114,7 +114,7 @@ UfMemRegion* uf_mem_region_new(size_t block_size)
     return region;
 }
 
-void* uf_mem_region_alloc(UfMemRegion* region, size_t size)
+void* uf_mem_region_malloc(UfMemRegion* region, size_t size)
 {
     size_t aligned = (size + 15) & ~15;
 
