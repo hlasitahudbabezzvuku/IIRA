@@ -899,8 +899,7 @@ static struct AstParam* _parse_param(ParserContext* ctx)
         struct AstParam* param = uf_mem_region_zalloc(ctx->node_arena, sizeof(struct AstParam));
         param->base.type = AST_PARAM;
         param->base.span = name_token->span;
-        param->name = "self";  /* TODO: lexer has already interned this string. Retrieve it so we can use '=='
-                                  for direct pointer comparison. */
+        param->name = name_token->variant.symbol->text;
         param->type = nullptr; /* TODO: create implicit self type - will be resolved by semantic analysis. */
 
         return param;
