@@ -48,6 +48,23 @@ struct ParserContext {
 };
 
 /*
+ * I have copied this from ii_lexer.c for error messages. I should probably move it into some shared header.
+ * TODO: move the somewhere else.
+ */
+static const char* _token_type_to_string[] = {
+    "LEXER_TOK_EOF",          "LEXER_TOK_ERROR",       "LEXER_TOK_SYMBOL",       "LEXER_TOK_LBRACE",
+    "LEXER_TOK_RBRACE",       "LEXER_TOK_LPAREN",      "LEXER_TOK_RPAREN",       "LEXER_TOK_LBRACKET",
+    "LEXER_TOK_RBRACKET",     "LEXER_TOK_QUESTION",    "LEXER_TOK_COLON",        "LEXER_TOK_SEMICOLON",
+    "LEXER_TOK_COMMA",        "LEXER_TOK_DOT",         "LEXER_TOK_DOLLAR",       "LEXER_TOK_ASSIGN",
+    "LEXER_TOK_PLUS",         "LEXER_TOK_MINUS",       "LEXER_TOK_STAR",         "LEXER_TOK_SLASH",
+    "LEXER_TOK_PERCENT",      "LEXER_TOK_PLUS_ASSIGN", "LEXER_TOK_MINUS_ASSIGN", "LEXER_TOK_STAR_ASSIGN",
+    "LEXER_TOK_SLASH_ASSIGN", "LEXER_TOK_EQ",          "LEXER_TOK_NEQ",          "LEXER_TOK_LT",
+    "LEXER_TOK_GT",           "LEXER_TOK_LTE",         "LEXER_TOK_GTE",          "LEXER_TOK_AND",
+    "LEXER_TOK_OR",           "LEXER_TOK_NOT",         "LEXER_TOK_BIT_AND",      "LEXER_TOK_BIT_OR",
+    "LEXER_TOK_BIT_XOR",      "LEXER_TOK_BIT_NOT",
+};
+
+/*
  * These functions provide safe access to the Token Vector/array. They are logically almost the same as the
  * ones in lexer implementation.
  */
