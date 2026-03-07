@@ -25,6 +25,7 @@
 #include "uf_logger.h"
 #include "uf_memory.h"
 
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -455,9 +456,10 @@ static struct AstStmt* _parse_stmt(ParserContext* context)
         return (struct AstStmt*)_parse_for_stmt(context);
     }
 
-    /* While statement. */
+    /* While statement (includes do-while). */
     if (first->type == LEXER_TOK_SYMBOL && first->variant.symbol &&
-        first->variant.symbol->type == LEXER_SYM_KEY_WHILE) {
+        (first->variant.symbol->type == LEXER_SYM_KEY_WHILE ||
+         first->variant.symbol->type == LEXER_SYM_KEY_DO)) {
         return (struct AstStmt*)_parse_while_stmt(context);
     }
 
@@ -1119,10 +1121,60 @@ static struct AstMethod* _parse_method(ParserContext* context)
  * ...
  * ...
  * why am I doing this to myself?
- *
- * TODO: for now, expressions are minimal stubs that create placeholder nodes. The full expression parser will
- * handle operator precedence, etc.
  */
+
+/*
+ * Operator precedence table for expression parsing. Higher numbers = higher precedence (bind tighter).
+ */
+static inline int32_t _get_precedence(enum LexerTokenType op)
+{
+    switch (op) {
+    case LEXER_TOK_OR:
+        return 1;
+    case LEXER_TOK_AND:
+        return 2;
+    case LEXER_TOK_BIT_OR:
+        return 3;
+    case LEXER_TOK_BIT_XOR:
+        return 4;
+    case LEXER_TOK_BIT_AND:
+        return 5;
+    case LEXER_TOK_EQ:
+    case LEXER_TOK_NEQ:
+        return 6;
+    case LEXER_TOK_LT:
+    case LEXER_TOK_GT:
+    case LEXER_TOK_LTE:
+    case LEXER_TOK_GTE:
+        return 7;
+    case LEXER_TOK_PLUS:
+    case LEXER_TOK_MINUS:
+        return 8;
+    case LEXER_TOK_STAR:
+    case LEXER_TOK_SLASH:
+    case LEXER_TOK_PERCENT:
+        return 9;
+    default:
+        return 0;
+    }
+}
+
+static inline bool _is_binary_op(enum LexerTokenType op)
+{
+    return _get_precedence(op) > 0;
+}
+
+static inline bool _is_unary_op(enum LexerTokenType op)
+{
+    switch (op) {
+    case LEXER_TOK_MINUS:
+    case LEXER_TOK_NOT:
+    case LEXER_TOK_BIT_NOT:
+        return true;
+    default:
+        return false;
+    }
+}
 
 /**
  * This is the main entry point for expression parsing.
