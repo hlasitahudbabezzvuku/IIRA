@@ -104,5 +104,6 @@ void ii_lexer_context_freep(LexerContext**);
 #define _autolexer_ _cleanup_(ii_lexer_context_freep)
 
 const struct LexerToken* ii_lexer_get_tokens(const LexerContext*) _nodiscard_;
+size_t ii_lexer_get_token_count(const LexerContext*) _nodiscard_;
 
 void ii_lexer_print_debug(const LexerContext*); /* Can be enabled by a flag */

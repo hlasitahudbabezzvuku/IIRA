@@ -476,6 +476,11 @@ const LexerToken* ii_lexer_get_tokens(const LexerContext* context)
     return (const LexerToken*)uf_con_vector_get(context->tokens, 0);
 }
 
+size_t ii_lexer_get_token_count(const LexerContext* context)
+{
+    return uf_con_vector_length(context->tokens);
+}
+
 /*
  * Helper function for printing the tokens into the standard output. It's used to print the lexer output when
  * appropriate flag is used for compilation of particular unit.
