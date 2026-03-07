@@ -144,6 +144,13 @@ void* uf_mem_region_malloc(UfMemRegion* region, size_t size)
     return new_chunk->data;
 }
 
+void* uf_mem_region_zalloc(UfMemRegion* region, size_t size)
+{
+    void* ptr = uf_mem_region_malloc(region, size);
+    memset(ptr, 0, size);
+    return ptr;
+}
+
 void uf_mem_region_reset(UfMemRegion* region)
 {
     struct UfMemRegionChunk* current = region->tail;
