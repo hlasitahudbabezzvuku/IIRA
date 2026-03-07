@@ -47,3 +47,74 @@ struct ParserContext {
     size_t current_index;
 };
 
+/*
+ * These functions provide safe access to the Token Vector/array. They are logically almost the same as the
+ * ones in lexer implementation.
+ */
+
+static inline bool _is_end(const ParserContext* context)
+{
+    return context->current_index >= context->token_count ||
+           context->tokens[context->current_index].type == LEXER_TOK_EOF;
+}
+
+static inline const LexerToken* _peek_current(const ParserContext* context)
+{
+    if _unlikely_ (_is_end(context)) {
+        return &context->tokens[context->token_count - 1]; /* Return EOF */
+    }
+
+    return &context->tokens[context->current_index];
+}
+
+static inline const LexerToken* _peek_next(const ParserContext* context)
+{
+    if _unlikely_ (context->current_index + 1 >= context->token_count) {
+        return &context->tokens[context->token_count - 1];
+    }
+
+    return &context->tokens[context->current_index + 1];
+}
+
+static inline const LexerToken* _advance(ParserContext* context)
+{
+    if _unlikely_ (!_is_end(context)) {
+        context->current_index++;
+    }
+
+    return &context->tokens[context->current_index - 1];
+}
+
+static inline bool _check(const ParserContext* context, enum LexerTokenType type)
+{
+    if _unlikely_ (_is_end(context)) {
+        return false;
+    }
+
+    return _peek_current(context)->type == type;
+}
+
+static bool _match(ParserContext* context, enum LexerTokenType type)
+{
+    if (_check(context, type)) {
+        _advance(context);
+        return true;
+    }
+    return false;
+}
+
+static const LexerToken* _expect(ParserContext* context, enum LexerTokenType type, const char* expected)
+{
+    if (_check(context, type)) {
+        return _advance(context);
+    }
+
+    const LexerToken* current = _peek_current(context);
+    ii_diag_report(context->diag_context, UF_LOG_ERROR, current->span, "Expected '%s' but found '%s'",
+                   expected,
+                   current->type == LEXER_TOK_SYMBOL ? current->variant.symbol->text
+                                                     : _token_type_to_string[current->type]);
+
+    return current;
+}
+
