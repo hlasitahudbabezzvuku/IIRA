@@ -1463,22 +1463,303 @@ static inline bool _is_unary_op(enum LexerTokenType op)
 }
 
 /**
+ * Parse primary expression like literals, identifiers, parenthesized expressions.
+ *
+ * Grammar: Literal || Identifier || '(' Expression ')' || '{' Expression* '}'
+ **/
+static struct AstExpr* _parse_primary_expr(ParserContext* context)
+{
+    const LexerToken* first = _peek_current(context);
+
+    /* Handle parenthesized expressions */
+    if (_match(context, LEXER_TOK_LPAREN)) {
+        struct AstExpr* inner = _parse_expression(context);
+        if (!inner) {
+            ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                           "Expected expression inside parentheses");
+            return nullptr;
+        }
+        if (!_expect(context, LEXER_TOK_RPAREN, ")")) {
+            return nullptr;
+        }
+        return inner;
+    }
+
+    /* Handle array/object initialization. */
+    if (_match(context, LEXER_TOK_LBRACE)) {
+        UfConVector* values = uf_con_vector_new(sizeof(struct AstExpr*));
+
+        /* Check for empty init or list of expressions. */
+        if (!_check(context, LEXER_TOK_RBRACE) && !_is_end(context)) {
+            while (true) {
+                struct AstExpr* val = _parse_expression(context);
+                if (!val) {
+                    uf_con_vector_free(values);
+                    return nullptr;
+                }
+                uf_con_vector_push(values, &val);
+
+                if (!_match(context, LEXER_TOK_COMMA)) {
+                    break;
+                }
+
+                /* Trailing comma is allowed. */
+                if (_check(context, LEXER_TOK_RBRACE)) {
+                    break;
+                }
+            }
+        }
+
+        if (!_expect(context, LEXER_TOK_RBRACE, "}")) {
+            uf_con_vector_free(values);
+            return nullptr;
+        }
+
+        /* Create init expression node. */
+        struct AstInitExpr* init = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstInitExpr));
+        init->base.type = AST_INIT_EXPR;
+        init->base.span = first->span;
+        init->inferred_type = nullptr;
+        init->target_type = nullptr;
+
+        size_t count = uf_con_vector_length(values);
+        if (count > 0) {
+            init->values = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstExpr*) * count);
+            init->value_count = count;
+            for (size_t i = 0; i < count; i++) {
+                struct AstExpr** v = uf_con_vector_get(values, i);
+                init->values[i] = *v;
+            }
+        } else {
+            init->values = nullptr;
+            init->value_count = 0;
+        }
+        init->named_values = nullptr;
+        init->named_value_count = 0;
+
+        uf_con_vector_free(values);
+        _track_node(context, &init->base);
+
+        return (struct AstExpr*)init;
+    }
+
+    /* Handle literals */
+    if (first->type == LEXER_TOK_SYMBOL && first->variant.symbol) {
+        const char* text = first->variant.symbol->text;
+
+        /* Check for integer literal (starts with digit). */
+        if (isdigit(text[0])) {
+            _advance(context);
+
+            /* Check if it's a float. */
+            bool is_float = false;
+            for (const char* p = text; *p; p++) {
+                if (*p == '.' || *p == 'f' || *p == 'F' || *p == 'd' || *p == 'D') {
+                    is_float = true;
+                    break;
+                }
+            }
+
+            struct AstLiteral* literal = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstLiteral));
+            literal->base.type = AST_LITERAL;
+            literal->base.span = first->span;
+            literal->inferred_type = nullptr;
+
+            if (is_float) {
+                literal->kind = LITERAL_FLOAT;
+                literal->variant.float_value = strtod(text, nullptr);
+            } else {
+                literal->kind = LITERAL_INT;
+                literal->variant.int_value = strtol(text, nullptr, 0);
+            }
+
+            _track_node(context, &literal->base);
+            return (struct AstExpr*)literal;
+        }
+
+        /* Check for boolean literals. */
+        if (strcmp(text, "true") == 0 || strcmp(text, "false") == 0) {
+            _advance(context);
+
+            struct AstLiteral* literal = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstLiteral));
+            literal->base.type = AST_LITERAL;
+            literal->base.span = first->span;
+            literal->inferred_type = nullptr;
+            literal->kind = LITERAL_BOOL;
+            literal->variant.bool_value = (strcmp(text, "true") == 0);
+
+            _track_node(context, &literal->base);
+            return (struct AstExpr*)literal;
+        }
+    }
+
+    /* Handle identifiers. */
+    if (first->type == LEXER_TOK_SYMBOL && first->variant.symbol &&
+        first->variant.symbol->type == LEXER_SYM_IDENTIFIER) {
+        const char* name = first->variant.symbol->text;
+        _advance(context);
+
+        struct AstIdent* ident = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstIdent));
+        ident->base.type = AST_IDENT;
+        ident->base.span = first->span;
+        ident->inferred_type = nullptr;
+        ident->name = name;
+        memset(&ident->resolved, 0, sizeof(ident->resolved));
+
+        _track_node(context, &ident->base);
+        return (struct AstExpr*)ident;
+    }
+
+    /* Not a valid expression start */
+    ii_diag_report(context->diag_context, UF_LOG_ERROR, first->span, "Expected expression");
+    return nullptr;
+}
+
+/**
+ * Parse unary expression: prefix operators or primary.
+ *
+ * Grammar: ('-' || '!' || '~') UnaryExpr || PrimaryExpr
+ **/
+static struct AstExpr* _parse_unary_expr(ParserContext* context)
+{
+    const LexerToken* first = _peek_current(context);
+
+    /* Check for unary prefix operators. */
+    if (first->type == LEXER_TOK_MINUS || first->type == LEXER_TOK_NOT || first->type == LEXER_TOK_BIT_NOT) {
+        enum LexerTokenType op = first->type;
+        _advance(context);
+
+        struct AstExpr* operand = _parse_unary_expr(context);
+        if (!operand) {
+            return nullptr;
+        }
+
+        struct AstUnaryExpr* unary = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstUnaryExpr));
+        unary->base.type = AST_UNARY_EXPR;
+        unary->base.span = first->span;
+        unary->inferred_type = nullptr;
+        unary->op = op;
+        unary->operand = operand;
+
+        _track_node(context, &unary->base);
+        return (struct AstExpr*)unary;
+    }
+
+    /* No unary operator, parse primary. */
+    return _parse_primary_expr(context);
+}
+
+/**
+ * Parse binary expression with precedence climbing.
+ *
+ * Grammar: UnaryExpr (BinaryOp UnaryExpr)*
+ **/
+static struct AstExpr* _parse_binary_expr(ParserContext* context, int32_t min_prec)
+{
+    /* Parse the left-hand side. */
+    struct AstExpr* left = _parse_unary_expr(context);
+    if (!left) {
+        return nullptr;
+    }
+
+    /* Keep parsing binary operators while they have sufficient precedence. */
+    while (true) {
+        const LexerToken* op_token = _peek_current(context);
+        enum LexerTokenType op = op_token->type;
+
+        /* Check if this is a binary operator with sufficient precedence. */
+        int32_t prec = _get_precedence(op);
+        if (prec == 0 || prec < min_prec) {
+            break;
+        }
+
+        /* For left-associative operators, use 'prec + 1' for right side. */
+        int32_t next_min_prec = prec + 1;
+
+        /* Consume the operator */
+        _advance(context);
+
+        /* Parse the right-hand side */
+        struct AstExpr* right = _parse_binary_expr(context, next_min_prec);
+        if (!right) {
+            return nullptr;
+        }
+
+        /* Create binary expression node */
+        struct AstBinaryExpr* binary =
+            uf_mem_region_zalloc(context->node_arena, sizeof(struct AstBinaryExpr));
+        binary->base.type = AST_BINARY_EXPR;
+        binary->base.span = left->base.span;
+        binary->inferred_type = nullptr;
+        binary->op = op;
+        binary->left = left;
+        binary->right = right;
+
+        _track_node(context, &binary->base);
+
+        left = (struct AstExpr*)binary;
+    }
+
+    return left;
+}
+
+/**
+ * Parse assignment expression: binary expr with assignment operators.
+ *
+ * Grammar: BinaryExpr ('=' | '+=' | '-=' | '*=' | '/=' AssignmentExpr)?
+ **/
+static struct AstExpr* _parse_assignment_expr(ParserContext* context)
+{
+    /* First parse as binary expression (to handle comparisons etc.). */
+    struct AstExpr* left = _parse_binary_expr(context, 1);
+    if (!left) {
+        return nullptr;
+    }
+
+    const LexerToken* op_token = _peek_current(context);
+    enum LexerTokenType op = op_token->type;
+
+    /* Check for assignment operators. */
+    switch (op) {
+    case LEXER_TOK_ASSIGN:
+    case LEXER_TOK_PLUS_ASSIGN:
+    case LEXER_TOK_MINUS_ASSIGN:
+    case LEXER_TOK_STAR_ASSIGN:
+    case LEXER_TOK_SLASH_ASSIGN:
+        break;
+    default:
+        return left;
+    }
+
+    /* Consume the assignment operator. */
+    _advance(context);
+
+    /* Parse the right-hand side (assignment is right-associative). */
+    struct AstExpr* right = _parse_assignment_expr(context);
+    if (!right) {
+        return nullptr;
+    }
+
+    /* Create binary expression node with assignment operator. */
+    struct AstBinaryExpr* binary = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstBinaryExpr));
+    binary->base.type = AST_BINARY_EXPR;
+    binary->base.span = left->base.span;
+    binary->inferred_type = nullptr;
+    binary->op = op;
+    binary->left = left;
+    binary->right = right;
+
+    _track_node(context, &binary->base);
+
+    return (struct AstExpr*)binary;
+}
+
+/**
  * This is the main entry point for expression parsing.
  **/
 static struct AstExpr* _parse_expression(ParserContext* context)
 {
-    /* TODO: implement. */
-    struct AstExpr* expression = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstExpr));
-    expression->base.type = AST_LITERAL; /* Placeholder */
-    expression->base.span = _peek_current(context)->span;
-    _track_node(context, &expression->base);
-
-    /* Skip the expression for now - just consume a single token as placeholder */
-    if (!_is_end(context)) {
-        _advance(context);
-    }
-
-    return expression;
+    return _parse_assignment_expr(context);
 }
 
 /* This is the main entry point for parser. */
