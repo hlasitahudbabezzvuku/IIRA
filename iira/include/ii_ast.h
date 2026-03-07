@@ -62,7 +62,9 @@ enum AstNodeType {
 
 /*
  * This is the base AST node. Every node starts with this header for common fields. This allows uniform
- * handling and iterating over all nodes.
+ * handling and iterating over all nodes. Another approach (and the original plan) is to use tagged union. The
+ * problem with tagged unions is that they get big and messy really quick. This way we keep the structure
+ * clearly separated at the cost of few ugly casts.
  */
 typedef struct AstNode AstNode;
 struct AstNode {
