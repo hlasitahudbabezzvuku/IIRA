@@ -1157,6 +1157,102 @@ ParserContext* ii_parser_context_new(Source* source, const LexerToken* tokens, s
     context->node_arena = uf_mem_region_new(ARENA_BLOCK_SIZE);
     context->node_vector = uf_con_vector_new(sizeof(AstNode*));
 
+    /* Here we create the AST. */
+    Ast* ast = uf_mem_region_zalloc(context->node_arena, sizeof(Ast));
+    context->ast = ast;
+
+    ast->node_arena = context->node_arena;
+    ast->node_vector = context->node_vector;
+    ast->base.type = AST_ROOT;
+    ast->base.span = (SourceSpan){0, 0};
+    _track_node(context, &ast->base);
+
+    ast->decl_count = 0;
+    ast->declarations = uf_mem_region_zalloc(context->node_arena, sizeof(typeof(*ast->declarations)));
+
+    /*
+     * This is the main parser loop.
+     *
+     * Grammar: Program -> Declaration*
+     *
+     * IIRA program is for now just a sequence of top-level declarations, which can be:
+     * - Function declarations
+     * - Blueprint declarations
+     */
+    while (!_is_end(context)) {
+        /* Skip any semicolons between declarations. */
+        while (_match(context, LEXER_TOK_SEMICOLON)) {
+            /* TODO: we should probably throw at least a warning. */
+        }
+
+        if (_is_end(context)) {
+            break;
+        }
+
+        /* Look ahead to determine what kind of declaration this is. */
+        const LexerToken* first = _peek_current(context);
+
+        /* Check for identifier - this could be function or blueprint. */
+        if (first->type == LEXER_TOK_SYMBOL && first->variant.symbol &&
+            first->variant.symbol->type == LEXER_SYM_IDENTIFIER) {
+
+            const char* name = first->variant.symbol->text;
+            const LexerToken* second = _peek_next(context);
+
+            /* Blueprint expects: IDENTIFIER ':' '{' - check if next token is colon followed by brace */
+            if (second->type == LEXER_TOK_COLON) {
+                /* This should be a blueprint - try to parse it */
+                struct AstBlueprintDecl* blueprint = _parse_blueprint_decl(context);
+
+                if (blueprint) {
+                    /* Expand declarations array */
+                    size_t new_count = ast->decl_count + 1;
+                    typeof(ast->declarations) new_declaration =
+                        uf_mem_region_zalloc(context->node_arena, sizeof(ast->declarations[0]) * new_count);
+
+                    /* Copy old declarations */
+                    if (ast->decl_count > 0 && ast->declarations) {
+                        memcpy(new_declaration, ast->declarations,
+                               sizeof(ast->declarations[0]) * ast->decl_count);
+                    }
+
+                    /* Add new declaration */
+                    new_declaration[ast->decl_count].blueprint = blueprint;
+                    ast->declarations = new_declaration;
+                    ast->decl_count = new_count;
+                }
+                continue;
+            }
+
+            /* Function: IDENTIFIER '(' */
+            if (second->type == LEXER_TOK_LPAREN) {
+                struct AstFuncDecl* func = _parse_func_decl(context);
+                if (func) {
+                    /* Expand declarations array */
+                    size_t new_count = ast->decl_count + 1;
+                    typeof(ast->declarations) new_decl =
+                        uf_mem_region_zalloc(context->node_arena, sizeof(ast->declarations[0]) * new_count);
+
+                    /* Copy old declarations */
+                    if (ast->decl_count > 0 && ast->declarations) {
+                        memcpy(new_decl, ast->declarations, sizeof(ast->declarations[0]) * ast->decl_count);
+                    }
+
+                    /* Add new declaration */
+                    new_decl[ast->decl_count].func = func;
+                    ast->declarations = new_decl;
+                    ast->decl_count = new_count;
+                }
+                continue;
+            }
+        }
+
+        /* Unknown declaration - consume one token and continue */
+        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                       "Unexpected token at top level");
+        _advance(context);
+    }
+
     return context;
 }
 
