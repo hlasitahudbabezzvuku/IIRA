@@ -135,3 +135,38 @@ static const LexerToken* _expect(ParserContext* context, enum LexerTokenType typ
     return current;
 }
 
+/**
+ * This is the synchronization function. We call it when something goes wrong. It skips tokens until we find a
+ * synchronization point. This allows us to report multiple errors per compilation unit.
+ *
+ * Synchronization points are:
+ * - Semicolon
+ * - Opening brace
+ * - Closing brace
+ * - keyword
+ * - EOF
+ **/
+static void _synchronize(ParserContext* context)
+{
+    while (!_is_end(context)) {
+        const LexerToken* token = _peek_current(context);
+        enum LexerTokenType type = token->type;
+
+        if (type == LEXER_TOK_SEMICOLON || type == LEXER_TOK_LBRACE || type == LEXER_TOK_RBRACE ||
+            type == LEXER_TOK_EOF) {
+            break;
+        }
+
+        if (type == LEXER_TOK_SYMBOL && token->variant.symbol) {
+            enum LexerSymbolType sym_type = token->variant.symbol->type;
+            if (sym_type == LEXER_SYM_KEY_VAR || sym_type == LEXER_SYM_KEY_IF ||
+                sym_type == LEXER_SYM_KEY_FOR || sym_type == LEXER_SYM_KEY_WHILE ||
+                sym_type == LEXER_SYM_KEY_RETURN) {
+                break;
+            }
+        }
+
+        _advance(context);
+    }
+}
+
