@@ -1,6 +1,6 @@
 // Test: All assignment operators
-main(): Int = {
-    var x: Int = 10;
+main(): int = {
+    var x: int = 10;
     x = 5;
     x += 3;
     x -= 2;

@@ -1,6 +1,6 @@
 // Test: Array types
 main(): int = {
-    arr1: int[];
-    arr2: float[];
+    var arr1: int[];
+    var arr2: float[];
     return 0;
 }

@@ -6,6 +6,6 @@ Chain: {
 
 main(): int = {
     var c: Chain;
-    var x: Int = c.getNext().getNext().getValue();
+    var x: int = c.getNext().getNext().getValue();
     return x;
 }
