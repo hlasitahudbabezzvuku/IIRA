@@ -669,8 +669,68 @@ static struct AstExprStmt* _parse_expr_stmt(ParserContext* context)
  **/
 static struct AstIfStmt* _parse_if_stmt(ParserContext* context)
 {
-    (void)context; /* TODO: implement. */
-    return nullptr;
+    const LexerToken* if_token = _peek_current(context);
+
+    /* Consume 'if' keyword. */
+    _advance(context);
+
+    /* Expect '(' */
+    if (!_match(context, LEXER_TOK_LPAREN)) {
+        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                       "Expected '(' after 'if'");
+        return nullptr;
+    }
+
+    /* Parse condition expression. */
+    struct AstExpr* condition = _parse_expression(context);
+    if (!condition) {
+        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                       "Expected condition expression in 'if' statement");
+        return nullptr;
+    }
+
+    /* Expect ')' */
+    if (!_expect(context, LEXER_TOK_RPAREN, ")")) {
+        return nullptr;
+    }
+
+    /* Parse then-branch statement. */
+    struct AstBlock* then_block = (struct AstBlock*)_parse_stmt(context);
+    if (!then_block) {
+        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                       "Expected statement in 'if' then-branch");
+        return nullptr;
+    }
+
+    /* Check for optional else-branch. */
+    struct AstBlock* else_block = nullptr;
+    if (_match(context, LEXER_TOK_LPAREN)) {
+        /* 'else' keyword - but we need to handle it differently */
+    }
+
+    /* Check for 'else' keyword. */
+    if (_peek_current(context)->type == LEXER_TOK_SYMBOL && _peek_current(context)->variant.symbol &&
+        _peek_current(context)->variant.symbol->type == LEXER_SYM_KEY_ELSE) {
+        _advance(context); /* Consume 'else' */
+        else_block = (struct AstBlock*)_parse_stmt(context);
+        if (!else_block) {
+            ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                           "Expected statement in 'else' branch");
+            return nullptr;
+        }
+    }
+
+    /* Create if statement node. */
+    struct AstIfStmt* if_stmt = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstIfStmt));
+    if_stmt->base.type = AST_IF_STMT;
+    if_stmt->base.span = if_token->span;
+    if_stmt->condition = condition;
+    if_stmt->then_block = then_block;
+    if_stmt->else_block = else_block;
+
+    _track_node(context, &if_stmt->base);
+
+    return if_stmt;
 }
 
 /**
@@ -680,8 +740,83 @@ static struct AstIfStmt* _parse_if_stmt(ParserContext* context)
  **/
 static struct AstForStmt* _parse_for_stmt(ParserContext* context)
 {
-    (void)context; /* TODO: implement. */
-    return nullptr;
+    const LexerToken* for_token = _peek_current(context);
+
+    /* Consume 'for' keyword. */
+    _advance(context);
+
+    /* Expect '(' */
+    if (!_match(context, LEXER_TOK_LPAREN)) {
+        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                       "Expected '(' after 'for'");
+        return nullptr;
+    }
+
+    /* Parse initialization (optional). */
+    struct AstStmt* init = nullptr;
+    if (!_check(context, LEXER_TOK_SEMICOLON) && !_is_end(context)) {
+        /* Could be variable declaration or expression */
+        const LexerToken* first = _peek_current(context);
+        if (first->type == LEXER_TOK_SYMBOL && first->variant.symbol &&
+            (first->variant.symbol->type == LEXER_SYM_KEY_VAR ||
+             (first->variant.symbol->type == LEXER_SYM_IDENTIFIER &&
+              _peek_next(context)->type == LEXER_TOK_COLON))) {
+            init = _parse_stmt(context);
+        } else {
+            /* Expression statement - consume up to semicolon */
+            init = _parse_stmt(context);
+        }
+    }
+
+    /* Expect ';' */
+    if (!_expect(context, LEXER_TOK_SEMICOLON, ";")) {
+        return nullptr;
+    }
+
+    /* Parse condition (optional). */
+    struct AstExpr* condition = nullptr;
+    if (!_check(context, LEXER_TOK_SEMICOLON) && !_is_end(context)) {
+        condition = _parse_expression(context);
+    }
+
+    /* Expect ';' */
+    if (!_expect(context, LEXER_TOK_SEMICOLON, ";")) {
+        return nullptr;
+    }
+
+    /* Parse iteration (optional). */
+    struct AstExpr* iter = nullptr;
+    if (!_check(context, LEXER_TOK_RPAREN) && !_is_end(context)) {
+        iter = _parse_expression(context);
+    }
+
+    /* Expect ')' */
+    if (!_expect(context, LEXER_TOK_RPAREN, ")")) {
+        return nullptr;
+    }
+
+    /* Parse body statement. */
+    struct AstBlock* body = (struct AstBlock*)_parse_stmt(context);
+    if (!body) {
+        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                       "Expected statement in 'for' loop body");
+        return nullptr;
+    }
+
+    /* Create for statement node. */
+    struct AstForStmt* for_stmt = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstForStmt));
+    for_stmt->base.type = AST_FOR_STMT;
+    for_stmt->base.span = for_token->span;
+    for_stmt->init = init;
+    for_stmt->condition = condition;
+    for_stmt->iter = iter;
+    for_stmt->body = body;
+    for_stmt->break_target = nullptr;
+    for_stmt->continue_target = nullptr;
+
+    _track_node(context, &for_stmt->base);
+
+    return for_stmt;
 }
 
 /**
@@ -692,8 +827,125 @@ static struct AstForStmt* _parse_for_stmt(ParserContext* context)
  **/
 static struct AstWhileStmt* _parse_while_stmt(ParserContext* context)
 {
-    (void)context; /* TODO: implement. */
-    return nullptr;
+    const LexerToken* first = _peek_current(context);
+
+    /* Check if this is a do-while loop. */
+    bool is_do_while = false;
+    if (first->type == LEXER_TOK_SYMBOL && first->variant.symbol &&
+        first->variant.symbol->type == LEXER_SYM_KEY_DO) {
+        is_do_while = true;
+    }
+
+    if (is_do_while) {
+        /* Parse do-while: 'do' Statement 'while' '(' Expression ')' ';' */
+        _advance(context); /* Consume 'do' */
+
+        /* Parse body statement. */
+        struct AstBlock* body = (struct AstBlock*)_parse_stmt(context);
+        if (!body) {
+            ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                           "Expected statement in 'do-while' body");
+            return nullptr;
+        }
+
+        /* Expect 'while' keyword. */
+        if (!_match(context, LEXER_TOK_LPAREN)) {
+            /* Check for 'while' keyword first */
+            if (_peek_current(context)->type == LEXER_TOK_SYMBOL && _peek_current(context)->variant.symbol &&
+                _peek_current(context)->variant.symbol->type == LEXER_SYM_KEY_WHILE) {
+                _advance(context);
+            } else {
+                ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                               "Expected 'while' in do-while loop");
+                return nullptr;
+            }
+        }
+
+        /* Expect '(' */
+        if (!_match(context, LEXER_TOK_LPAREN)) {
+            ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                           "Expected '(' after 'while'");
+            return nullptr;
+        }
+
+        /* Parse condition. */
+        struct AstExpr* condition = _parse_expression(context);
+        if (!condition) {
+            ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                           "Expected condition in do-while");
+            return nullptr;
+        }
+
+        /* Expect ')' */
+        if (!_expect(context, LEXER_TOK_RPAREN, ")")) {
+            return nullptr;
+        }
+
+        /* Expect ';' */
+        if (!_expect(context, LEXER_TOK_SEMICOLON, ";")) {
+            return nullptr;
+        }
+
+        /* Create while statement node. */
+        struct AstWhileStmt* while_stmt =
+            uf_mem_region_zalloc(context->node_arena, sizeof(struct AstWhileStmt));
+        while_stmt->base.type = AST_WHILE_STMT;
+        while_stmt->base.span = first->span;
+        while_stmt->condition = condition;
+        while_stmt->body = body;
+        while_stmt->is_do_while = true;
+        while_stmt->break_target = nullptr;
+        while_stmt->continue_target = nullptr;
+
+        _track_node(context, &while_stmt->base);
+
+        return while_stmt;
+    }
+
+    /* Parse regular while loop: 'while' '(' Expression ')' Statement */
+    _advance(context); /* Consume 'while' */
+
+    /* Expect '(' */
+    if (!_match(context, LEXER_TOK_LPAREN)) {
+        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                       "Expected '(' after 'while'");
+        return nullptr;
+    }
+
+    /* Parse condition. */
+    struct AstExpr* condition = _parse_expression(context);
+    if (!condition) {
+        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                       "Expected condition in 'while' statement");
+        return nullptr;
+    }
+
+    /* Expect ')' */
+    if (!_expect(context, LEXER_TOK_RPAREN, ")")) {
+        return nullptr;
+    }
+
+    /* Parse body statement. */
+    struct AstBlock* body = (struct AstBlock*)_parse_stmt(context);
+    if (!body) {
+        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                       "Expected statement in 'while' body");
+        return nullptr;
+    }
+
+    /* Create while statement node. */
+    struct AstWhileStmt* while_stmt = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstWhileStmt));
+    while_stmt->base.type = AST_WHILE_STMT;
+    while_stmt->base.span = first->span;
+    while_stmt->condition = condition;
+    while_stmt->body = body;
+    while_stmt->is_do_while = false;
+    while_stmt->break_target = nullptr;
+    while_stmt->continue_target = nullptr;
+
+    _track_node(context, &while_stmt->base);
+
+    return while_stmt;
 }
 
 /**
@@ -703,8 +955,24 @@ static struct AstWhileStmt* _parse_while_stmt(ParserContext* context)
  **/
 static struct AstBreakStmt* _parse_break_stmt(ParserContext* context)
 {
-    (void)context; /* TODO: implement. */
-    return nullptr;
+    const LexerToken* break_token = _peek_current(context);
+
+    /* Consume 'break' keyword. */
+    _advance(context);
+
+    /* Expect ';'. */
+    if (!_expect(context, LEXER_TOK_SEMICOLON, ";")) {
+        return nullptr;
+    }
+
+    /* Create break statement node. */
+    struct AstBreakStmt* break_stmt = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstBreakStmt));
+    break_stmt->base.type = AST_BREAK_STMT;
+    break_stmt->base.span = break_token->span;
+
+    _track_node(context, &break_stmt->base);
+
+    return break_stmt;
 }
 
 /**
@@ -714,8 +982,26 @@ static struct AstBreakStmt* _parse_break_stmt(ParserContext* context)
  **/
 static struct AstContinueStmt* _parse_continue_stmt(ParserContext* context)
 {
-    (void)context; /* TODO: implement. */
-    return nullptr;
+    const LexerToken* continue_token = _peek_current(context);
+
+    /* Consume 'continue' keyword. */
+    _advance(context);
+
+    /* Expect ';'. */
+    if (!_expect(context, LEXER_TOK_SEMICOLON, ";")) {
+        return nullptr;
+    }
+
+    /* Create continue statement node. */
+    struct AstContinueStmt* continue_stmt =
+        uf_mem_region_zalloc(context->node_arena, sizeof(struct AstContinueStmt));
+    continue_stmt->base.type = AST_CONTINUE_STMT;
+    continue_stmt->base.span = continue_token->span;
+    continue_stmt->target_loop = nullptr;
+
+    _track_node(context, &continue_stmt->base);
+
+    return continue_stmt;
 }
 
 /**
