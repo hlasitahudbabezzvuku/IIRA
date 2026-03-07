@@ -193,3 +193,54 @@ static struct AstWhileStmt* _parse_while_stmt(ParserContext*);
 static struct AstBreakStmt* _parse_break_stmt(ParserContext*);
 static struct AstContinueStmt* _parse_continue_stmt(ParserContext*);
 
+/* This is the main entry point for parser. */
+ParserContext* ii_parser_context_new(Source* source, const LexerToken* tokens, size_t token_count,
+                                     DiagnosticContext* diag)
+{
+    ParserContext* context = uf_mem_zalloc(sizeof(ParserContext));
+    context->diag_context = diag;
+    context->tokens = tokens;
+    context->token_count = token_count;
+
+    context->source = source;
+    context->node_arena = uf_mem_region_new(ARENA_BLOCK_SIZE);
+    context->node_vector = uf_con_vector_new(sizeof(AstNode*));
+
+    return context;
+}
+
+void ii_parser_context_free(ParserContext* context)
+{
+    if (context == nullptr) {
+        return;
+    }
+
+    uf_mem_region_free(context->node_arena);
+    uf_con_vector_free(context->node_vector);
+
+    uf_mem_free(context);
+}
+
+void ii_parser_context_freep(ParserContext** context_ptr)
+{
+    if (context_ptr && *context_ptr) {
+        ii_parser_context_free(*context_ptr);
+        *context_ptr = nullptr;
+    }
+}
+
+Ast* ii_parser_get_ast(ParserContext* context)
+{
+    return (Ast*)uf_con_vector_get(context->node_vector, 0);
+}
+
+/*
+ * Helper function for printing the AST into the standard output. It's used to print the lexer output when
+ * appropriate flag is used for compilation of particular unit.
+ */
+
+void ii_parser_print_debug(ParserContext* context)
+{
+    /* TODO: I really don't want to do this right now. */
+    printf("Parser debug printing isn't implemented right now :(\n");
+}
