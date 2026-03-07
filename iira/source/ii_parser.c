@@ -170,3 +170,26 @@ static void _synchronize(ParserContext* context)
     }
 }
 
+/*
+ * These parsing functions are declared here so they can call each other in any order. Implementation follows
+ * below. Each of them is responsible for one type of grammar rule.
+ */
+
+static struct AstFuncDecl* _parse_func_decl(ParserContext*);
+static struct AstBlueprintDecl* _parse_blueprint_decl(ParserContext*);
+static struct AstBlock* _parse_block(ParserContext*);
+static struct AstStmt* _parse_statement(ParserContext*);
+static struct AstExpr* _parse_expression(ParserContext*);
+static struct AstType* _parse_type(ParserContext*);
+static struct AstField* _parse_field(ParserContext*);
+static struct AstParam* _parse_param(ParserContext*);
+static struct AstParam* _parse_param_list(ParserContext*, size_t* out_count);
+static struct AstMethod* _parse_method(ParserContext*);
+static struct AstReturnStmt* _parse_return_stmt(ParserContext*);
+static struct AstDeclStmt* _parse_decl_stmt(ParserContext*);
+static struct AstIfStmt* _parse_if_stmt(ParserContext*);
+static struct AstForStmt* _parse_for_stmt(ParserContext*);
+static struct AstWhileStmt* _parse_while_stmt(ParserContext*);
+static struct AstBreakStmt* _parse_break_stmt(ParserContext*);
+static struct AstContinueStmt* _parse_continue_stmt(ParserContext*);
+
