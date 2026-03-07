@@ -17,7 +17,7 @@
  */
 enum AstNodeType {
     /* Program-level */
-    AST_PROGRAM, /* Top-level container for all declarations */
+    AST_ROOT, /* Top-level container for all declarations */
 
     /* Declarations */
     AST_FUNC_DECL,      // name(parameters): return_type = { ... }
