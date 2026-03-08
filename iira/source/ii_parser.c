@@ -2277,7 +2277,7 @@ void ii_parser_context_freep(ParserContext** context_ptr)
 
 Ast* ii_parser_get_ast(ParserContext* context)
 {
-    return (Ast*)uf_con_vector_get(context->node_vector, 0);
+    return context->ast;
 }
 
 /*
