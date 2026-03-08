@@ -268,6 +268,87 @@ static void _scan_string(LexerContext* context, DiagnosticContext* diag_context)
     _push_token_symbol(context, symbol);
 }
 
+static void _scan_char(LexerContext* context, DiagnosticContext* diag_context)
+{
+    if (_peek_current(context) == '\\') {
+        _advance(context);
+        char ch = _peek_current(context);
+        char escaped = 0;
+
+        switch (ch) {
+        case 'n':
+            escaped = '\n';
+            break;
+        case 't':
+            escaped = '\t';
+            break;
+        case 'r':
+            escaped = '\r';
+            break;
+        case '0':
+            escaped = '\0';
+            break;
+        case '\\':
+            escaped = '\\';
+            break;
+        case '\'':
+            escaped = '\'';
+            break;
+        default:
+            _push_token_error(context, diag_context, "Invalid escape sequence in character literal");
+            return;
+        }
+
+        _advance(context);
+
+        if (_peek_current(context) != '\'') {
+            _push_token_error(context, diag_context, "Unterminated character literal");
+            return;
+        }
+        _advance(context);
+
+        char buffer[2] = {escaped, '\0'};
+        const char* search_str = buffer;
+
+        const LexerSymbol* existing = uf_con_map_get(context->symbol_dictionary, search_str);
+        if (existing != nullptr) {
+            _push_token_symbol(context, existing);
+            return;
+        }
+
+        LexerSymbol* symbol = uf_mem_region_malloc(context->symbol_arena, sizeof(LexerSymbol));
+        symbol->type = LEXER_SYM_CHAR;
+        symbol->text = uf_mem_region_malloc(context->symbol_arena, 2);
+        memcpy((void*)symbol->text, buffer, 2);
+
+        uf_con_map_put(context->symbol_dictionary, symbol->text, symbol);
+        _push_token_symbol(context, symbol);
+        return;
+    }
+
+    char ch = _peek_current(context);
+    if (ch == '\'') {
+        _push_token_error(context, diag_context, "Empty character literal");
+        return;
+    }
+
+    _advance(context);
+
+    if (_peek_current(context) != '\'') {
+        _push_token_error(context, diag_context, "Unterminated character literal");
+        return;
+    }
+    _advance(context);
+
+    context->start_index++;   /* Skip opening quote */
+    context->current_index--; /* Skip closing quote */
+    const LexerSymbol* symbol = _intern_string(context, LEXER_SYM_CHAR);
+    context->start_index--;   /* Skip opening quote */
+    context->current_index++; /* Skip closing quote */
+
+    _push_token_symbol(context, symbol);
+}
+
 /* This is the main Lexer loop. It uses dispatcher functions for more readable logic flow. */
 LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_context)
 {
@@ -437,6 +518,10 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
             _scan_string(context, diag_context);
             break;
 
+        case '\'':
+            _scan_char(context, diag_context);
+            break;
+
         default:
             _push_token_error(context, diag_context, "Unexpected character");
             break;
@@ -520,6 +605,9 @@ void ii_lexer_print_debug(const LexerContext* context)
                 break;
             case LEXER_SYM_STRING:
                 printf(" -> \e[1;%im\"%s\"", UF_COLOR_GREEN_LIGHT, token->variant.symbol->text);
+                break;
+            case LEXER_SYM_CHAR:
+                printf(" -> \e[1;%im'%s'", UF_COLOR_GREEN_LIGHT, token->variant.symbol->text);
                 break;
             default:
                 printf(" -> \e[1;%im%s", UF_COLOR_BLUE_LIGHT, token->variant.symbol->text);

@@ -17,6 +17,7 @@ enum LexerSymbolType {
     LEXER_SYM_IDENTIFIER = 0,
     LEXER_SYM_NUMBER,
     LEXER_SYM_STRING,
+    LEXER_SYM_CHAR,
 
     /* Keywords */
     LEXER_SYM_KEY_AS,
