@@ -1336,7 +1336,7 @@ static struct AstParam* _parse_param_list(ParserContext* context, size_t* out_co
         params = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstParam) * param_count);
         for (size_t i = 0; i < param_count; i++) {
             struct AstParam** p = uf_con_vector_get(params_vector_tmp, i);
-            memcpy(&params[i], p, sizeof(struct AstParam));
+            memcpy(&params[i], *p, sizeof(struct AstParam));
         }
     }
 
@@ -2205,6 +2205,9 @@ ParserContext* ii_parser_context_new(Source* source, const LexerToken* tokens, s
                     size_t new_count = ast->decl_count + 1;
                     typeof(ast->declarations) new_declaration =
                         uf_mem_region_zalloc(context->node_arena, sizeof(ast->declarations[0]) * new_count);
+
+                    /* Zero the new declaration to ensure union is properly initialized */
+                    memset(&new_declaration[ast->decl_count], 0, sizeof(ast->declarations[0]));
 
                     /* Copy old declarations */
                     if (ast->decl_count > 0 && ast->declarations) {
