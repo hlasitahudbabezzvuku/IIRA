@@ -46,6 +46,9 @@ struct ParserContext {
     Ast* ast;
 
     size_t current_index;
+
+    /* Current blueprint name being parsed (for method self param type resolution) */
+    const char* current_blueprint_name;
 };
 
 /*
@@ -192,8 +195,8 @@ static struct AstStmt* _parse_stmt(ParserContext*);
 static struct AstExpr* _parse_expression(ParserContext*);
 static struct AstType* _parse_type(ParserContext*);
 static struct AstField* _parse_field(ParserContext*);
-static struct AstParam* _parse_param(ParserContext*);
-static struct AstParam* _parse_param_list(ParserContext*, size_t* out_count);
+static struct AstParam* _parse_param(ParserContext*, const char* blueprint_name);
+static struct AstParam* _parse_param_list(ParserContext*, size_t* out_count, const char* blueprint_name);
 static struct AstMethod* _parse_method(ParserContext*);
 static struct AstReturnStmt* _parse_return_stmt(ParserContext*);
 static struct AstDeclStmt* _parse_decl_stmt(ParserContext*);
@@ -237,7 +240,7 @@ static struct AstFuncDecl* _parse_func_decl(ParserContext* context)
     }
 
     size_t param_count = 0;
-    struct AstParam* params = _parse_param_list(context, &param_count);
+    struct AstParam* params = _parse_param_list(context, &param_count, nullptr);
 
     /* Expect closing paren. */
     if (!_expect(context, LEXER_TOK_RPAREN, ")")) {
@@ -342,8 +345,14 @@ static struct AstBlueprintDecl* _parse_blueprint_decl(ParserContext* context)
             member_token->variant.symbol->type == LEXER_SYM_IDENTIFIER) {
 
             if (_peek_next(context)->type == LEXER_TOK_LPAREN) {
-                /* It's a method. */
+                /* It's a method. Set blueprint name for self param type resolution. */
+                const char* prev_blueprint = context->current_blueprint_name;
+                context->current_blueprint_name = blueprint_name;
+
                 struct AstMethod* method = _parse_method(context);
+
+                context->current_blueprint_name = prev_blueprint;
+
                 if (method) {
                     uf_con_vector_push(methods_vector_tmp, &method);
                 }
@@ -1174,7 +1183,7 @@ static struct AstType* _parse_type(ParserContext* context)
  *
  * Grammar: IDENTIFIER ':' Type || 'self'
  **/
-static struct AstParam* _parse_param(ParserContext* ctx)
+static struct AstParam* _parse_param(ParserContext* ctx, const char* blueprint_name)
 {
     const LexerToken* name_token = _peek_current(ctx);
 
@@ -1188,7 +1197,18 @@ static struct AstParam* _parse_param(ParserContext* ctx)
         param->base.type = AST_PARAM;
         param->base.span = name_token->span;
         param->name = name_token->variant.symbol->text;
-        param->type = nullptr; /* TODO: create implicit self type - will be resolved by semantic analysis. */
+
+        /* Create type for self parameter: blueprint name type */
+        if (blueprint_name != nullptr) {
+            param->type = uf_mem_region_zalloc(ctx->node_arena, sizeof(struct AstType));
+            param->type->base.type = AST_TYPE_PRIMITIVE;
+            param->type->base.span = name_token->span;
+            param->type->kind = AST_TYPE_KIND_BLUEPRINT;
+            param->type->variant.blueprint.name = blueprint_name;
+            param->type->variant.blueprint.resolved = nullptr;
+        } else {
+            param->type = nullptr;
+        }
 
         return param;
     }
@@ -1233,7 +1253,8 @@ static struct AstParam* _parse_param(ParserContext* ctx)
  *
  * Grammar: Parameter (',' Parameter)*
  **/
-static struct AstParam* _parse_param_list(ParserContext* context, size_t* out_count)
+static struct AstParam* _parse_param_list(ParserContext* context, size_t* out_count,
+                                          const char* blueprint_name)
 {
     /* Handle empty parameter list. */
     if (_check(context, LEXER_TOK_RPAREN)) {
@@ -1245,7 +1266,7 @@ static struct AstParam* _parse_param_list(ParserContext* context, size_t* out_co
     UfConVector* params_vector_tmp = uf_con_vector_new(sizeof(struct AstParam*));
 
     while (true) {
-        struct AstParam* param = _parse_param(context);
+        struct AstParam* param = _parse_param(context, blueprint_name);
         if (param) {
             uf_con_vector_push(params_vector_tmp, &param);
         }
@@ -1358,8 +1379,11 @@ static struct AstMethod* _parse_method(ParserContext* context)
         return nullptr;
     }
 
+    /* Get blueprint name for resolving self parameter type */
+    const char* blueprint_name = context->current_blueprint_name;
+
     size_t param_count = 0;
-    struct AstParam* params = _parse_param_list(context, &param_count);
+    struct AstParam* params = _parse_param_list(context, &param_count, blueprint_name);
 
     /* Expect closing paren. */
     if (!_expect(context, LEXER_TOK_RPAREN, ")")) {
@@ -1384,11 +1408,19 @@ static struct AstMethod* _parse_method(ParserContext* context)
     method->base.type = AST_METHOD;
     method->base.span = name_span;
     method->name = method_name;
-    method->is_static = true; /* Defaulting to static, semantic analyzer will fix it. */
     method->params = params;
     method->param_count = param_count;
     method->return_type = return_type;
     method->body = nullptr;
+
+    /* Check if any parameter is 'self' - if so, this is an instance method */
+    method->is_static = true;
+    for (size_t i = 0; i < param_count; i++) {
+        if (params[i].name != nullptr && strcmp(params[i].name, "self") == 0) {
+            method->is_static = false;
+            break;
+        }
+    }
 
     /* Parse optional method body. */
     if (_match(context, LEXER_TOK_ASSIGN)) {
@@ -1487,17 +1519,55 @@ static struct AstExpr* _parse_primary_expr(ParserContext* context)
 
     /* Handle array/object initialization. */
     if (_match(context, LEXER_TOK_LBRACE)) {
-        UfConVector* values = uf_con_vector_new(sizeof(struct AstExpr*));
+        _autovector_ UfConVector* values = uf_con_vector_new(sizeof(struct AstExpr*));
+        _autovector_ UfConVector* named = uf_con_vector_new(sizeof(struct {
+            const char* name;
+            struct AstExpr* expr;
+        }));
+        bool saw_named = false;
 
         /* Check for empty init or list of expressions. */
         if (!_check(context, LEXER_TOK_RBRACE) && !_is_end(context)) {
             while (true) {
-                struct AstExpr* val = _parse_expression(context);
-                if (!val) {
-                    uf_con_vector_free(values);
-                    return nullptr;
+                /* Check for named: IDENTIFIER followed by = */
+                if (_check(context, LEXER_TOK_SYMBOL) && _peek_next(context)->type == LEXER_TOK_ASSIGN) {
+                    /* Cannot mix positional and named initialization */
+                    if (!saw_named && uf_con_vector_length(values) > 0) {
+                        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                                       "Cannot mix positional and named initialization");
+                        return nullptr;
+                    }
+
+                    saw_named = true;
+                    const char* name = _peek_current(context)->variant.symbol->text;
+                    _advance(context); /* consume name */
+                    _advance(context); /* consume = */
+
+                    struct AstExpr* val = _parse_expression(context);
+                    if (!val) {
+                        return nullptr;
+                    }
+
+                    struct {
+                        const char* name;
+                        struct AstExpr* expr;
+                    } named_entry = {name, val};
+                    uf_con_vector_push(named, &named_entry);
+                } else {
+                    /* Positional: Expression */
+                    /* Cannot mix positional and named initialization */
+                    if (saw_named) {
+                        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                                       "Cannot mix positional and named initialization");
+                        return nullptr;
+                    }
+
+                    struct AstExpr* val = _parse_expression(context);
+                    if (!val) {
+                        return nullptr;
+                    }
+                    uf_con_vector_push(values, &val);
                 }
-                uf_con_vector_push(values, &val);
 
                 if (!_match(context, LEXER_TOK_COMMA)) {
                     break;
@@ -1511,7 +1581,6 @@ static struct AstExpr* _parse_primary_expr(ParserContext* context)
         }
 
         if (!_expect(context, LEXER_TOK_RBRACE, "}")) {
-            uf_con_vector_free(values);
             return nullptr;
         }
 
@@ -1522,6 +1591,7 @@ static struct AstExpr* _parse_primary_expr(ParserContext* context)
         init->inferred_type = nullptr;
         init->target_type = nullptr;
 
+        /* Store positional values */
         size_t count = uf_con_vector_length(values);
         if (count > 0) {
             init->values = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstExpr*) * count);
@@ -1534,10 +1604,26 @@ static struct AstExpr* _parse_primary_expr(ParserContext* context)
             init->values = nullptr;
             init->value_count = 0;
         }
-        init->named_values = nullptr;
-        init->named_value_count = 0;
 
-        uf_con_vector_free(values);
+        /* Store named values */
+        size_t named_count = uf_con_vector_length(named);
+        if (named_count > 0) {
+            init->named_values =
+                uf_mem_region_zalloc(context->node_arena, sizeof(*init->named_values) * named_count);
+            init->named_value_count = named_count;
+            for (size_t i = 0; i < named_count; i++) {
+                struct {
+                    const char* name;
+                    struct AstExpr* expr;
+                }* n = uf_con_vector_get(named, i);
+                init->named_values[i].name = n->name;
+                init->named_values[i].value = n->expr;
+            }
+        } else {
+            init->named_values = nullptr;
+            init->named_value_count = 0;
+        }
+
         _track_node(context, &init->base);
 
         return (struct AstExpr*)init;
