@@ -95,6 +95,17 @@ static void _register_keyword(LexerContext* context, const char* keyword, enum L
     LexerSymbol* symbol = uf_mem_region_malloc(context->symbol_arena, sizeof(LexerSymbol));
     symbol->type = type;
     symbol->text = keyword;
+    symbol->prim_type = 0;
+
+    uf_con_map_put(context->symbol_dictionary, keyword, symbol);
+}
+
+static void _register_primitive(LexerContext* context, const char* keyword, enum LexerPrimitiveType prim_type)
+{
+    LexerSymbol* symbol = uf_mem_region_malloc(context->symbol_arena, sizeof(LexerSymbol));
+    symbol->type = LEXER_SYM_PRIMITIVE;
+    symbol->text = keyword;
+    symbol->prim_type = prim_type;
 
     uf_con_map_put(context->symbol_dictionary, keyword, symbol);
 }
@@ -131,6 +142,7 @@ static const LexerSymbol* _intern_string(LexerContext* context, enum LexerSymbol
     LexerSymbol* symbol = uf_mem_region_malloc(context->symbol_arena, sizeof(LexerSymbol));
     symbol->type = fallback_type;
     symbol->text = final_str;
+    symbol->prim_type = 0;
 
     uf_con_map_put(context->symbol_dictionary, final_str, symbol);
     return symbol;
@@ -378,6 +390,16 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
     _register_keyword(context, "true", LEXER_SYM_NUMBER);
     _register_keyword(context, "var", LEXER_SYM_KEY_VAR);
     _register_keyword(context, "while", LEXER_SYM_KEY_WHILE);
+
+    /* Here we register primitive types. */
+    _register_primitive(context, "void", LEXER_PRIM_VOID);
+    _register_primitive(context, "bool", LEXER_PRIM_BOOL);
+    _register_primitive(context, "char", LEXER_PRIM_CHAR);
+    _register_primitive(context, "int", LEXER_PRIM_INT);
+    _register_primitive(context, "long", LEXER_PRIM_LONG);
+    _register_primitive(context, "short", LEXER_PRIM_SHORT);
+    _register_primitive(context, "float", LEXER_PRIM_FLOAT);
+    _register_primitive(context, "double", LEXER_PRIM_DOUBLE);
 
     /* This is where we dispatch our scanner functions. */
     while (!_is_end(context)) {

@@ -34,6 +34,20 @@ enum LexerSymbolType {
     LEXER_SYM_KEY_SWITCH,
     LEXER_SYM_KEY_VAR,
     LEXER_SYM_KEY_WHILE,
+
+    /* Primitive types */
+    LEXER_SYM_PRIMITIVE,
+};
+
+enum LexerPrimitiveType {
+    LEXER_PRIM_VOID,
+    LEXER_PRIM_BOOL,
+    LEXER_PRIM_CHAR,
+    LEXER_PRIM_INT,
+    LEXER_PRIM_LONG,
+    LEXER_PRIM_SHORT,
+    LEXER_PRIM_FLOAT,
+    LEXER_PRIM_DOUBLE,
 };
 
 enum LexerTokenType {
@@ -85,6 +99,7 @@ typedef struct LexerSymbol LexerSymbol;
 struct LexerSymbol {
     enum LexerSymbolType type;
     const char* text;
+    enum LexerPrimitiveType prim_type;
 };
 
 typedef struct LexerToken LexerToken;
