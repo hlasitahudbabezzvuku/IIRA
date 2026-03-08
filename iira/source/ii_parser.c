@@ -2285,5 +2285,6 @@ Ast* ii_parser_get_ast(ParserContext* context)
 void ii_parser_print_debug(ParserContext* context)
 {
     /* TODO: I really don't want to do this right now. */
+    (void)context;
     printf("Parser debug printing isn't implemented right now :(\n");
 }
