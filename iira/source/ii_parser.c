@@ -314,6 +314,44 @@ static struct AstBlueprintDecl* _parse_blueprint_decl(ParserContext* context)
         return nullptr;
     }
 
+    /* Parse inheritance: IDENTIFIER (',' IDENTIFIER ('as' IDENTIFIER)?)* */
+    _autovector_ UfConVector* parents_vec = uf_con_vector_new(sizeof(struct {
+        const char* name;
+        const char* alias;
+    }));
+
+    while (_check(context, LEXER_TOK_SYMBOL) && _peek_current(context)->variant.symbol &&
+           _peek_current(context)->variant.symbol->type == LEXER_SYM_IDENTIFIER) {
+        const char* parent_name = _peek_current(context)->variant.symbol->text;
+        _advance(context);
+
+        const char* alias = nullptr;
+        if (_check(context, LEXER_TOK_SYMBOL) && _peek_current(context)->variant.symbol &&
+            _peek_current(context)->variant.symbol->type == LEXER_SYM_KEY_AS) {
+            _advance(context);
+            if (!_check(context, LEXER_TOK_SYMBOL) || !_peek_current(context)->variant.symbol ||
+                _peek_current(context)->variant.symbol->type != LEXER_SYM_IDENTIFIER) {
+                ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                               "Expected alias name after 'as'");
+                return nullptr;
+            }
+            alias = _peek_current(context)->variant.symbol->text;
+            _advance(context);
+        }
+
+        struct {
+            const char* name;
+            const char* alias;
+        } parent_entry = {parent_name, alias};
+        uf_con_vector_push(parents_vec, &parent_entry);
+
+        if (!_match(context, LEXER_TOK_COMMA)) {
+            break;
+        }
+    }
+
+    size_t parent_count = uf_con_vector_length(parents_vec);
+
     /* Expect opening brace. */
     if (!_match(context, LEXER_TOK_LBRACE)) {
         ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
@@ -326,6 +364,23 @@ static struct AstBlueprintDecl* _parse_blueprint_decl(ParserContext* context)
     blueprint->base.type = AST_BLUEPRINT_DECL;
     blueprint->base.span = blueprint_span;
     blueprint->name = blueprint_name;
+
+    if (parent_count > 0) {
+        blueprint->parents =
+            uf_mem_region_zalloc(context->node_arena, sizeof(*blueprint->parents) * parent_count);
+        blueprint->parent_count = parent_count;
+        for (size_t i = 0; i < parent_count; i++) {
+            struct {
+                const char* name;
+                const char* alias;
+            }* p = uf_con_vector_get(parents_vec, i);
+            blueprint->parents[i].name = p->name;
+            blueprint->parents[i].alias = p->alias;
+        }
+    } else {
+        blueprint->parents = nullptr;
+        blueprint->parent_count = 0;
+    }
 
     /* Parse members. */
     UfConVector* fields_vector_tmp = uf_con_vector_new(sizeof(struct AstField*));
@@ -378,7 +433,7 @@ static struct AstBlueprintDecl* _parse_blueprint_decl(ParserContext* context)
 
         for (size_t i = 0; i < field_count; i++) {
             struct AstField** f = uf_con_vector_get(fields_vector_tmp, i);
-            memcpy(&blueprint->fields[i], f, sizeof(struct AstField));
+            memcpy(&blueprint->fields[i], *f, sizeof(struct AstField));
         }
     } else {
         blueprint->fields = nullptr;
@@ -393,7 +448,7 @@ static struct AstBlueprintDecl* _parse_blueprint_decl(ParserContext* context)
         blueprint->method_count = method_count;
         for (size_t i = 0; i < method_count; i++) {
             struct AstMethod** m = uf_con_vector_get(methods_vector_tmp, i);
-            memcpy(&blueprint->methods[i], m, sizeof(struct AstMethod));
+            memcpy(&blueprint->methods[i], *m, sizeof(struct AstMethod));
         }
     } else {
         blueprint->methods = nullptr;
@@ -1677,11 +1732,58 @@ static struct AstExpr* _parse_primary_expr(ParserContext* context)
             _track_node(context, &literal->base);
             return (struct AstExpr*)literal;
         }
+
+        /* Check for string literals. */
+        if (first->variant.symbol->type == LEXER_SYM_STRING) {
+            _advance(context);
+
+            struct AstLiteral* literal = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstLiteral));
+            literal->base.type = AST_LITERAL;
+            literal->base.span = first->span;
+            literal->inferred_type = nullptr;
+            literal->kind = LITERAL_STRING;
+            literal->variant.string_value = first->variant.symbol->text;
+
+            _track_node(context, &literal->base);
+            return (struct AstExpr*)literal;
+        }
+
+        /* Check for character literals. */
+        if (first->variant.symbol->type == LEXER_SYM_CHAR) {
+            _advance(context);
+
+            struct AstLiteral* literal = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstLiteral));
+            literal->base.type = AST_LITERAL;
+            literal->base.span = first->span;
+            literal->inferred_type = nullptr;
+            literal->kind = LITERAL_CHAR;
+            literal->variant.char_value = first->variant.symbol->text[0];
+
+            _track_node(context, &literal->base);
+            return (struct AstExpr*)literal;
+        }
     }
 
     /* Handle identifiers. */
     if (first->type == LEXER_TOK_SYMBOL && first->variant.symbol &&
         first->variant.symbol->type == LEXER_SYM_IDENTIFIER) {
+        const char* name = first->variant.symbol->text;
+        _advance(context);
+
+        struct AstIdent* ident = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstIdent));
+        ident->base.type = AST_IDENT;
+        ident->base.span = first->span;
+        ident->inferred_type = nullptr;
+        ident->name = name;
+        memset(&ident->resolved, 0, sizeof(ident->resolved));
+
+        _track_node(context, &ident->base);
+        return (struct AstExpr*)ident;
+    }
+
+    /* Handle 'self' keyword as identifier in expressions. */
+    if (first->type == LEXER_TOK_SYMBOL && first->variant.symbol &&
+        first->variant.symbol->type == LEXER_SYM_KEY_SELF) {
         const char* name = first->variant.symbol->text;
         _advance(context);
 
@@ -1702,13 +1804,213 @@ static struct AstExpr* _parse_primary_expr(ParserContext* context)
 }
 
 /**
+ * Parse function call arguments.
+ *
+ * Grammar: '(' (Expression (',' Expression)*)? ')'
+ **/
+static struct AstCallExpr* _parse_call_args(ParserContext* context, struct AstExpr* callee)
+{
+    const LexerToken* first = _peek_current(context);
+
+    _autovector_ UfConVector* args = uf_con_vector_new(sizeof(struct AstExpr*));
+
+    if (!_check(context, LEXER_TOK_RPAREN)) {
+        while (true) {
+            struct AstExpr* arg = _parse_expression(context);
+            if (!arg) {
+                return nullptr;
+            }
+            uf_con_vector_push(args, &arg);
+
+            if (!_match(context, LEXER_TOK_COMMA)) {
+                break;
+            }
+        }
+    }
+
+    if (!_expect(context, LEXER_TOK_RPAREN, ")")) {
+        return nullptr;
+    }
+
+    struct AstCallExpr* call = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstCallExpr));
+    call->base.type = AST_CALL_EXPR;
+    call->base.span = first->span;
+    call->inferred_type = nullptr;
+    call->callee = callee;
+
+    size_t arg_count = uf_con_vector_length(args);
+    if (arg_count > 0) {
+        call->args = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstExpr*) * arg_count);
+        call->arg_count = arg_count;
+        for (size_t i = 0; i < arg_count; i++) {
+            struct AstExpr** a = uf_con_vector_get(args, i);
+            call->args[i] = *a;
+        }
+    } else {
+        call->args = nullptr;
+        call->arg_count = 0;
+    }
+
+    return call;
+}
+
+/**
+ * Parse postfix expressions: member access, function calls, array indexing.
+ *
+ * Grammar: PrimaryExpr ( ('.' IDENTIFIER) | ('[' Expression ']') | ('(' Arguments ')') )*
+ *
+ * This handles chained expressions like: obj.method().field[0]
+ **/
+static struct AstExpr* _parse_postfix_expr(ParserContext* context)
+{
+    struct AstExpr* expr = _parse_primary_expr(context);
+    if (!expr) {
+        return nullptr;
+    }
+
+    while (true) {
+        if (_match(context, LEXER_TOK_DOT)) {
+            const LexerToken* member_token = _peek_current(context);
+            if (member_token->type != LEXER_TOK_SYMBOL || !member_token->variant.symbol ||
+                member_token->variant.symbol->type != LEXER_SYM_IDENTIFIER) {
+                ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                               "Expected member name after '.'");
+                return nullptr;
+            }
+
+            const char* member_name = member_token->variant.symbol->text;
+            _advance(context);
+
+            bool is_method = _check(context, LEXER_TOK_LPAREN);
+
+            struct AstMemberExpr* member =
+                uf_mem_region_zalloc(context->node_arena, sizeof(struct AstMemberExpr));
+            member->base.type = AST_MEMBER_EXPR;
+            member->base.span = expr->base.span;
+            member->inferred_type = nullptr;
+            member->object = expr;
+            member->member = member_name;
+            member->is_method = is_method;
+
+            _track_node(context, &member->base);
+            expr = (struct AstExpr*)member;
+
+            if (is_method) {
+                _advance(context);
+                struct AstCallExpr* call = _parse_call_args(context, expr);
+                if (!call) {
+                    return nullptr;
+                }
+                _track_node(context, &call->base);
+                expr = (struct AstExpr*)call;
+            }
+        } else if (_match(context, LEXER_TOK_LBRACKET)) {
+            struct AstExpr* index = _parse_expression(context);
+            if (!index) {
+                return nullptr;
+            }
+
+            if (!_expect(context, LEXER_TOK_RBRACKET, "]")) {
+                return nullptr;
+            }
+
+            struct AstIndexExpr* subscript =
+                uf_mem_region_zalloc(context->node_arena, sizeof(struct AstIndexExpr));
+            subscript->base.type = AST_INDEX_EXPR;
+            subscript->base.span = expr->base.span;
+            subscript->inferred_type = nullptr;
+            subscript->array = expr;
+            subscript->index = index;
+
+            _track_node(context, &subscript->base);
+            expr = (struct AstExpr*)subscript;
+        } else if (_match(context, LEXER_TOK_LPAREN)) {
+            struct AstCallExpr* call = _parse_call_args(context, expr);
+            if (!call) {
+                return nullptr;
+            }
+            _track_node(context, &call->base);
+            expr = (struct AstExpr*)call;
+        } else {
+            break;
+        }
+    }
+
+    return expr;
+}
+
+/**
  * Parse unary expression: prefix operators or primary.
  *
- * Grammar: ('-' || '!' || '~') UnaryExpr || PrimaryExpr
+ * Grammar: ('-' || '!' || '~' || '$') UnaryExpr || PrimaryExpr
  **/
 static struct AstExpr* _parse_unary_expr(ParserContext* context)
 {
     const LexerToken* first = _peek_current(context);
+
+    /* Check for FFI prefix. */
+    if (first->type == LEXER_TOK_DOLLAR) {
+        _advance(context);
+
+        const LexerToken* name_token = _peek_current(context);
+        if (name_token->type != LEXER_TOK_SYMBOL || !name_token->variant.symbol ||
+            name_token->variant.symbol->type != LEXER_SYM_IDENTIFIER) {
+            ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                           "Expected function name after '$'");
+            return nullptr;
+        }
+
+        const char* func_name = name_token->variant.symbol->text;
+        _advance(context);
+
+        if (!_match(context, LEXER_TOK_LPAREN)) {
+            ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                           "Expected '(' after FFI function name");
+            return nullptr;
+        }
+
+        _autovector_ UfConVector* args = uf_con_vector_new(sizeof(struct AstExpr*));
+
+        if (!_check(context, LEXER_TOK_RPAREN)) {
+            while (true) {
+                struct AstExpr* arg = _parse_expression(context);
+                if (!arg) {
+                    return nullptr;
+                }
+                uf_con_vector_push(args, &arg);
+
+                if (!_match(context, LEXER_TOK_COMMA)) {
+                    break;
+                }
+            }
+        }
+
+        if (!_expect(context, LEXER_TOK_RPAREN, ")")) {
+            return nullptr;
+        }
+
+        struct AstFfiExpr* ffi = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstFfiExpr));
+        ffi->base.type = AST_FFI_EXPR;
+        ffi->base.span = first->span;
+        ffi->inferred_type = nullptr;
+        ffi->function_name = func_name;
+
+        size_t arg_count = uf_con_vector_length(args);
+        if (arg_count > 0) {
+            ffi->args = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstExpr*) * arg_count);
+            ffi->arg_count = arg_count;
+            for (size_t i = 0; i < arg_count; i++) {
+                struct AstExpr** a = uf_con_vector_get(args, i);
+                ffi->args[i] = *a;
+            }
+        } else {
+            ffi->args = nullptr;
+            ffi->arg_count = 0;
+        }
+
+        _track_node(context, &ffi->base);
+        return (struct AstExpr*)ffi;
+    }
 
     /* Check for unary prefix operators. */
     if (first->type == LEXER_TOK_MINUS || first->type == LEXER_TOK_NOT || first->type == LEXER_TOK_BIT_NOT) {
@@ -1731,8 +2033,8 @@ static struct AstExpr* _parse_unary_expr(ParserContext* context)
         return (struct AstExpr*)unary;
     }
 
-    /* No unary operator, parse primary. */
-    return _parse_primary_expr(context);
+    /* No unary operator, parse postfix. */
+    return _parse_postfix_expr(context);
 }
 
 /**
