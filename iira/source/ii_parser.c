@@ -1054,6 +1054,42 @@ static struct AstContinueStmt* _parse_continue_stmt(ParserContext* context)
     return continue_stmt;
 }
 
+static struct AstType* _wrap_type_in_array(ParserContext* context, struct AstType* element_type)
+{
+    struct AstExpr* size_expr = nullptr;
+    if (!_check(context, LEXER_TOK_RBRACKET)) {
+        size_expr = _parse_expression(context);
+    }
+
+    if (!_expect(context, LEXER_TOK_RBRACKET, "]")) {
+    }
+
+    struct AstType* array_type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
+    array_type->base.type = AST_TYPE_ARRAY;
+    array_type->base.span = element_type->base.span;
+    array_type->kind = AST_TYPE_KIND_ARRAY;
+    array_type->variant.array.element_type = element_type;
+    array_type->variant.array.size = size_expr;
+    array_type->is_resolved = false;
+    array_type->size_in_bytes = 0;
+    array_type->alignment = 0;
+
+    return array_type;
+}
+
+static struct AstType* _wrap_type_in_pointer(ParserContext* context, struct AstType* pointed_type)
+{
+    struct AstType* pointer_type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
+    pointer_type->base.type = AST_TYPE_POINTER;
+    pointer_type->base.span = pointed_type->base.span;
+    pointer_type->kind = AST_TYPE_KIND_POINTER;
+    pointer_type->variant.pointer.pointed_type = pointed_type;
+    pointer_type->is_resolved = false;
+    pointer_type->size_in_bytes = 0;
+    pointer_type->alignment = 0;
+    return pointer_type;
+}
+
 /**
  * Parse a type annotation. This is the most complex function in this parser... I hate this function.
  *
@@ -1087,38 +1123,11 @@ static struct AstType* _parse_type(ParserContext* context)
 
         /* Check for array suffix. */
         if (_match(context, LEXER_TOK_LBRACKET)) {
-            /* Parse optional size expression. */
-            struct AstExpr* size_expr = nullptr;
-            if (!_check(context, LEXER_TOK_RBRACKET)) {
-                size_expr = _parse_expression(context);
-            }
-
-            if (!_expect(context, LEXER_TOK_RBRACKET, "]")) {
-                /* Error recovery - continue parsing */
-            }
-
-            /* Create array type wrapper. */
-            struct AstType* array_type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
-            array_type->base.type = AST_TYPE_ARRAY;
-            array_type->base.span = type_ref->base.span;
-            array_type->kind = AST_TYPE_KIND_ARRAY;
-            array_type->variant.array.element_type = type_ref;
-            array_type->variant.array.size = size_expr;
-            array_type->is_resolved = false;
-            array_type->size_in_bytes = 0;
-            array_type->alignment = 0;
+            struct AstType* array_type = _wrap_type_in_array(context, type_ref);
 
             /* Check for pointer suffix. */
             if (_match(context, LEXER_TOK_STAR)) {
-                struct AstType* ptr_type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
-                ptr_type->base.type = AST_TYPE_POINTER;
-                ptr_type->base.span = array_type->base.span;
-                ptr_type->kind = AST_TYPE_KIND_POINTER;
-                ptr_type->variant.pointer.pointed_type = array_type;
-                ptr_type->is_resolved = false;
-                ptr_type->size_in_bytes = 0;
-                ptr_type->alignment = 0;
-                return ptr_type;
+                return _wrap_type_in_pointer(context, array_type);
             }
 
             return array_type;
@@ -1126,15 +1135,7 @@ static struct AstType* _parse_type(ParserContext* context)
 
         /* Check for pointer suffix. */
         if (_match(context, LEXER_TOK_STAR)) {
-            struct AstType* pointer_type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
-            pointer_type->base.type = AST_TYPE_POINTER;
-            pointer_type->base.span = type_ref->base.span;
-            pointer_type->kind = AST_TYPE_KIND_POINTER;
-            pointer_type->variant.pointer.pointed_type = type_ref;
-            pointer_type->is_resolved = false;
-            pointer_type->size_in_bytes = 0;
-            pointer_type->alignment = 0;
-            return pointer_type;
+            return _wrap_type_in_pointer(context, type_ref);
         }
 
         return type_ref;
@@ -1160,37 +1161,11 @@ static struct AstType* _parse_type(ParserContext* context)
 
         /* Check for array suffix. */
         if (_match(context, LEXER_TOK_LBRACKET)) {
-            /* Parse optional size expression. */
-            struct AstExpr* size_expr = nullptr;
-            if (!_check(context, LEXER_TOK_RBRACKET)) {
-                size_expr = _parse_expression(context);
-            }
-
-            if (!_expect(context, LEXER_TOK_RBRACKET, "]")) {
-                /* Error recovery - continue parsing */
-            }
-
-            struct AstType* array_type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
-            array_type->base.type = AST_TYPE_ARRAY;
-            array_type->base.span = type->base.span;
-            array_type->kind = AST_TYPE_KIND_ARRAY;
-            array_type->variant.array.element_type = type;
-            array_type->variant.array.size = size_expr;
-            array_type->is_resolved = false;
-            array_type->size_in_bytes = 0;
-            array_type->alignment = 0;
+            struct AstType* array_type = _wrap_type_in_array(context, type);
 
             /* Check for pointer suffix. */
             if (_match(context, LEXER_TOK_STAR)) {
-                struct AstType* ptr_type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
-                ptr_type->base.type = AST_TYPE_POINTER;
-                ptr_type->base.span = array_type->base.span;
-                ptr_type->kind = AST_TYPE_KIND_POINTER;
-                ptr_type->variant.pointer.pointed_type = array_type;
-                ptr_type->is_resolved = false;
-                ptr_type->size_in_bytes = 0;
-                ptr_type->alignment = 0;
-                return ptr_type;
+                return _wrap_type_in_pointer(context, array_type);
             }
 
             return array_type;
