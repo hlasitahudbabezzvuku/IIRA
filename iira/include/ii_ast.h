@@ -114,10 +114,16 @@ struct AstType {
         AST_TYPE_KIND_ANON,
     } kind;
 
+    /* Semantic phase: type resolution and code generation info */
+    bool is_resolved;
+    uint32_t size_in_bytes;
+    uint32_t alignment;
+
     union {
         /* For primitive types: int, float, bool, char, etc. */
         struct {
             const char* name;
+            enum LexerPrimitiveType prim_type;
         } primitive;
 
         /* For array types: int[], float[], etc. */
