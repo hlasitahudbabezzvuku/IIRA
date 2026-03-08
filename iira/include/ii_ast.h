@@ -79,8 +79,15 @@ struct AstNode {
  */
 typedef union AstDeclaration AstDeclaration;
 union AstDeclaration {
-    struct AstFuncDecl* func;
-    struct AstBlueprintDecl* blueprint;
+    enum AstNodeType kind; // Tag to distinguish which member is valid
+    struct {
+        enum AstNodeType kind;
+        struct AstFuncDecl* func;
+    } func_decl;
+    struct {
+        enum AstNodeType kind;
+        struct AstBlueprintDecl* blueprint;
+    } blueprint_decl;
 };
 
 /*
