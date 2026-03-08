@@ -10,6 +10,22 @@
  * On parse error, we synchronize to statement/declaration boundary and continue parsing to find more errors.
  * We use placeholder nodes to keep tree structure intact for the semantic analyzer.
  *
+ * Here is a little cheat-sheet for the parser structures:
+ * - Program -> Declaration*
+ * - Declaration -> FuncDecl || BlueprintDecl
+ * - FuncDecl -> IDENTIFIER '(' ParamList? ')' ':' Type ('=' Block)?
+ * - BlueprintDecl -> IDENTIFIER ':' '{' Field* Method* '}'
+ * - Field -> IDENTIFIER ':' Type ('=' Expression)?
+ * - Method -> IDENTIFIER '(' ParamList? ')' ':' Type ('=' Block)?
+ * - Parameter -> IDENTIFIER ':' Type
+ * - Block -> '{' Statement* '}'
+ * - Statement -> ReturnStmt || DeclStmt || ExprStmt || IfStmt || ForStmt || WhileStmt
+ *
+ * Expressions use precedence climbing:
+ * - Each non-terminal (program, declaration, statement, expression) has a dedicated parsing function.
+ * - Functions call each other recursively to build the tree.
+ * - The call stack mirrors the nested structure of the code.
+ * (source: Wikipedia)
  *
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
