@@ -84,6 +84,12 @@ int main(const int argc, const char* argv[])
             ii_parser_context_new(source, ii_lexer_get_tokens(lexer_context),
                                   ii_lexer_get_token_count(lexer_context), diagnostic_context);
 
+        if (!parser_context) {
+            uf_log_err("Parser could not process file '%s'", file_path);
+            ret = EXIT_FAILURE;
+            continue;
+        }
+
         if (config.show_parser_output) {
             ii_parser_print_debug(parser_context);
         }
