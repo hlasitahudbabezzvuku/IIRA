@@ -706,6 +706,9 @@ static struct AstDeclStmt* _parse_decl_stmt(ParserContext* context)
     /* Parse optional initializer. */
     if (_match(context, LEXER_TOK_ASSIGN)) {
         declaration->init = _parse_expression(context);
+        if (declaration->init != nullptr && declaration->init->base.type == AST_INIT_EXPR) {
+            ((struct AstInitExpr*)declaration->init)->target_type = declaration->type;
+        }
     }
 
     return declaration;
@@ -2216,7 +2219,8 @@ ParserContext* ii_parser_context_new(Source* source, const LexerToken* tokens, s
                     }
 
                     /* Add new declaration */
-                    new_declaration[ast->decl_count].blueprint = blueprint;
+                    new_declaration[ast->decl_count].blueprint_decl.kind = AST_BLUEPRINT_DECL;
+                    new_declaration[ast->decl_count].blueprint_decl.blueprint = blueprint;
                     ast->declarations = new_declaration;
                     ast->decl_count = new_count;
                 }
@@ -2232,13 +2236,17 @@ ParserContext* ii_parser_context_new(Source* source, const LexerToken* tokens, s
                     typeof(ast->declarations) new_decl =
                         uf_mem_region_zalloc(context->node_arena, sizeof(ast->declarations[0]) * new_count);
 
+                    /* Zero the new declaration to ensure union is properly initialized */
+                    memset(&new_decl[ast->decl_count], 0, sizeof(ast->declarations[0]));
+
                     /* Copy old declarations */
                     if (ast->decl_count > 0 && ast->declarations) {
                         memcpy(new_decl, ast->declarations, sizeof(ast->declarations[0]) * ast->decl_count);
                     }
 
                     /* Add new declaration */
-                    new_decl[ast->decl_count].func = func;
+                    new_decl[ast->decl_count].func_decl.kind = AST_FUNC_DECL;
+                    new_decl[ast->decl_count].func_decl.func = func;
                     ast->declarations = new_decl;
                     ast->decl_count = new_count;
                 }
