@@ -1090,37 +1090,48 @@ static struct AstType* _parse_type(ParserContext* context)
         _advance(context); /* Consume the identifier. */
 
         struct AstType* type_ref = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
-        type_ref->base.type = AST_TYPE_PRIMITIVE; /* Will be fixed when we resolve. */
+        type_ref->base.type = AST_TYPE_BLUEPRINT;
         type_ref->base.span = first->span;
         type_ref->kind = AST_TYPE_KIND_BLUEPRINT;
         type_ref->variant.blueprint.name = name;
         type_ref->variant.blueprint.resolved = nullptr;
+        type_ref->is_resolved = false;
+        type_ref->size_in_bytes = 0;
+        type_ref->alignment = 0;
 
         /* Check for array suffix. */
         if (_match(context, LEXER_TOK_LBRACKET)) {
-            /* Expect closing bracket. */
+            /* Parse optional size expression. */
+            struct AstExpr* size_expr = nullptr;
             if (!_check(context, LEXER_TOK_RBRACKET)) {
-                ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
-                               "Expected ']' in array type");
-            } else {
-                _advance(context);
+                size_expr = _parse_expression(context);
+            }
+
+            if (!_expect(context, LEXER_TOK_RBRACKET, "]")) {
+                /* Error recovery - continue parsing */
             }
 
             /* Create array type wrapper. */
             struct AstType* array_type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
-            array_type->base.type = AST_TYPE_PRIMITIVE;
+            array_type->base.type = AST_TYPE_ARRAY;
             array_type->base.span = type_ref->base.span;
             array_type->kind = AST_TYPE_KIND_ARRAY;
             array_type->variant.array.element_type = type_ref;
-            array_type->variant.array.size = nullptr;
+            array_type->variant.array.size = size_expr;
+            array_type->is_resolved = false;
+            array_type->size_in_bytes = 0;
+            array_type->alignment = 0;
 
             /* Check for pointer suffix. */
             if (_match(context, LEXER_TOK_STAR)) {
                 struct AstType* ptr_type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
-                ptr_type->base.type = AST_TYPE_PRIMITIVE;
+                ptr_type->base.type = AST_TYPE_POINTER;
                 ptr_type->base.span = array_type->base.span;
                 ptr_type->kind = AST_TYPE_KIND_POINTER;
                 ptr_type->variant.pointer.pointed_type = array_type;
+                ptr_type->is_resolved = false;
+                ptr_type->size_in_bytes = 0;
+                ptr_type->alignment = 0;
                 return ptr_type;
             }
 
@@ -1130,68 +1141,87 @@ static struct AstType* _parse_type(ParserContext* context)
         /* Check for pointer suffix. */
         if (_match(context, LEXER_TOK_STAR)) {
             struct AstType* pointer_type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
-            pointer_type->base.type = AST_TYPE_PRIMITIVE;
+            pointer_type->base.type = AST_TYPE_POINTER;
             pointer_type->base.span = type_ref->base.span;
             pointer_type->kind = AST_TYPE_KIND_POINTER;
             pointer_type->variant.pointer.pointed_type = type_ref;
+            pointer_type->is_resolved = false;
+            pointer_type->size_in_bytes = 0;
+            pointer_type->alignment = 0;
             return pointer_type;
         }
 
         return type_ref;
     }
 
-    /* Handle primitive types by name. */
-    if (first->type == LEXER_TOK_SYMBOL && first->variant.symbol) {
-        enum LexerSymbolType sym_type = first->variant.symbol->type;
+    /* Handle primitive types by symbol type. */
+    if (first->type == LEXER_TOK_SYMBOL && first->variant.symbol &&
+        first->variant.symbol->type == LEXER_SYM_PRIMITIVE) {
 
-        /* Check if it's a keyword that represents a primitive type. */
-        if (sym_type >= LEXER_SYM_IDENTIFIER && sym_type <= LEXER_SYM_KEY_WHILE) {
-            /* This could be a primitive type name - check common primitives. */
-            const char* name = first->variant.symbol->text;
+        const char* name = first->variant.symbol->text;
+        enum LexerPrimitiveType prim_type = first->variant.symbol->prim_type;
+        _advance(context);
 
-            /* Only treat as primitive if it's a known primitive type name. */
-            if (strcmp(name, "int") == 0 || strcmp(name, "float") == 0 || strcmp(name, "double") == 0 ||
-                strcmp(name, "bool") == 0 || strcmp(name, "char") == 0 || strcmp(name, "void") == 0 ||
-                strcmp(name, "long") == 0 || strcmp(name, "short") == 0) {
+        struct AstType* type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
+        type->base.type = AST_TYPE_PRIMITIVE;
+        type->base.span = first->span;
+        type->kind = AST_TYPE_KIND_PRIMITIVE;
+        type->variant.primitive.name = name;
+        type->variant.primitive.prim_type = prim_type;
+        type->is_resolved = false;
+        type->size_in_bytes = 0;
+        type->alignment = 0;
 
-                _advance(context);
-
-                struct AstType* type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
-                type->base.type = AST_TYPE_PRIMITIVE;
-                type->base.span = first->span;
-                type->kind = AST_TYPE_KIND_PRIMITIVE;
-                type->variant.primitive.name = name;
-
-                /* Check for array suffix. */
-                if (_match(context, LEXER_TOK_LBRACKET)) {
-                    if (!_check(context, LEXER_TOK_RBRACKET)) {
-                        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
-                                       "Expected ']' in array type");
-                    } else {
-                        _advance(context);
-                    }
-
-                    struct AstType* array_type =
-                        uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
-                    array_type->base.type = AST_TYPE_PRIMITIVE;
-                    array_type->base.span = type->base.span;
-                    array_type->kind = AST_TYPE_KIND_ARRAY;
-                    array_type->variant.array.element_type = type;
-                    array_type->variant.array.size = nullptr;
-                    return array_type;
-                }
-
-                return type;
+        /* Check for array suffix. */
+        if (_match(context, LEXER_TOK_LBRACKET)) {
+            /* Parse optional size expression. */
+            struct AstExpr* size_expr = nullptr;
+            if (!_check(context, LEXER_TOK_RBRACKET)) {
+                size_expr = _parse_expression(context);
             }
+
+            if (!_expect(context, LEXER_TOK_RBRACKET, "]")) {
+                /* Error recovery - continue parsing */
+            }
+
+            struct AstType* array_type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
+            array_type->base.type = AST_TYPE_ARRAY;
+            array_type->base.span = type->base.span;
+            array_type->kind = AST_TYPE_KIND_ARRAY;
+            array_type->variant.array.element_type = type;
+            array_type->variant.array.size = size_expr;
+            array_type->is_resolved = false;
+            array_type->size_in_bytes = 0;
+            array_type->alignment = 0;
+
+            /* Check for pointer suffix. */
+            if (_match(context, LEXER_TOK_STAR)) {
+                struct AstType* ptr_type = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
+                ptr_type->base.type = AST_TYPE_POINTER;
+                ptr_type->base.span = array_type->base.span;
+                ptr_type->kind = AST_TYPE_KIND_POINTER;
+                ptr_type->variant.pointer.pointed_type = array_type;
+                ptr_type->is_resolved = false;
+                ptr_type->size_in_bytes = 0;
+                ptr_type->alignment = 0;
+                return ptr_type;
+            }
+
+            return array_type;
         }
+
+        return type;
     }
 
     /* Handle anonymous blueprints: { x: int; y: float; }. */
     if (_match(context, LEXER_TOK_LBRACE)) {
         struct AstType* anon_blueprint = uf_mem_region_zalloc(context->node_arena, sizeof(struct AstType));
-        anon_blueprint->base.type = AST_TYPE_PRIMITIVE;
+        anon_blueprint->base.type = AST_TYPE_ANON;
         anon_blueprint->base.span = first->span;
         anon_blueprint->kind = AST_TYPE_KIND_ANON;
+        anon_blueprint->is_resolved = false;
+        anon_blueprint->size_in_bytes = 0;
+        anon_blueprint->alignment = 0;
 
         UfConVector* fields_vector_tmp = uf_con_vector_new(sizeof(struct AstField*));
 
@@ -1256,7 +1286,7 @@ static struct AstParam* _parse_param(ParserContext* ctx, const char* blueprint_n
         /* Create type for self parameter: blueprint name type */
         if (blueprint_name != nullptr) {
             param->type = uf_mem_region_zalloc(ctx->node_arena, sizeof(struct AstType));
-            param->type->base.type = AST_TYPE_PRIMITIVE;
+            param->type->base.type = AST_TYPE_BLUEPRINT;
             param->type->base.span = name_token->span;
             param->type->kind = AST_TYPE_KIND_BLUEPRINT;
             param->type->variant.blueprint.name = blueprint_name;
