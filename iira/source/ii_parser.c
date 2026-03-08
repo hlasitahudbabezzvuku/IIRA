@@ -10,8 +10,6 @@
  * On parse error, we synchronize to statement/declaration boundary and continue parsing to find more errors.
  * We use placeholder nodes to keep tree structure intact for the semantic analyzer.
  *
- * TODO: if, for, while, and do-while statements are not implemented.
- * TODO: expressions are parsed but not fully built. The expression parser is stub that creates placeholders.
  *
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
@@ -711,18 +709,6 @@ static struct AstDeclStmt* _parse_decl_stmt(ParserContext* context)
     }
 
     return declaration;
-}
-
-/**
- * Parse an expression statement. This handles expressions used as statements, typically function calls or
- * assignments that don't need their value.
- *
- * Grammar: Expression ';'
- **/
-static struct AstExprStmt* _parse_expr_stmt(ParserContext* context)
-{
-    (void)context; /* TODO: implement. */
-    return nullptr;
 }
 
 /**
@@ -2232,7 +2218,6 @@ ParserContext* ii_parser_context_new(Source* source, const LexerToken* tokens, s
         if (first->type == LEXER_TOK_SYMBOL && first->variant.symbol &&
             first->variant.symbol->type == LEXER_SYM_IDENTIFIER) {
 
-            const char* name = first->variant.symbol->text;
             const LexerToken* second = _peek_next(context);
 
             /* Blueprint expects: IDENTIFIER ':' '{' - check if next token is colon followed by brace */
