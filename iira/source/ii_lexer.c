@@ -271,14 +271,31 @@ scan_suffix: /* Yes, It's a `goto`. But, as you can see, it actually helps to si
     _push_token_symbol(context, symbol);
 }
 
-static void _scan_string(LexerContext* context, DiagnosticContext* diag_context)
+static void _scan_string(LexerContext* context)
 {
     while (_peek_current(context) != '"' && !_is_end(context)) {
+        if (_peek_current(context) == '\\') {
+            _advance(context);
+            char esc = _peek_current(context);
+            switch (esc) {
+            case 'n':
+            case 't':
+            case 'r':
+            case '0':
+            case '\\':
+            case '"':
+                _advance(context);
+                continue;
+            default:
+                _push_token_error(context, "Invalid escape sequence");
+                return;
+            }
+        }
         _advance(context);
     }
 
     if (_is_end(context)) {
-        _push_token_error(context, diag_context, "Unterminated string literal");
+        _push_token_error(context, "Unterminated string literal");
         return;
     }
 
@@ -293,7 +310,7 @@ static void _scan_string(LexerContext* context, DiagnosticContext* diag_context)
     _push_token_symbol(context, symbol);
 }
 
-static void _scan_char(LexerContext* context, DiagnosticContext* diag_context)
+static void _scan_char(LexerContext* context)
 {
     if (_peek_current(context) == '\\') {
         _advance(context);
@@ -320,14 +337,14 @@ static void _scan_char(LexerContext* context, DiagnosticContext* diag_context)
             escaped = '\'';
             break;
         default:
-            _push_token_error(context, diag_context, "Invalid escape sequence in character literal");
+            _push_token_error(context, "Invalid escape sequence in character literal");
             return;
         }
 
         _advance(context);
 
         if (_peek_current(context) != '\'') {
-            _push_token_error(context, diag_context, "Unterminated character literal");
+            _push_token_error(context, "Unterminated character literal");
             return;
         }
         _advance(context);
@@ -353,14 +370,14 @@ static void _scan_char(LexerContext* context, DiagnosticContext* diag_context)
 
     char ch = _peek_current(context);
     if (ch == '\'') {
-        _push_token_error(context, diag_context, "Empty character literal");
+        _push_token_error(context, "Empty character literal");
         return;
     }
 
     _advance(context);
 
     if (_peek_current(context) != '\'') {
-        _push_token_error(context, diag_context, "Unterminated character literal");
+        _push_token_error(context, "Unterminated character literal");
         return;
     }
     _advance(context);
@@ -543,7 +560,7 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
                 }
 
                 if _unlikely_ (!terminated) {
-                    _push_token_error(context, diag_context, "Unterminated multi-line comment");
+                    _push_token_error(context, "Unterminated multi-line comment");
                 }
             } else {
                 _push_token(context, _match(context, '=') ? LEXER_TOK_SLASH_ASSIGN : LEXER_TOK_SLASH);
@@ -551,15 +568,15 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
             break;
 
         case '"':
-            _scan_string(context, diag_context);
+            _scan_string(context);
             break;
 
         case '\'':
-            _scan_char(context, diag_context);
+            _scan_char(context);
             break;
 
         default:
-            _push_token_error(context, diag_context, "Unexpected character");
+            _push_token_error(context, "Unexpected character");
             break;
         }
     }
