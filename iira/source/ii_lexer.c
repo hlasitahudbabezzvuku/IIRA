@@ -30,6 +30,7 @@
 
 struct LexerContext {
     Source* source;
+    DiagnosticContext* diag_context;
     const char* file_buffer;
     size_t file_size;
 
@@ -74,8 +75,7 @@ static inline void _push_token_symbol(LexerContext* context, const LexerSymbol* 
     uf_con_vector_push(context->tokens, &token);
 }
 
-static inline void _push_token_error(LexerContext* context, DiagnosticContext* diag_context,
-                                     const char* message)
+static inline void _push_token_error(LexerContext* context, const char* message)
 {
     LexerToken token = {
         .type = LEXER_TOK_ERROR,
@@ -87,7 +87,7 @@ static inline void _push_token_error(LexerContext* context, DiagnosticContext* d
         .variant.error_message = message,
     };
     uf_con_vector_push(context->tokens, &token);
-    ii_diag_report(diag_context, UF_LOG_ERROR, token.span, message);
+    ii_diag_report(context->diag_context, UF_LOG_ERROR, token.span, message);
 }
 
 static void _register_keyword(LexerContext* context, const char* keyword, enum LexerSymbolType type)
@@ -217,6 +217,10 @@ static void _scan_number(LexerContext* context)
             while (isxdigit(_peek_current(context))) {
                 _advance(context);
             }
+            if (isalpha(_peek_current(context)) || _peek_current(context) == '_') {
+                _push_token_error(context, "Invalid hexadecimal digit");
+                return;
+            }
             goto scan_suffix;
         case 'b':
         case 'B':
@@ -224,12 +228,21 @@ static void _scan_number(LexerContext* context)
             while (_peek_current(context) == '0' || _peek_current(context) == '1') {
                 _advance(context);
             }
+            if (_peek_current(context) == '0' || _peek_current(context) == '1' ||
+                isdigit(_peek_current(context)) || isalpha(_peek_current(context))) {
+                _push_token_error(context, "Invalid binary digit");
+                return;
+            }
             goto scan_suffix;
         case 'o':
         case 'O':
             _advance(context); /* Consume the character "O" */
             while (_peek_current(context) >= '0' && _peek_current(context) <= '7') {
                 _advance(context);
+            }
+            if (isdigit(_peek_current(context)) || isalpha(_peek_current(context))) {
+                _push_token_error(context, "Invalid octal digit");
+                return;
             }
             goto scan_suffix;
         }
@@ -372,6 +385,7 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
     context->tokens = uf_con_vector_new(sizeof(LexerToken));
     context->symbol_dictionary = uf_con_map_new();
     context->symbol_arena = uf_mem_region_new(ARENA_BLOCK_SIZE);
+    context->diag_context = diag_context;
 
     /* Here we register our keywords. */
     _register_keyword(context, "as", LEXER_SYM_KEY_AS);
@@ -635,7 +649,7 @@ void ii_lexer_print_debug(const LexerContext* context)
                 printf(" -> \e[1;%im%s", UF_COLOR_BLUE_LIGHT, token->variant.symbol->text);
             }
         } else if (token->type == LEXER_TOK_ERROR) {
-            printf("\e[1;%im%s", UF_COLOR_RED_LIGHT, token->variant.error_message);
+            printf(" \e[1;%im%s", UF_COLOR_RED_LIGHT, token->variant.error_message);
         }
 
         printf("\e[%im\n", UF_COLOR_RESET);
