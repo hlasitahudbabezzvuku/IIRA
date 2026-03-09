@@ -1,6 +1,0 @@
-// Test: Array types
-main(): int = {
-    var arr1: int[];
-    var arr2: float[];
-    return 0;
-}

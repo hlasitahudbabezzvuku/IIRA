@@ -1,4 +1,0 @@
-// Test: Function declaration with arguments
-test(a: int): int = {
-    return a;
-}
