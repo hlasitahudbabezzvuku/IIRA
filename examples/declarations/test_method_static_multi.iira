@@ -1,0 +1,12 @@
+// Test: Multiple static methods
+Math: {
+    add(a: int, b: int): int = {
+        return a + b;
+    }
+    sub(a: int, b: int): int = {
+        return a - b;
+    }
+    mul(a: int, b: int): int = {
+        return a * b;
+    }
+}

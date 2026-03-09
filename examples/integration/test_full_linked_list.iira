@@ -1,0 +1,21 @@
+// Test: Linked list operations
+Node: {
+    value: int;
+    next: Node*;
+}
+
+createNode(v: int): Node* = {
+    var node: Node;
+    node.value = v;
+    node.next = 0;
+    return node;
+}
+
+getValue(n: Node*): int = {
+    return n.value;
+}
+
+main(): int = {
+    var head: Node* = createNode(10);
+    return getValue(head);
+}

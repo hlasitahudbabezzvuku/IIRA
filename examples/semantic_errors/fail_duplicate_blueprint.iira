@@ -1,0 +1,8 @@
+// Test: Duplicate blueprint declaration should fail
+Point: {
+    x: int;
+}
+
+Point: {
+    y: int;
+}

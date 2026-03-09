@@ -1,0 +1,14 @@
+// Test: Blueprint with multiple methods
+Counter: {
+    getValue(self): int = {
+        return 0;
+    }
+
+    increment(self): void = {
+        return;
+    }
+
+    reset(self): void = {
+        return;
+    }
+}

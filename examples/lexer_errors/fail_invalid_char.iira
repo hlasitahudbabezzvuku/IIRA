@@ -1,0 +1,5 @@
+// Test: Invalid character should fail at lexer
+main(): int = {
+    var x: int = @;
+    return 0;
+}

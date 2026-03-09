@@ -1,0 +1,8 @@
+// Test: Complex binary expressions
+main(): int = {
+    var a: int = 1 + 2 * 3 - 4 / 2;
+    var b: int = (1 + 2) * (3 - 4) / (2 + 1);
+    var c: bool = (1 < 2) && (3 > 2) && (4 <= 5) && (6 >= 5);
+    var d: bool = (1 == 1) && (2 != 3);
+    return a + b;
+}

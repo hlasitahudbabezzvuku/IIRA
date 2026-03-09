@@ -1,0 +1,5 @@
+// Test: Dollar without identifier for FFI should fail at parser
+main(): int = {
+    var x: int = $123;
+    return 0;
+}

@@ -1,0 +1,6 @@
+// Test: Invalid method without return type should fail at parser
+Point: {
+    get(): = {
+        return 0;
+    }
+}

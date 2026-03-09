@@ -1,0 +1,13 @@
+// Test: Member access expression
+Point: {
+    x: int;
+    y: int;
+}
+
+main(): int = {
+    var p: Point;
+    p.x = 10;
+    p.y = 20;
+    var sum: int = p.x + p.y;
+    return sum;
+}

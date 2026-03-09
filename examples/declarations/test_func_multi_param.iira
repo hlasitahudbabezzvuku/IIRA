@@ -1,0 +1,4 @@
+// Test: Function with multiple parameters
+test(x: int, y: int): int = {
+    return x;
+}

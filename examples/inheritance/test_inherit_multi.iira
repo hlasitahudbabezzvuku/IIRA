@@ -1,0 +1,12 @@
+// Test: Multiple inheritance
+Vehicle: {
+    speed: int;
+}
+
+Boat: Vehicle, {
+    length: int;
+}
+
+Plane: Vehicle, {
+    wingspan: int;
+}

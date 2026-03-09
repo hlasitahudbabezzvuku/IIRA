@@ -1,0 +1,6 @@
+// Test: Blueprint with multiple fields
+Point: {
+    x: float;
+    y: float;
+    z: float;
+}

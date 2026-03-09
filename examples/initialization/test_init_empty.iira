@@ -1,0 +1,10 @@
+// Test: Empty initialization (zero-initialized)
+Point: {
+    x: float;
+    y: float;
+}
+
+main(): int = {
+    var p: Point;
+    return 0;
+}

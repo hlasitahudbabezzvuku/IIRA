@@ -1,0 +1,4 @@
+// Test: Missing colon after blueprint name should fail at parser
+Point {
+    x: int;
+}

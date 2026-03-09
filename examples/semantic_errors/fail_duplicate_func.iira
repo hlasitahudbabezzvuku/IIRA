@@ -1,0 +1,8 @@
+// Test: Duplicate function declaration should fail
+test(): int = {
+    return 1;
+}
+
+test(): int = {
+    return 2;
+}

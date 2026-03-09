@@ -1,0 +1,8 @@
+// Test: Float literals
+main(): int = {
+    var a: float = 6.9;
+    var b: float = 3.14159;
+    var c: float = 0.5;
+    var d: float = 1.0;
+    return 0;
+}

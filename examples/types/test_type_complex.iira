@@ -1,0 +1,5 @@
+// Test: Complex type combinations
+main(): int = {
+    var a: float[2]*[3];
+    return 0;
+}

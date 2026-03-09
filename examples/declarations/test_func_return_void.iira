@@ -1,0 +1,4 @@
+// Test: Function returning void
+test(): void = {
+    return;
+}

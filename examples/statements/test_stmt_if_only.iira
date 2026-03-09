@@ -1,0 +1,7 @@
+// Test: If statement without else
+main(): int = {
+    if (true) {
+        return 0;
+    }
+    return 1;
+}

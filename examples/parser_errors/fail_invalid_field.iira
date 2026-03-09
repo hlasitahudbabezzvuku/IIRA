@@ -1,0 +1,4 @@
+// Test: Invalid field without type should fail at parser
+Point: {
+    x;
+}

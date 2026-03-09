@@ -1,0 +1,10 @@
+// Test: Prototypal blueprint inheritance
+Config: {
+    maxSpeed: int;
+}
+
+main(): int = {
+    var base: Config = { maxSpeed = 100 };
+    var derived: base = { maxSpeed = 200 };
+    return derived.maxSpeed;
+}

@@ -1,0 +1,6 @@
+// Test: Parenthesized expressions
+main(): int = {
+    var a: int = (1 + 2) * 3;
+    var b: int = (a - 3) / 2;
+    return b;
+}

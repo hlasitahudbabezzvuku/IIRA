@@ -1,0 +1,6 @@
+// Test: Pointer chains (pointer to pointer)
+main(): int = {
+    var a: int**;
+    var b: char**;
+    return 0;
+}

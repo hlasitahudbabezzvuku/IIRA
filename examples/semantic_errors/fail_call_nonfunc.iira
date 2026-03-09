@@ -1,0 +1,6 @@
+// Test: Calling non-function should fail
+main(): int = {
+    var x: int = 5;
+    x();
+    return 0;
+}

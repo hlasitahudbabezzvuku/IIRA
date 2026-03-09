@@ -1,0 +1,12 @@
+// Test: All primitive types
+main(): int = {
+    var a: void;
+    var b: bool = true;
+    var c: char = 'x';
+    var d: int = 42;
+    var e: long = 42;
+    var f: short = 42;
+    var g: float = 3.14f;
+    var h: double = 3.14;
+    return 0;
+}

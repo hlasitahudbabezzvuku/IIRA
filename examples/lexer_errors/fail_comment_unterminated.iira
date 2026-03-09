@@ -1,0 +1,5 @@
+// Test: Unterminated multi-line comment should fail at lexer
+/* This is an unterminated comment
+main(): int = {
+    return 0;
+}

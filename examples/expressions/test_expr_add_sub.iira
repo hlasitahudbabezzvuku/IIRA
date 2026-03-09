@@ -1,0 +1,7 @@
+// Test: Addition and subtraction
+main(): int = {
+    var a: int = 10 + 5;
+    var b: int = 10 - 5;
+    var c: int = a + b;
+    return c;
+}

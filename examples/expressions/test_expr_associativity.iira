@@ -1,0 +1,8 @@
+// Test: Left-to-right associativity
+main(): int = {
+    var a: int = 10 - 5 - 2;
+    var b: int = 10 - (5 - 2);
+    var c: int = 8 / 4 / 2;
+    var d: int = 8 / (4 / 2);
+    return a;
+}

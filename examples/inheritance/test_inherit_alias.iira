@@ -1,0 +1,14 @@
+// Test: Alias parent fields with 'as'
+Vehicle: {
+    speed: int;
+}
+
+Boat: Vehicle { speed as boatSpeed; }
+
+Plane: Vehicle { speed as planeSpeed; }
+
+main(): int = {
+    var b: Boat;
+    b.boatSpeed = 50;
+    return b.boatSpeed;
+}

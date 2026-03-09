@@ -1,0 +1,10 @@
+// Test: Function calls
+add(a: int, b: int): int = {
+    return a + b;
+}
+
+main(): int = {
+    var x: int = add(1, 2);
+    var y: int = add(add(1, 2), 3);
+    return y;
+}

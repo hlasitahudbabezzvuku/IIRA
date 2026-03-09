@@ -1,0 +1,9 @@
+// Test: Method accessing self fields
+Point: {
+    x: int;
+    y: int;
+    
+    getSum(self): int = {
+        return self.x + self.y;
+    }
+}

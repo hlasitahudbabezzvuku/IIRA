@@ -1,0 +1,6 @@
+// Test: Blueprint with single method
+Counter: {
+    getValue(self): int = {
+        return 0;
+    }
+}

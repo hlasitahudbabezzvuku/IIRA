@@ -1,0 +1,7 @@
+// Test: String literals
+main(): int = {
+    var a: char[] = "hello";
+    var b: char[] = "world";
+    var c: char[] = "";
+    return 0;
+}

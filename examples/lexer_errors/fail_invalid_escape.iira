@@ -1,0 +1,5 @@
+// Test: Invalid escape sequence should fail at lexer
+main(): int = {
+    var s: char[] = "hello\q";
+    return 0;
+}

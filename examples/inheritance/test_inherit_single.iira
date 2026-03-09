@@ -1,0 +1,8 @@
+// Test: Single inheritance
+Vehicle: {
+    speed: int;
+}
+
+Car: Vehicle, {
+    wheels: int;
+}

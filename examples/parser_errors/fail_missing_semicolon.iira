@@ -1,0 +1,5 @@
+// Test: Missing semicolon should fail at parser
+main(): int = {
+    var x: int = 5
+    return x;
+}

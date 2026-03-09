@@ -1,0 +1,9 @@
+// Test: Void return type
+noop(): void = {
+    return;
+}
+
+main(): int = {
+    noop();
+    return 0;
+}

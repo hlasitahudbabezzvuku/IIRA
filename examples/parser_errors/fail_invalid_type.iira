@@ -1,0 +1,5 @@
+// Test: Invalid type should fail at parser
+main(): int = {
+    var x: 123 = 5;
+    return 0;
+}

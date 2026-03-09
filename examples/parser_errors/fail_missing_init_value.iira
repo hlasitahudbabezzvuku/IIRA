@@ -1,0 +1,5 @@
+// Test: Missing init value should fail at parser
+main(): int = {
+    var x: int = ;
+    return 0;
+}

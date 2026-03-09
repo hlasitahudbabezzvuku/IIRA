@@ -1,0 +1,5 @@
+// Test: Unknown type should fail
+main(): int = {
+    var x: UnknownType;
+    return 0;
+}

@@ -1,0 +1,13 @@
+// Test: Blueprint with fields and methods mixed
+Container: {
+    value: int;
+    
+    get(self): int = {
+        return self.value;
+    }
+    
+    set(self, v: int): void = {
+        self.value = v;
+        return;
+    }
+}

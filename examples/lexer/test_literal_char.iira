@@ -1,0 +1,8 @@
+// Test: Character literals
+main(): int = {
+    var a: char = 'a';
+    var b: char = 'z';
+    var c: char = '0';
+    var d: char = ' ';
+    return 0;
+}

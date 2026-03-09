@@ -1,0 +1,5 @@
+// Test: Foreign Function Interface call
+main(): int = {
+    $printf("Hello, world!\n");
+    return 0;
+}

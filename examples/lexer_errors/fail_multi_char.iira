@@ -1,0 +1,5 @@
+// Test: Multi-character literal should fail at lexer
+main(): int = {
+    var c: char = 'ab';
+    return 0;
+}

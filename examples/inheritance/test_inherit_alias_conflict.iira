@@ -1,0 +1,11 @@
+// Test: Multiple aliases to resolve conflicts
+BaseA: {
+    value: int;
+}
+
+BaseB: {
+    value: int;
+}
+
+Derived: BaseA { value as aValue }, BaseB { value as bValue }
+

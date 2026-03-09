@@ -1,0 +1,13 @@
+// Test: Nested if statements
+main(): int = {
+    var a: int = 1;
+    var b: int = 2;
+
+    if (a > 0) {
+        if (b > 0) {
+            return 1;
+        }
+    }
+
+    return 0;
+}

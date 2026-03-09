@@ -1,0 +1,23 @@
+// Test: Bubble sort on array
+sort(arr: int[], n: int): void = {
+    var i: int = 0;
+    while (i < n - 1) {
+        var j: int = 0;
+        while (j < n - i - 1) {
+            if (arr[j] > arr[j + 1]) {
+                var temp: int = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    return;
+}
+
+main(): int = {
+    var arr: int[] = { 5, 3, 8, 1, 2 };
+    sort(arr, 5);
+    return arr[0];
+}

@@ -1,0 +1,6 @@
+// Test: Array variable declaration
+main(): int = {
+    var arr1: int[2];
+    var arr2: float[2];
+    return 0;
+}

@@ -1,0 +1,4 @@
+// Test: Empty parameter name should fail at parser
+test(: int): int = {
+    return 0;
+}

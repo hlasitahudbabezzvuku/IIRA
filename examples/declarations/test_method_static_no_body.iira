@@ -1,0 +1,4 @@
+// Test: Static method without body
+Point: {
+    getSum(): int;
+}

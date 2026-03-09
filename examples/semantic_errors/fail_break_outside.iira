@@ -1,0 +1,5 @@
+// Test: Break outside loop should fail
+main(): int = {
+    break;
+    return 0;
+}

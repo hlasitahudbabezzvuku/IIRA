@@ -1,0 +1,13 @@
+// Test: Call inherited method
+Base: {
+    getValue(self): int = {
+        return 42;
+    }
+}
+
+Derived: Base
+
+main(): int = {
+    var d: Derived;
+    return d.getValue();
+}

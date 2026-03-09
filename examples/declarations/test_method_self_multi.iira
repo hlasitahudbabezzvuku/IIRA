@@ -1,0 +1,7 @@
+// Test: Multiple methods with self
+Point: {
+    getX(self): int = { return 0; }
+    getY(self): int = { return 0; }
+    setX(self, x: int): void = { return; }
+    setY(self, y: int): void = { return; }
+}

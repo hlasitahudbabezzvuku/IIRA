@@ -1,0 +1,11 @@
+// Test: Chained method calls
+Chain: {
+    getNext(self): Chain = { return self; }
+    getValue(self): int = { return 0; }
+}
+
+main(): int = {
+    var c: Chain;
+    var x: int = c.getNext().getNext().getValue();
+    return x;
+}

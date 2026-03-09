@@ -1,0 +1,10 @@
+// Test: Partial initialization with defaults
+Point: {
+    x: float;
+    y: float = 10.0;
+}
+
+main(): int = {
+    var p: Point = { x = 5.0 };
+    return 0;
+}

@@ -1,0 +1,7 @@
+// Test: Duplicate alias should fail
+Base: {
+    value: int;
+}
+
+Derived: Base { someValue as differentValue }, {
+}

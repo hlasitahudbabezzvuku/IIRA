@@ -1,0 +1,10 @@
+// Test: Named field initialization
+Point: {
+    x: float = 0;
+    y: float = 0;
+}
+
+main(): int = {
+    var p: Point = { x = 1.0, y = 2.0 };
+    return 0;
+}

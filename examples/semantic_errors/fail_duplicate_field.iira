@@ -1,0 +1,5 @@
+// Test: Duplicate field in blueprint should fail
+Point: {
+    x: int;
+    x: int;
+}

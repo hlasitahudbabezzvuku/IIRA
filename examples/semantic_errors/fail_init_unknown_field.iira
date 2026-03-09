@@ -1,0 +1,9 @@
+// Test: Unknown field in initialization should fail
+Point: {
+    x: int;
+}
+
+main(): int = {
+    var p: Point = { unknown = 5 };
+    return 0;
+}

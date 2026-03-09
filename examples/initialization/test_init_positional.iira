@@ -1,0 +1,10 @@
+// Test: Positional field initialization
+Point: {
+    x: float;
+    y: float;
+}
+
+main(): int = {
+    var p: Point = { 1.0, 2.0 };
+    return 0;
+}

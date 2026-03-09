@@ -1,0 +1,6 @@
+// Test: Array declaration wrong size should fail
+main(): int = {
+    var arr1: int[2] = { 1, 2, 3 };
+    var arr2: float[2] = { 1, 2, 3 };
+    return 0;
+}

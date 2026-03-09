@@ -1,0 +1,4 @@
+// Test: Duplicate parameter names should fail
+test(a: int, a: float): int = {
+    return a;
+}

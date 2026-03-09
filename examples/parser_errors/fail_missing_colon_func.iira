@@ -1,0 +1,4 @@
+// Test: Missing colon in function should fail at parser
+test() = {
+    return 0;
+}

@@ -1,0 +1,5 @@
+// Test: Double dot should fail at lexer
+main(): int = {
+    var x: float = 1..5;
+    return 0;
+}

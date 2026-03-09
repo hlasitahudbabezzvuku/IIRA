@@ -1,0 +1,5 @@
+// Test: Unexpected token should fail at parser
+main(): int = {
+    var x: int = 5 + ;
+    return x;
+}

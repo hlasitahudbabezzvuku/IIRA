@@ -1,0 +1,4 @@
+// Test: Invalid parameter should fail at parser
+test(123: int): int = {
+    return 0;
+}

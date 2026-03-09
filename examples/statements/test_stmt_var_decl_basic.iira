@@ -1,0 +1,5 @@
+// Test: Variable declaration with zero-initialization
+main(): int = {
+    var x: int;
+    return 0;
+}

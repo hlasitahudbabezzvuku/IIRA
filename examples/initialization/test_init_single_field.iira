@@ -1,0 +1,9 @@
+// Test: Single field blueprint shorthand
+Single: {
+    value: int;
+}
+
+main(): int = {
+    var s: Single = 42;
+    return 0;
+}

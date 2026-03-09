@@ -1,0 +1,8 @@
+// Test: Array index expression
+main(): int = {
+    var arr: int[] = { 10, 20, 30 };
+    var a: int = arr[0];
+    var b: int = arr[1];
+    var c: int = arr[2];
+    return a + b + c;
+}

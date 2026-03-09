@@ -1,0 +1,7 @@
+// Test: Float literals with f suffix
+main(): int = {
+    var a: float = 6.9d;
+    var b: float = 3.14d;
+    var c: float = 1.5d;
+    return 0;
+}

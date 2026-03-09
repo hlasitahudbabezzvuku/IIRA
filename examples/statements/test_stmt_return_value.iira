@@ -1,0 +1,8 @@
+// Test: Return with expression
+add(a: int, b: int): int = {
+    return a + b;
+}
+
+main(): int = {
+    return add(1, 2);
+}

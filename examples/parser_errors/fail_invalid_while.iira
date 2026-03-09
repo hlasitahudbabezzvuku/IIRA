@@ -1,0 +1,7 @@
+// Test: Invalid while condition should fail at parser
+main(): int = {
+    while {
+        return 0;
+    }
+    return 1;
+}

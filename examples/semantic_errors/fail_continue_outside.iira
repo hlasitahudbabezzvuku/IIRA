@@ -1,0 +1,5 @@
+// Test: Continue outside loop should fail
+main(): int = {
+    continue;
+    return 0;
+}

@@ -1,0 +1,4 @@
+// Test: Function with mixed parameter types
+test(a: int, b: float, c: bool, d: char): int = {
+    return a;
+}

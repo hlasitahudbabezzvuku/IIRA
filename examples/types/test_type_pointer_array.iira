@@ -1,0 +1,6 @@
+// Test: Pointer to array
+main(): int = {
+    var a: int[]*;
+    var b: float[]*;
+    return 0;
+}

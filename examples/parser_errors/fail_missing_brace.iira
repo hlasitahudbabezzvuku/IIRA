@@ -1,0 +1,3 @@
+// Test: Missing closing brace should fail at parser
+Point: {
+    x: int;

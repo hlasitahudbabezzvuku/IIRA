@@ -1,0 +1,5 @@
+// Test: Array index not integer should fail
+main(): int = {
+    var arr: int[] = { 1, 2, 3 };
+    return arr["index"];
+}

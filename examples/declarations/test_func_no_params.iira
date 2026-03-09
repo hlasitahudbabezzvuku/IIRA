@@ -1,0 +1,4 @@
+// Test: Function with no parameters
+test(): int = {
+    return 42;
+}

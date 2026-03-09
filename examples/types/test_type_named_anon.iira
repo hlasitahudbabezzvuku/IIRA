@@ -1,0 +1,6 @@
+// Test: Named variable from anonymous type
+main(): int = {
+    var x: { value: int; };
+    var y: { value: int; } = x;
+    return 0;
+}

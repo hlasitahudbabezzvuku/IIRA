@@ -1,0 +1,14 @@
+// Test: Iterative factorial
+factorial(n: int): int = {
+    var result: int = 1;
+    var i: int = 1;
+    while (i <= n) {
+        result = result * i;
+        i = i + 1;
+    }
+    return result;
+}
+
+main(): int = {
+    return factorial(5);
+}

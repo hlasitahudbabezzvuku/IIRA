@@ -1,0 +1,9 @@
+// Test: Accessing unknown field should fail
+Point: {
+    x: int;
+}
+
+main(): int = {
+    var p: Point;
+    return p.unknown;
+}

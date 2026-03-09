@@ -1,0 +1,5 @@
+// Test: Unterminated char literal should fail at lexer
+main(): int = {
+    var c: char = ';
+    return 0;
+}

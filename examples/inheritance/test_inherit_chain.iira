@@ -1,0 +1,12 @@
+// Test: Chain inheritance
+A: {
+    a: int;
+}
+
+B: A, {
+    b: int;
+}
+
+C: B, {
+    c: int;
+}

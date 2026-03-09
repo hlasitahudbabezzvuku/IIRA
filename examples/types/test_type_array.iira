@@ -1,0 +1,7 @@
+// Test: Fixed-size arrays
+main(): int = {
+    var arr1: int[10];
+    var arr2: float[5];
+    var arr3: bool[100];
+    return 0;
+}

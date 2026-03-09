@@ -1,0 +1,5 @@
+// Test: Array initialization with indexed elements
+main(): int = {
+    var arr: int[] = { [0] = 69, [2] = 42 };
+    return 0;
+}

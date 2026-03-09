@@ -1,0 +1,6 @@
+// Test: Octal integer literals
+main(): int = {
+    var a: int = 0b1000101;
+    var b: int = 0B101010;
+    return 0;
+}

@@ -1,0 +1,5 @@
+// Test: Invalid number format should fail at lexer
+main(): int = {
+    var x: int = 12abc;
+    return 0;
+}

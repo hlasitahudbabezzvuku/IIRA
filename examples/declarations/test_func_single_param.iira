@@ -1,0 +1,4 @@
+// Test: Function with single parameter
+test(x: int): int = {
+    return x;
+}

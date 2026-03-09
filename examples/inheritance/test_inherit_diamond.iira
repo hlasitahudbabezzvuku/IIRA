@@ -1,0 +1,14 @@
+// Test: Diamond inheritance
+Base: {
+    value: int;
+}
+
+Left: Base, {
+    left: int;
+}
+
+Right: Base, {
+    right: int;
+}
+
+Derived: Left { value as lValue }, Right { value as rValue }

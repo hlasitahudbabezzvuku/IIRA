@@ -1,0 +1,7 @@
+// Test: Unary minus on variable
+main(): int = {
+    var x: int = 10;
+    var y: int = -x;
+    var z: int = -(-x);
+    return z;
+}

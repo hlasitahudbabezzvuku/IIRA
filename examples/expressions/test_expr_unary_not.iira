@@ -1,0 +1,11 @@
+// Test: Logical NOT operator
+main(): int = {
+    var a: bool = !false;
+    var b: bool = !true;
+
+    if (a && !b) {
+        return 1;
+    }
+
+    return 0;
+}

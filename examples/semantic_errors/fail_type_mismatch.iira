@@ -1,0 +1,5 @@
+// Test: Type mismatch should fail
+main(): int = {
+    var x: int = "string";
+    return 0;
+}

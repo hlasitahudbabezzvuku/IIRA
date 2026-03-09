@@ -1,0 +1,15 @@
+// Test: Access parent fields
+Vehicle: {
+    speed: int;
+}
+
+Car: Vehicle, {
+    wheels: int;
+}
+
+main(): int = {
+    var c: Car;
+    c.speed = 100;
+    c.wheels = 4;
+    return c.speed;
+}

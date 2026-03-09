@@ -1,0 +1,10 @@
+// Test: Anonymous type as parameter
+printPoint(p: { x: int; y: int; }): void = {
+    return;
+}
+
+main(): int = {
+    var pt: { x: int; y: int; };
+    printPoint(pt);
+    return 0;
+}

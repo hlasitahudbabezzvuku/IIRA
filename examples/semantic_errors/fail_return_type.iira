@@ -1,0 +1,4 @@
+// Test: Return type mismatch should fail
+test(): int = {
+    return "string";
+}

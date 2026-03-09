@@ -1,0 +1,11 @@
+// Test: Equality operators
+main(): int = {
+    var a: bool = 1 == 1;
+    var b: bool = 1 != 2;
+
+    if (a && b) {
+        return 1;
+    }
+
+    return 0;
+}

@@ -1,0 +1,6 @@
+// Test: Multi-dimensional arrays
+main(): int = {
+    var arr2d: int[2][3];
+    var arr3d: int[2][3][4];
+    return 0;
+}

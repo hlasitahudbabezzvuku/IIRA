@@ -1,0 +1,7 @@
+// Test: Hexadecimal integer literals
+main(): int = {
+    var a: int = 0xFF;
+    var b: int = 0xabcd;
+    var c: int = 0XDEADBEEF;
+    return 0;
+}

@@ -1,0 +1,7 @@
+// Test: Pointer types
+main(): int = {
+    var a: int*;
+    var b: float*;
+    var c: char*;
+    return 0;
+}

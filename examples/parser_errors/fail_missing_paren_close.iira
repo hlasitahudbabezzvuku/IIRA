@@ -1,0 +1,4 @@
+// Test: Missing closing paren in function should fail at parser
+test(: int = {
+    return 0;
+}

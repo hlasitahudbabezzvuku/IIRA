@@ -1,0 +1,7 @@
+// Test: Bitwise operators
+main(): int = {
+    var a: int = 5 & 3;
+    var b: int = 5 | 3;
+    var c: int = 5 ^ 3;
+    return c;
+}

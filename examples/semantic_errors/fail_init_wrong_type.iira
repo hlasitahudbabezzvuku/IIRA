@@ -1,0 +1,9 @@
+// Test: Wrong type in initialization should fail
+Point: {
+    x: int;
+}
+
+main(): int = {
+    var p: Point = { x = "string" };
+    return 0;
+}

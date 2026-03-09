@@ -1,0 +1,6 @@
+// Test: Anonymous blueprint types
+main(): int = {
+    var point: { x: int; y: int; };
+    var person: { name: char[]; age: int; };
+    return 0;
+}

@@ -1,0 +1,7 @@
+// Test: Multiplication, division, and modulo
+main(): int = {
+    var a: int = 10 * 5;
+    var b: int = 10 / 5;
+    var c: int = 10 % 3;
+    return c;
+}

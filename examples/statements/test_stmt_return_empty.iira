@@ -1,0 +1,9 @@
+// Test: Return without value in void function
+noop(): void = {
+    return;
+}
+
+main(): int = {
+    noop();
+    return 0;
+}

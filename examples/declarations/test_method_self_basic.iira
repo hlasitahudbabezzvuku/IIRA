@@ -1,0 +1,6 @@
+// Test: Method with self (instance method)
+Point: {
+    getSum(self): int = {
+        return 69;
+    }
+}

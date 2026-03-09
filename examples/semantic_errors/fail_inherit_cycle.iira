@@ -1,0 +1,6 @@
+// Test: Inheritance cycle should fail
+A: B, {
+}
+
+B: A, {
+}

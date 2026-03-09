@@ -1,0 +1,6 @@
+// Test: Static method (no self parameter)
+Point: {
+    getSum(): int = {
+        return 69;
+    }
+}

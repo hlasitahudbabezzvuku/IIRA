@@ -1,0 +1,2 @@
+// Test: Function with no body (declaration only)
+test(): int;

@@ -1,0 +1,3 @@
+// Test: Missing return in non-void function should fail
+test(): int = {
+}

@@ -1,0 +1,7 @@
+// Test: Decimal integer literals
+main(): int = {
+    var a: int = 0;
+    var b: int = 42;
+    var c: int = 123456789;
+    return 0;
+}
