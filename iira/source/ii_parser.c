@@ -1707,10 +1707,20 @@ static struct AstExpr* _parse_primary_expr(ParserContext* context)
         if (isdigit(text[0])) {
             _advance(context);
 
-            /* Check if it's a float. */
+            /* Check if it's a float. Need to skip hex/octal/binary prefixes. */
             bool is_float = false;
+            bool is_hex = (text[0] == '0' && (text[1] == 'x' || text[1] == 'X'));
+            bool is_octal = (text[0] == '0' && (text[1] == 'o' || text[1] == 'O'));
+            bool is_binary = (text[0] == '0' && (text[1] == 'b' || text[1] == 'B'));
+            bool has_prefix = is_hex || is_octal || is_binary;
             for (const char* p = text; *p; p++) {
-                if (*p == '.' || *p == 'f' || *p == 'F' || *p == 'd' || *p == 'D') {
+                /* Skip prefix characters (0x, 0o, 0b) - skip indices 0 and 1 */
+                size_t idx = (size_t)(p - text);
+                if (has_prefix && idx <= 1) {
+                    continue;
+                }
+                /* Only check for float suffix if NOT hex (hex uses letters for digits) */
+                if (!is_hex && (*p == '.' || *p == 'f' || *p == 'F' || *p == 'd' || *p == 'D')) {
                     is_float = true;
                     break;
                 }
