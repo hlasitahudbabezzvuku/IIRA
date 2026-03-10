@@ -1152,9 +1152,9 @@ static struct AstType* _parse_type(ParserContext* context)
             return array_type;
         }
 
-        /* Check for pointer suffix. */
-        if (_match(context, LEXER_TOK_STAR)) {
-            return _wrap_type_in_pointer(context, type_ref);
+        /* Check for pointer suffix (can be multiple like Point**). */
+        while (_match(context, LEXER_TOK_STAR)) {
+            type_ref = _wrap_type_in_pointer(context, type_ref);
         }
 
         return type_ref;
@@ -1188,6 +1188,11 @@ static struct AstType* _parse_type(ParserContext* context)
             }
 
             return array_type;
+        }
+
+        /* Check for pointer suffix directly (can be multiple like int**). */
+        while (_match(context, LEXER_TOK_STAR)) {
+            type = _wrap_type_in_pointer(context, type);
         }
 
         return type;
