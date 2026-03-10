@@ -772,7 +772,7 @@ static struct AstIfStmt* _parse_if_stmt(ParserContext* context)
     }
 
     /* Check for optional else-branch. */
-    struct AstBlock* else_block = nullptr;
+    struct AstStmt* else_block = nullptr;
     if (_match(context, LEXER_TOK_LPAREN)) {
         /* 'else' keyword - but we need to handle it differently */
     }
@@ -781,7 +781,7 @@ static struct AstIfStmt* _parse_if_stmt(ParserContext* context)
     if (_peek_current(context)->type == LEXER_TOK_SYMBOL && _peek_current(context)->variant.symbol &&
         _peek_current(context)->variant.symbol->type == LEXER_SYM_KEY_ELSE) {
         _advance(context); /* Consume 'else' */
-        else_block = (struct AstBlock*)_parse_stmt(context);
+        else_block = _parse_stmt(context);
         if (!else_block) {
             ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
                            "Expected statement in 'else' branch");

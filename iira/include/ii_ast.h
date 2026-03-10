@@ -353,7 +353,7 @@ struct AstIfStmt {
 
     struct AstExpr* condition;
     struct AstBlock* then_block;
-    struct AstBlock* else_block; // nullptr if no else clause
+    struct AstStmt* else_block; // nullptr if no else clause (can be AstBlock or another AstIfStmt)
 };
 
 /* For loop */
