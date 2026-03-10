@@ -5,7 +5,8 @@ Base: {
     }
 }
 
-Derived: Base
+Derived: Base, {
+}
 
 main(): int = {
     var d: Derived;
