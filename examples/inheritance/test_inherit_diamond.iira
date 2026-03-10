@@ -11,4 +11,4 @@ Right: Base, {
     right: int;
 }
 
-Derived: Left { value as lValue }, Right { value as rValue }
+Derived: Left { value as lValue }, Right { value as rValue }, { }

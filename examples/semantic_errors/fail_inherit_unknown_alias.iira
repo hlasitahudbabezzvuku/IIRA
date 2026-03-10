@@ -3,5 +3,4 @@ Base: {
     value: int;
 }
 
-Derived: Base { someValue as differentValue }, {
-}
+Derived: Base { someValue as differentValue }, { }

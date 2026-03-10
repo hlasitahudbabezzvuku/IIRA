@@ -134,7 +134,7 @@ Seaplane: Boat { speed as boatSpeed }, Plane { speed as planeSpeed }, {
 /* IIRA also has one other quality of life feature: single field blueprint assignment shorthand.
  * When blueprint has only one field, you can omit the curly braces on assignment. At the same
  * time, the blueprint can have any number of functions. */
-Test: { value: float; };
+Test: { value: float; }
 
 test(): void = {
     x: Test = .5f;

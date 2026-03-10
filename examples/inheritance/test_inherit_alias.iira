@@ -3,9 +3,9 @@ Vehicle: {
     speed: int;
 }
 
-Boat: Vehicle { speed as boatSpeed; }
+Boat: Vehicle { speed as boatSpeed; }, { }
 
-Plane: Vehicle { speed as planeSpeed; }
+Plane: Vehicle { speed as planeSpeed; }, { }
 
 main(): int = {
     var b: Boat;
