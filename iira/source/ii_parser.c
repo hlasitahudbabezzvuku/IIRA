@@ -1840,7 +1840,7 @@ static struct AstExpr* _parse_primary_expr(ParserContext* context)
             literal->base.span = first->span;
             literal->inferred_type = nullptr;
             literal->kind = LITERAL_CHAR;
-            literal->variant.char_value = first->variant.symbol->text[0];
+            literal->variant.char_value = first->variant.symbol->text[1];
 
             _track_node(context, &literal->base);
             return (struct AstExpr*)literal;
