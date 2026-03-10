@@ -1590,17 +1590,60 @@ static struct AstExpr* _parse_primary_expr(ParserContext* context)
             const char* name;
             struct AstExpr* expr;
         }));
+        _autovector_ UfConVector* indexed = uf_con_vector_new(sizeof(struct {
+            struct AstExpr* index;
+            struct AstExpr* expr;
+        }));
         bool saw_named = false;
 
         /* Check for empty init or list of expressions. */
         if (!_check(context, LEXER_TOK_RBRACE) && !_is_end(context)) {
             while (true) {
+                /* Check for indexed: [expression] = value */
+                if (_check(context, LEXER_TOK_LBRACKET)) {
+                    /* Cannot mix positional and indexed initialization */
+                    if (!saw_named && uf_con_vector_length(values) > 0) {
+                        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                                       "Cannot mix positional and indexed initialization");
+                        return nullptr;
+                    }
+                    if (uf_con_vector_length(named) > 0) {
+                        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                                       "Cannot mix named and indexed initialization");
+                        return nullptr;
+                    }
+
+                    saw_named = true;
+                    _advance(context); /* consume [ */
+                    struct AstExpr* idx = _parse_expression(context);
+                    if (!_expect(context, LEXER_TOK_RBRACKET, "]")) {
+                        return nullptr;
+                    }
+                    if (!_expect(context, LEXER_TOK_ASSIGN, "=")) {
+                        return nullptr;
+                    }
+                    struct AstExpr* val = _parse_expression(context);
+                    if (!val) {
+                        return nullptr;
+                    }
+
+                    struct {
+                        struct AstExpr* index;
+                        struct AstExpr* expr;
+                    } indexed_entry = {idx, val};
+                    uf_con_vector_push(indexed, &indexed_entry);
+                }
                 /* Check for named: IDENTIFIER followed by = */
-                if (_check(context, LEXER_TOK_SYMBOL) && _peek_next(context)->type == LEXER_TOK_ASSIGN) {
+                else if (_check(context, LEXER_TOK_SYMBOL) && _peek_next(context)->type == LEXER_TOK_ASSIGN) {
                     /* Cannot mix positional and named initialization */
                     if (!saw_named && uf_con_vector_length(values) > 0) {
                         ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
                                        "Cannot mix positional and named initialization");
+                        return nullptr;
+                    }
+                    if (uf_con_vector_length(indexed) > 0) {
+                        ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
+                                       "Cannot mix named and indexed initialization");
                         return nullptr;
                     }
 
@@ -1621,10 +1664,10 @@ static struct AstExpr* _parse_primary_expr(ParserContext* context)
                     uf_con_vector_push(named, &named_entry);
                 } else {
                     /* Positional: Expression */
-                    /* Cannot mix positional and named initialization */
-                    if (saw_named) {
+                    /* Cannot mix positional and named/indexed initialization */
+                    if (saw_named || uf_con_vector_length(named) > 0 || uf_con_vector_length(indexed) > 0) {
                         ii_diag_report(context->diag_context, UF_LOG_ERROR, _peek_current(context)->span,
-                                       "Cannot mix positional and named initialization");
+                                       "Cannot mix positional and named/indexed initialization");
                         return nullptr;
                     }
 
@@ -1688,6 +1731,25 @@ static struct AstExpr* _parse_primary_expr(ParserContext* context)
         } else {
             init->named_values = nullptr;
             init->named_value_count = 0;
+        }
+
+        /* Store indexed values */
+        size_t indexed_count = uf_con_vector_length(indexed);
+        if (indexed_count > 0) {
+            init->indexed_values =
+                uf_mem_region_zalloc(context->node_arena, sizeof(*init->indexed_values) * indexed_count);
+            init->indexed_value_count = indexed_count;
+            for (size_t i = 0; i < indexed_count; i++) {
+                struct {
+                    struct AstExpr* index;
+                    struct AstExpr* expr;
+                }* n = uf_con_vector_get(indexed, i);
+                init->indexed_values[i].index = n->index;
+                init->indexed_values[i].value = n->expr;
+            }
+        } else {
+            init->indexed_values = nullptr;
+            init->indexed_value_count = 0;
         }
 
         _track_node(context, &init->base);

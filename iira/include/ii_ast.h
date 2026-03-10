@@ -273,6 +273,13 @@ struct AstInitExpr {
         struct AstExpr* value;
     }* named_values;
     size_t named_value_count;
+
+    /* For indexed initialization (e.g., '{ [0] = 1, [2] = 2 }') */
+    struct {
+        struct AstExpr* index;
+        struct AstExpr* value;
+    }* indexed_values;
+    size_t indexed_value_count;
 };
 
 /* Type cast */
