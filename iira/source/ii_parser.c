@@ -1140,19 +1140,17 @@ static struct AstType* _parse_type(ParserContext* context)
         type_ref->size_in_bytes = 0;
         type_ref->alignment = 0;
 
-        /* Check for array suffix. */
-        if (_match(context, LEXER_TOK_LBRACKET)) {
-            struct AstType* array_type = _wrap_type_in_array(context, type_ref);
+        /* Check for array suffix - use while to support multi-dimensional arrays like int[2][3] */
+        while (_match(context, LEXER_TOK_LBRACKET)) {
+            type_ref = _wrap_type_in_array(context, type_ref);
 
-            /* Check for pointer suffix. */
+            /* Check for pointer suffix after each array dimension (e.g., float[2]*[3]) */
             if (_match(context, LEXER_TOK_STAR)) {
-                return _wrap_type_in_pointer(context, array_type);
+                type_ref = _wrap_type_in_pointer(context, type_ref);
             }
-
-            return array_type;
         }
 
-        /* Check for pointer suffix (can be multiple like Point**). */
+        /* Check for pointer suffix directly (can be multiple like Point**) */
         while (_match(context, LEXER_TOK_STAR)) {
             type_ref = _wrap_type_in_pointer(context, type_ref);
         }
@@ -1178,19 +1176,17 @@ static struct AstType* _parse_type(ParserContext* context)
         type->size_in_bytes = 0;
         type->alignment = 0;
 
-        /* Check for array suffix. */
-        if (_match(context, LEXER_TOK_LBRACKET)) {
-            struct AstType* array_type = _wrap_type_in_array(context, type);
+        /* Check for array suffix - use while to support multi-dimensional arrays like int[2][3] */
+        while (_match(context, LEXER_TOK_LBRACKET)) {
+            type = _wrap_type_in_array(context, type);
 
-            /* Check for pointer suffix. */
+            /* Check for pointer suffix after each array dimension (e.g., float[2]*[3]) */
             if (_match(context, LEXER_TOK_STAR)) {
-                return _wrap_type_in_pointer(context, array_type);
+                type = _wrap_type_in_pointer(context, type);
             }
-
-            return array_type;
         }
 
-        /* Check for pointer suffix directly (can be multiple like int**). */
+        /* Check for pointer suffix directly (can be multiple like int**) */
         while (_match(context, LEXER_TOK_STAR)) {
             type = _wrap_type_in_pointer(context, type);
         }
