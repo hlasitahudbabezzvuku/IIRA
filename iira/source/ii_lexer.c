@@ -301,12 +301,7 @@ static void _scan_string(LexerContext* context)
 
     _advance(context); /* Consume the closing quote */
 
-    context->start_index++;   /* Skip opening quote */
-    context->current_index--; /* Skip closing quote */
     const LexerSymbol* symbol = _intern_string(context, LEXER_SYM_STRING);
-    context->start_index--;
-    context->current_index++;
-
     _push_token_symbol(context, symbol);
 }
 
@@ -382,12 +377,7 @@ static void _scan_char(LexerContext* context)
     }
     _advance(context);
 
-    context->start_index++;   /* Skip opening quote */
-    context->current_index--; /* Skip closing quote */
     const LexerSymbol* symbol = _intern_string(context, LEXER_SYM_CHAR);
-    context->start_index--;   /* Skip opening quote */
-    context->current_index++; /* Skip closing quote */
-
     _push_token_symbol(context, symbol);
 }
 
@@ -657,10 +647,8 @@ void ii_lexer_print_debug(const LexerContext* context)
                 printf(" -> \e[1;%im%s", UF_COLOR_YELLOW_LIGHT, token->variant.symbol->text);
                 break;
             case LEXER_SYM_STRING:
-                printf(" -> \e[1;%im\"%s\"", UF_COLOR_GREEN_LIGHT, token->variant.symbol->text);
-                break;
             case LEXER_SYM_CHAR:
-                printf(" -> \e[1;%im'%s'", UF_COLOR_GREEN_LIGHT, token->variant.symbol->text);
+                printf(" -> \e[1;%im%s", UF_COLOR_GREEN_LIGHT, token->variant.symbol->text);
                 break;
             default:
                 printf(" -> \e[1;%im%s", UF_COLOR_BLUE_LIGHT, token->variant.symbol->text);
