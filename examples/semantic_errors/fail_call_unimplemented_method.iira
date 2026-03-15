@@ -1,0 +1,9 @@
+// Test: Calling method without body should fail
+Point: {
+    getValue(self): int;
+}
+
+main(): int = {
+    var p: Point;
+    return p.getValue();
+}

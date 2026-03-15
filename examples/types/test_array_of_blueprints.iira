@@ -1,0 +1,10 @@
+// Test: Array of blueprints
+Point: {
+    x: float;
+    y: float;
+}
+
+main(): int = {
+    var points: Point[] = { { x = 1.0, y = 2.0 }, { x = 3.0, y = 4.0 } };
+    return points[0].x + points[1].x;
+}

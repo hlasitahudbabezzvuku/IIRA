@@ -1,0 +1,22 @@
+// Test: Method override in inheritance
+Base: {
+    value: int;
+
+    getValue(self): int = {
+        return self.value;
+    }
+}
+
+Derived: Base, {
+    getValue(self): int = {
+        return self.value * 2;
+    }
+}
+
+main(): int = {
+    var b: Base;
+    var d: Derived;
+    b.value = 10;
+    d.value = 10;
+    return b.getValue() + d.getValue();
+}

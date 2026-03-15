@@ -1,0 +1,18 @@
+// Test: Explicit static method call (Type.method(instance))
+Point: {
+    x: float;
+    y: float;
+
+    getInverted(self): Point = {
+        return { -self.x, -self.y };
+    }
+}
+
+main(): int = {
+    var p: Point = { x = 1.0, y = 2.0 };
+    var inverted: Point = Point.getInverted(p);
+    if (inverted.x < 0) {
+        return 1;
+    }
+    return 0;
+}

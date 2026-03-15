@@ -1,0 +1,7 @@
+// Test: Unary plus operator
+main(): int = {
+    var a: int = 10;
+    var b: int = +a;
+    var c: int = +5;
+    return b + c;
+}

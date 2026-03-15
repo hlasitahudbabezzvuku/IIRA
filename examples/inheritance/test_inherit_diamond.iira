@@ -12,3 +12,12 @@ Right: Base, {
 }
 
 Derived: Left { value as lValue }, Right { value as rValue }, { }
+
+main(): int = {
+    var d: Derived;
+    d.lValue = 10;
+    d.rValue = 20;
+    d.left = 30;
+    d.right = 40;
+    return d.lValue + d.rValue + d.left + d.right;
+}

@@ -1,0 +1,34 @@
+// Test: Diamond inheritance with method calls
+Base: {
+    value: int;
+
+    getValue(self): int = {
+        return self.value;
+    }
+}
+
+Left: Base, {
+    left: int;
+    getLeft(self): int = { return self.left; }
+}
+
+Right: Base, {
+    right: int;
+    getRight(self): int = { return self.right; }
+}
+
+Derived: Left { value as lValue }, Right { value as rValue }, {
+    getDerivedValue(self): int = {
+        return self.lValue + self.rValue;
+    }
+}
+
+main(): int = {
+    var d: Derived;
+    d.value = 1;
+    d.left = 2;
+    d.right = 3;
+    d.lValue = 4;
+    d.rValue = 5;
+    return d.getValue() + d.getLeft() + d.getRight() + d.getDerivedValue();
+}

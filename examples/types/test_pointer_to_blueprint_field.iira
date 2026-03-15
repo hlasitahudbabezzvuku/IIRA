@@ -1,0 +1,12 @@
+// Test: Pointer to blueprint as field
+Node: {
+    value: int;
+    next: Node*;
+}
+
+main(): int = {
+    var node: Node;
+    node.value = 42;
+    node.next = 0;
+    return node.value;
+}

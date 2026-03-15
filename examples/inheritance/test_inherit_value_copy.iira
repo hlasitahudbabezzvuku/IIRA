@@ -1,0 +1,12 @@
+// Test: Prototypal inheritance value copy
+Config: {
+    maxSpeed: int;
+    weight: int;
+}
+
+main(): int = {
+    var base: Config = { maxSpeed = 100, weight = 1000 };
+    var derived: base = { maxSpeed = 200, weight = 800 };
+    base.maxSpeed = 150;
+    return base.maxSpeed + derived.maxSpeed;
+}

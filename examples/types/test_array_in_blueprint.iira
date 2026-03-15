@@ -1,0 +1,22 @@
+// Test: Array as blueprint field
+Point: {
+    x: float;
+    y: float;
+}
+
+Polygon: {
+    points: Point[3];
+    count: int;
+}
+
+main(): int = {
+    var poly: Polygon;
+    poly.points[0].x = 1.0;
+    poly.points[0].y = 2.0;
+    poly.points[1].x = 3.0;
+    poly.points[1].y = 4.0;
+    poly.points[2].x = 5.0;
+    poly.points[2].y = 6.0;
+    poly.count = 3;
+    return poly.count;
+}
