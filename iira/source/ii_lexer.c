@@ -27,6 +27,14 @@
 
 #define ARENA_BLOCK_SIZE (4 * 1024)
 
+/*
+ * Lexer maintains two separate storage mechanisms:
+ * 1. Source owns string interning - all interned strings live in Source's arena
+ * 2. Lexer owns symbol metadata - keyword types, primitive types, etc. live in Lexer's arena
+ *
+ * This separation allows later compiler stages to access Source's interned strings while keeping
+ * lexer-specific metadata (type classification) encapsulated in the Lexer.
+ */
 struct LexerContext {
     Source* source;
     DiagnosticContext* diag_context;
@@ -89,6 +97,10 @@ static inline void _push_token_error(LexerContext* context, const char* message)
     ii_diag_report(context->diag_context, UF_LOG_ERROR, token.span, message);
 }
 
+/*
+ * Register a keyword by first interning it in Source, then storing metadata keyed by that interned pointer.
+ * This ensures that when we encounter the same keyword later, we'll find it in the metadata map.
+ */
 static void _register_keyword(LexerContext* context, const char* keyword, enum LexerSymbolType type)
 {
     const char* interned = ii_src_intern_cstr(context->source, keyword);
@@ -100,6 +112,9 @@ static void _register_keyword(LexerContext* context, const char* keyword, enum L
     uf_con_map_put(context->symbol_metadata, interned, symbol);
 }
 
+/*
+ * Same approach as keywords - intern primitive type names so later lookups find them by pointer equality.
+ */
 static void _register_primitive(LexerContext* context, const char* keyword, enum LexerPrimitiveType prim_type)
 {
     const char* interned = ii_src_intern_cstr(context->source, keyword);
@@ -111,6 +126,11 @@ static void _register_primitive(LexerContext* context, const char* keyword, enum
     uf_con_map_put(context->symbol_metadata, interned, symbol);
 }
 
+/*
+ * Interns the current lexeme in Source, then checks if we already have metadata for it. We use the interned
+ * string pointer as the key - since Source guarantees pointer identity for equal strings, the same identifier
+ * will always map to the same metadata entry.
+ */
 static const LexerSymbol* _create_symbol(LexerContext* context, enum LexerSymbolType fallback_type)
 {
     uint32_t length = context->current_index - context->start_index;
@@ -331,6 +351,10 @@ static void _scan_char(LexerContext* context)
         }
         _advance(context);
 
+        /*
+         * Escape sequences like '\n' need to be interned so identical character literals
+         * share the same pointer - e.g., '\n' appearing multiple times should be pointer-equal.
+         */
         char buffer[2] = {escaped, '\0'};
         const char* interned = ii_src_intern_cstr(context->source, buffer);
 

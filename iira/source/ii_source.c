@@ -4,13 +4,9 @@
 
 #include "ii_source.h"
 #include "uf_containers.h"
-#include "uf_logger.h"
 #include "uf_memory.h"
 
-#include <ctype.h>
 #include <fcntl.h>
-#include <stdarg.h>
-#include <stdckdint.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -180,8 +176,17 @@ const char* ii_src_resolve_line_bounds(const Source* source, uint32_t line, size
     return line_ptr;
 }
 
+/*
+ * String interning lives in Source rather than Lexer because all compiler stages need access to
+ * pointer-comparable strings. This way the Parser and later stages can use simple pointer equality to check
+ * if two identifiers are the same, without needing strcmp.
+ */
 static const char* _intern_impl(Source* source, const char* raw, size_t length)
 {
+    /*
+     * For short strings, use a stack buffer to avoid heap allocation in the common case. This significantly
+     * speeds up interning of identifiers and keywords (typically < 32 chars).
+     */
     char stack_buffer[MAX_STACK_BUFFER];
     bool fits_in_stack = length < MAX_STACK_BUFFER;
 
@@ -196,11 +201,17 @@ static const char* _intern_impl(Source* source, const char* raw, size_t length)
         search_str[length] = '\0';
     }
 
+    /* Check if we've already interned this string - enables pointer equality comparison. */
     const char* existing = uf_con_map_get(source->interner_map, search_str);
     if (existing != nullptr) {
         return existing;
     }
 
+    /*
+     * Need to copy to arena: stack buffer won't persist after return, and for heap search_str we still need
+     * to own the memory. When fits_in_stack is true, search_str points to stack and we must allocate;
+     * otherwise it's already in arena so reuse it.
+     */
     char* final_str = fits_in_stack ? uf_mem_region_malloc(source->interner_arena, length + 1) : search_str;
     if (fits_in_stack) {
         memcpy(final_str, search_str, length + 1);
