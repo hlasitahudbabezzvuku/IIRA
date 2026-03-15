@@ -405,6 +405,7 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
     _register_keyword(context, "false", LEXER_SYM_NUMBER);
     _register_keyword(context, "for", LEXER_SYM_KEY_FOR);
     _register_keyword(context, "if", LEXER_SYM_KEY_IF);
+    _register_keyword(context, "null", LEXER_SYM_KEY_NULL);
     _register_keyword(context, "return", LEXER_SYM_KEY_RETURN);
     _register_keyword(context, "self", LEXER_SYM_KEY_SELF);
     _register_keyword(context, "switch", LEXER_SYM_KEY_SWITCH);
