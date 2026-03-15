@@ -36,3 +36,6 @@ size_t ii_src_get_size(const Source*) _nodiscard_;
 void ii_src_add_newline(Source*, uint32_t offset);
 SourceLocation ii_src_resolve_location(const Source*, uint32_t offset) _nodiscard_;
 const char* ii_src_resolve_line_bounds(const Source*, uint32_t line, size_t* out_length) _nodiscard_;
+
+const char* ii_src_intern(Source*, const char* str, size_t len) _nodiscard_;
+const char* ii_src_intern_cstr(Source*, const char* cstr) _nodiscard_;

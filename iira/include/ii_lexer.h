@@ -9,7 +9,6 @@
 #include "ii_source.h"
 #include "uf_common.h"
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 

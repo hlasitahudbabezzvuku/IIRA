@@ -7,6 +7,7 @@
 #include "uf_logger.h"
 #include "uf_memory.h"
 
+#include <ctype.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdckdint.h>
@@ -16,12 +17,18 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#define ARENA_BLOCK_SIZE (4 * 1024)
+#define MAX_STACK_BUFFER 256
+
 struct Source {
     const char* file_path;
     int file_descriptor;
     const char* file_buffer;
     size_t file_size;
     UfConVector* newline_offsets;
+
+    UfMemRegion* interner_arena;
+    UfConMap* interner_map;
 };
 
 Source* ii_src_new(const char* file_path)
@@ -51,6 +58,9 @@ Source* ii_src_new(const char* file_path)
     source->file_size = file_length;
     source->newline_offsets = uf_con_vector_new(sizeof(uint32_t));
 
+    source->interner_arena = uf_mem_region_new(ARENA_BLOCK_SIZE);
+    source->interner_map = uf_con_map_new();
+
     uf_con_vector_push(source->newline_offsets, &(uint32_t){0});
 
     return source;
@@ -71,6 +81,8 @@ void ii_src_free(Source* source)
     }
 
     uf_con_vector_free(source->newline_offsets);
+    uf_con_map_free(source->interner_map);
+    uf_mem_region_free(source->interner_arena);
     uf_mem_free(source);
 }
 
@@ -166,4 +178,50 @@ const char* ii_src_resolve_line_bounds(const Source* source, uint32_t line, size
     }
 
     return line_ptr;
+}
+
+static const char* _intern_impl(Source* source, const char* raw, size_t length)
+{
+    char stack_buffer[MAX_STACK_BUFFER];
+    bool fits_in_stack = length < MAX_STACK_BUFFER;
+
+    char* search_str = nullptr;
+    if _likely_ (fits_in_stack) {
+        memcpy(stack_buffer, raw, length);
+        stack_buffer[length] = '\0';
+        search_str = stack_buffer;
+    } else {
+        search_str = uf_mem_region_malloc(source->interner_arena, length + 1);
+        memcpy(search_str, raw, length);
+        search_str[length] = '\0';
+    }
+
+    const char* existing = uf_con_map_get(source->interner_map, search_str);
+    if (existing != nullptr) {
+        return existing;
+    }
+
+    char* final_str = fits_in_stack ? uf_mem_region_malloc(source->interner_arena, length + 1) : search_str;
+    if (fits_in_stack) {
+        memcpy(final_str, search_str, length + 1);
+    }
+
+    uf_con_map_put(source->interner_map, final_str, (void*)final_str);
+    return final_str;
+}
+
+const char* ii_src_intern(Source* source, const char* str, size_t len)
+{
+    if (str == nullptr || len == 0) {
+        return nullptr;
+    }
+    return _intern_impl(source, str, len);
+}
+
+const char* ii_src_intern_cstr(Source* source, const char* cstr)
+{
+    if (cstr == nullptr) {
+        return nullptr;
+    }
+    return _intern_impl(source, cstr, strlen(cstr));
 }

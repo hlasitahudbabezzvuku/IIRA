@@ -25,8 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define ARENA_BLOCK_SIZE (4 * 1024) /* 4 kilobytes blocks for strings */
-#define MAX_IDENTIFIER 256          /* Max size for stack-based fast interning */
+#define ARENA_BLOCK_SIZE (4 * 1024)
 
 struct LexerContext {
     Source* source;
@@ -35,8 +34,8 @@ struct LexerContext {
     size_t file_size;
 
     UfConVector* tokens;
-    UfConMap* symbol_dictionary;
-    UfMemRegion* symbol_arena;
+    UfConMap* symbol_metadata;
+    UfMemRegion* metadata_arena;
 
     uint32_t current_index;
     uint32_t start_index;
@@ -92,59 +91,47 @@ static inline void _push_token_error(LexerContext* context, const char* message)
 
 static void _register_keyword(LexerContext* context, const char* keyword, enum LexerSymbolType type)
 {
-    LexerSymbol* symbol = uf_mem_region_malloc(context->symbol_arena, sizeof(LexerSymbol));
+    const char* interned = ii_src_intern_cstr(context->source, keyword);
+    LexerSymbol* symbol = uf_mem_region_malloc(context->metadata_arena, sizeof(LexerSymbol));
     symbol->type = type;
-    symbol->text = keyword;
+    symbol->text = interned;
     symbol->prim_type = 0;
 
-    uf_con_map_put(context->symbol_dictionary, keyword, symbol);
+    uf_con_map_put(context->symbol_metadata, interned, symbol);
 }
 
 static void _register_primitive(LexerContext* context, const char* keyword, enum LexerPrimitiveType prim_type)
 {
-    LexerSymbol* symbol = uf_mem_region_malloc(context->symbol_arena, sizeof(LexerSymbol));
+    const char* interned = ii_src_intern_cstr(context->source, keyword);
+    LexerSymbol* symbol = uf_mem_region_malloc(context->metadata_arena, sizeof(LexerSymbol));
     symbol->type = LEXER_SYM_PRIMITIVE;
-    symbol->text = keyword;
+    symbol->text = interned;
     symbol->prim_type = prim_type;
 
-    uf_con_map_put(context->symbol_dictionary, keyword, symbol);
+    uf_con_map_put(context->symbol_metadata, interned, symbol);
 }
 
-static const LexerSymbol* _intern_string(LexerContext* context, enum LexerSymbolType fallback_type)
+static const LexerSymbol* _create_symbol(LexerContext* context, enum LexerSymbolType fallback_type)
 {
     uint32_t length = context->current_index - context->start_index;
     const char* raw = &context->file_buffer[context->start_index];
 
-    char stack_buffer[MAX_IDENTIFIER];
-    bool fits_in_stack = length < MAX_IDENTIFIER;
-
-    char* search_str = nullptr;
-    if _likely_ (fits_in_stack) {
-        memcpy(stack_buffer, raw, length);
-        stack_buffer[length] = '\0';
-        search_str = stack_buffer;
-    } else {
-        search_str = uf_mem_region_malloc(context->symbol_arena, length + 1);
-        memcpy(search_str, raw, length);
-        search_str[length] = '\0';
+    const char* interned = ii_src_intern(context->source, raw, length);
+    if (interned == nullptr) {
+        return nullptr;
     }
 
-    const LexerSymbol* existing = uf_con_map_get(context->symbol_dictionary, search_str);
+    const LexerSymbol* existing = uf_con_map_get(context->symbol_metadata, interned);
     if (existing != nullptr) {
         return existing;
     }
 
-    char* final_str = fits_in_stack ? uf_mem_region_malloc(context->symbol_arena, length + 1) : search_str;
-    if (fits_in_stack) {
-        memcpy(final_str, search_str, length + 1);
-    }
-
-    LexerSymbol* symbol = uf_mem_region_malloc(context->symbol_arena, sizeof(LexerSymbol));
+    LexerSymbol* symbol = uf_mem_region_malloc(context->metadata_arena, sizeof(LexerSymbol));
     symbol->type = fallback_type;
-    symbol->text = final_str;
+    symbol->text = interned;
     symbol->prim_type = 0;
 
-    uf_con_map_put(context->symbol_dictionary, final_str, symbol);
+    uf_con_map_put(context->symbol_metadata, interned, symbol);
     return symbol;
 }
 
@@ -267,7 +254,7 @@ scan_suffix: /* Yes, It's a `goto`. But, as you can see, it actually helps to si
         _advance(context);
     }
 
-    const LexerSymbol* symbol = _intern_string(context, LEXER_SYM_NUMBER);
+    const LexerSymbol* symbol = _create_symbol(context, LEXER_SYM_NUMBER);
     _push_token_symbol(context, symbol);
 }
 
@@ -301,7 +288,7 @@ static void _scan_string(LexerContext* context)
 
     _advance(context); /* Consume the closing quote */
 
-    const LexerSymbol* symbol = _intern_string(context, LEXER_SYM_STRING);
+    const LexerSymbol* symbol = _create_symbol(context, LEXER_SYM_STRING);
     _push_token_symbol(context, symbol);
 }
 
@@ -345,20 +332,20 @@ static void _scan_char(LexerContext* context)
         _advance(context);
 
         char buffer[2] = {escaped, '\0'};
-        const char* search_str = buffer;
+        const char* interned = ii_src_intern_cstr(context->source, buffer);
 
-        const LexerSymbol* existing = uf_con_map_get(context->symbol_dictionary, search_str);
+        const LexerSymbol* existing = uf_con_map_get(context->symbol_metadata, interned);
         if (existing != nullptr) {
             _push_token_symbol(context, existing);
             return;
         }
 
-        LexerSymbol* symbol = uf_mem_region_malloc(context->symbol_arena, sizeof(LexerSymbol));
+        LexerSymbol* symbol = uf_mem_region_malloc(context->metadata_arena, sizeof(LexerSymbol));
         symbol->type = LEXER_SYM_CHAR;
-        symbol->text = uf_mem_region_malloc(context->symbol_arena, 2);
-        memcpy((void*)symbol->text, buffer, 2);
+        symbol->text = interned;
+        symbol->prim_type = 0;
 
-        uf_con_map_put(context->symbol_dictionary, symbol->text, symbol);
+        uf_con_map_put(context->symbol_metadata, interned, symbol);
         _push_token_symbol(context, symbol);
         return;
     }
@@ -377,7 +364,7 @@ static void _scan_char(LexerContext* context)
     }
     _advance(context);
 
-    const LexerSymbol* symbol = _intern_string(context, LEXER_SYM_CHAR);
+    const LexerSymbol* symbol = _create_symbol(context, LEXER_SYM_CHAR);
     _push_token_symbol(context, symbol);
 }
 
@@ -390,8 +377,8 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
     context->file_size = ii_src_get_size(source);
 
     context->tokens = uf_con_vector_new(sizeof(LexerToken));
-    context->symbol_dictionary = uf_con_map_new();
-    context->symbol_arena = uf_mem_region_new(ARENA_BLOCK_SIZE);
+    context->symbol_metadata = uf_con_map_new();
+    context->metadata_arena = uf_mem_region_new(ARENA_BLOCK_SIZE);
     context->diag_context = diag_context;
 
     /* Here we register our keywords. */
@@ -436,7 +423,7 @@ LexerContext* ii_lexer_context_new(Source* source, DiagnosticContext* diag_conte
             while (isalnum(_peek_current(context)) || _peek_current(context) == '_') {
                 _advance(context);
             }
-            const LexerSymbol* symbol = _intern_string(context, LEXER_SYM_IDENTIFIER);
+            const LexerSymbol* symbol = _create_symbol(context, LEXER_SYM_IDENTIFIER);
             _push_token_symbol(context, symbol);
             continue;
         }
@@ -586,8 +573,8 @@ void ii_lexer_context_free(LexerContext* context)
     }
 
     uf_con_vector_free(context->tokens);
-    uf_con_map_free(context->symbol_dictionary);
-    uf_mem_region_free(context->symbol_arena);
+    uf_con_map_free(context->symbol_metadata);
+    uf_mem_region_free(context->metadata_arena);
 
     uf_mem_free(context);
 }
