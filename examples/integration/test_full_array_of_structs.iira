@@ -1,0 +1,34 @@
+// Test: Array of blueprints with iteration
+Point: {
+    x: int;
+    y: int;
+
+    set(self, px: int, py: int): void = {
+        self.x = px;
+        self.y = py;
+        return;
+    }
+
+    distanceToOrigin(self): int = {
+        var dx: int = self.x;
+        var dy: int = self.y;
+        if (dx < 0) {
+            dx = -dx;
+        }
+        if (dy < 0) {
+            dy = -dy;
+        }
+        return dx + dy;
+    }
+}
+
+main(): int = {
+    var points: Point[] = { { x = 0, y = 0 }, { x = 3, y = 4 }, { x = 6, y = 8 } };
+    var sum: int = 0;
+    var i: int = 0;
+    while (i < 3) {
+        sum = sum + points[i].distanceToOrigin();
+        i = i + 1;
+    }
+    return sum;
+}

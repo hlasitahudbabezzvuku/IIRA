@@ -1,0 +1,13 @@
+// Test: String length calculation
+stringLen(s: char[]): int = {
+    var i: int = 0;
+    while (s[i] != 0) {
+        i = i + 1;
+    }
+    return i;
+}
+
+main(): int = {
+    var str: char[] = "Hello";
+    return stringLen(str);
+}

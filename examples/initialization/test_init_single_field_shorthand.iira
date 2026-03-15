@@ -1,0 +1,12 @@
+// Test: Single-field blueprint assignment shorthand
+Test: {
+    value: float;
+}
+
+main(): int = {
+    var x: Test = .5f;
+    if (x.value > 0.4) {
+        return 1;
+    }
+    return 0;
+}

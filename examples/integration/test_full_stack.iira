@@ -1,0 +1,40 @@
+// Test: Stack data structure with push/pop operations
+Stack: {
+    data: int[10];
+    top: int;
+}
+
+init(s: Stack*): void = {
+    s.top = 0;
+    return;
+}
+
+push(s: Stack*, value: int): void = {
+    s.data[s.top] = value;
+    s.top = s.top + 1;
+    return;
+}
+
+pop(s: Stack*): int = {
+    s.top = s.top - 1;
+    return s.data[s.top];
+}
+
+isEmpty(s: Stack*): int = {
+    if (s.top == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+main(): int = {
+    var s: Stack;
+    init(&s);
+    push(&s, 10);
+    push(&s, 20);
+    push(&s, 30);
+    var x: int = pop(&s);
+    x = x + pop(&s);
+    x = x + pop(&s);
+    return x;
+}

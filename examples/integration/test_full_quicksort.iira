@@ -1,0 +1,34 @@
+// Test: QuickSort algorithm
+partition(arr: int[], low: int, high: int): int = {
+    var pivot: int = arr[high];
+    var i: int = low - 1;
+    var j: int = low;
+    while (j < high) {
+        if (arr[j] <= pivot) {
+            i = i + 1;
+            var temp: int = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
+        }
+        j = j + 1;
+    }
+    var temp2: int = arr[i + 1];
+    arr[i + 1] = arr[high];
+    arr[high] = temp2;
+    return i + 1;
+}
+
+quickSort(arr: int[], low: int, high: int): void = {
+    if (low < high) {
+        var pi: int = partition(arr, low, high);
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
+    return;
+}
+
+main(): int = {
+    var arr: int[] = { 64, 34, 25, 12, 22, 11, 90 };
+    quickSort(arr, 0, 6);
+    return arr[0];
+}
