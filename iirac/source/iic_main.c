@@ -8,7 +8,6 @@
 
 #include "ii_diagnostics.h"
 #include "ii_lexer.h"
-#include "ii_parser.h"
 #include "ii_source.h"
 #include "iic_arguments.h"
 #include "uf_containers.h"
@@ -76,26 +75,6 @@ int main(const int argc, const char* argv[])
 
         if (config.stop_after_lexer) {
             uf_log_info("Stopping after lexical analysis");
-            continue;
-        }
-
-        uf_log_debug("Creating ParserContext for file '%s'", file_path);
-        _autoparser_ ParserContext* parser_context =
-            ii_parser_context_new(source, ii_lexer_get_tokens(lexer_context),
-                                  ii_lexer_get_token_count(lexer_context), diagnostic_context);
-
-        if (!parser_context) {
-            uf_log_err("Parser could not process file '%s'", file_path);
-            ret = EXIT_FAILURE;
-            continue;
-        }
-
-        if (config.show_parser_output) {
-            ii_parser_print_debug(parser_context);
-        }
-
-        if (config.stop_after_parser) {
-            uf_log_info("Stopping after parsing into AST");
             continue;
         }
 
