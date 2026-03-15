@@ -1,0 +1,11 @@
+// Test: C-like cast expressions
+main(): int = {
+    var f: float = 3.14;
+    var i: int = (int)f;
+    var d: double = 5.9;
+    var i2: int = (int)d;
+    var n: int = 100;
+    var p: int* = &n;
+    var p2: void* = (void*)p;
+    return i + i2;
+}

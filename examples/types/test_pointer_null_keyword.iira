@@ -1,0 +1,8 @@
+// Test: null keyword usage
+main(): int = {
+    var ptr: int* = null;
+    if (ptr == null) {
+        return 1;
+    }
+    return 0;
+}

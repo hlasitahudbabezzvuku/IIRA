@@ -1,0 +1,16 @@
+// Test: Multiple aliases in single inheritance
+Base: {
+    x: int;
+    y: int;
+    z: int;
+}
+
+Derived: Base { x as aX, y as aY, z as aZ }, { }
+
+main(): int = {
+    var d: Derived;
+    d.aX = 1;
+    d.aY = 2;
+    d.aZ = 3;
+    return d.aX + d.aY + d.aZ;
+}
