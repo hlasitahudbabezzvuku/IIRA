@@ -259,10 +259,16 @@ static void _scan_number(LexerContext* context)
         _advance(context);
     }
 
-    if (_peek_current(context) == '.' && isdigit(_peek_next(context))) {
-        _advance(context); /* Consume the character "." */
-        while (isdigit(_peek_current(context))) {
-            _advance(context);
+    if (_peek_current(context) == '.') {
+        if (!isdigit(_peek_next(context))) {
+            _push_token_error(context, "Invalid number format");
+            return;
+        }
+        if (isdigit(_peek_next(context))) {
+            _advance(context); /* Consume the character "." */
+            while (isdigit(_peek_current(context))) {
+                _advance(context);
+            }
         }
     }
 
@@ -272,6 +278,11 @@ scan_suffix: /* Yes, It's a `goto`. But, as you can see, it actually helps to si
     char ch = _peek_current(context);
     if (ch == 'f' || ch == 'F' || ch == 'd' || ch == 'D') {
         _advance(context);
+    }
+
+    if (isalpha(_peek_current(context)) || _peek_current(context) == '_') {
+        _push_token_error(context, "Invalid number suffix");
+        return;
     }
 
     const LexerSymbol* symbol = _create_symbol(context, LEXER_SYM_NUMBER);
