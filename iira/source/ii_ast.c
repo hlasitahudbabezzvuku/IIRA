@@ -1,3 +1,8 @@
+/**
+ * @brief Abstract Syntax Tree and Typed AST implementation.
+ * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
+ **/
+
 #include "ii_ast.h"
 #include "uf_memory.h"
 
