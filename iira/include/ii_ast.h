@@ -609,13 +609,6 @@ void ii_ast_freep(Ast** ast);
 #define _autoast_ _cleanup_(ii_ast_freep)
 
 /*
- * String handling.
- */
-
-const char* ii_ast_intern(Ast* ast, const char* str, size_t len);
-const char* ii_ast_intern_cstr(Ast* ast, const char* cstr);
-
-/*
  * Error handling.
  */
 
