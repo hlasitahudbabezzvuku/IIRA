@@ -139,16 +139,6 @@ void ii_ast_freep(Ast** ast)
     *ast = NULL;
 }
 
-const char* ii_ast_intern(Ast* ast, const char* str, size_t len)
-{
-    return ii_src_intern(ast->source, str, len);
-}
-
-const char* ii_ast_intern_cstr(Ast* ast, const char* cstr)
-{
-    return ii_src_intern_cstr(ast->source, cstr);
-}
-
 void ii_ast_print(const Ast* ast)
 {
     /* TODO: implement. */
