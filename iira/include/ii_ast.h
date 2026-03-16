@@ -699,6 +699,133 @@ void ii_ast_ffi_add_arg(AstFfi* ffi, AstExpr* arg);
 AstError* ii_ast_error(Ast* ast, SourceSpan span);
 
 /*
+ * Traversal helpers.
+ */
+
+/**
+ * @brief Visitor callback for AST traversal.
+ * @param node Current node
+ * @param ctx User context
+ * @param depth Current depth in tree (0 = root)
+ * @return True to continue traversal, false to stop
+ **/
+typedef bool (*AstVisitorFn)(AstNode* node, void* ctx, uint32_t depth);
+
+/**
+ * @brief Visits all nodes in pre-order (parent before children).
+ * @param ast Program to traverse
+ * @param visitor Visitor callback
+ * @param ctx User context
+ **/
+void ii_ast_visit(Ast* ast, AstVisitorFn visitor, void* ctx);
+
+/**
+ * @brief Visits all nodes in post-order (children before parent).
+ * @param ast Program to traverse
+ * @param visitor Visitor callback
+ * @param ctx User context
+ **/
+void ii_ast_visit_reverse(Ast* ast, AstVisitorFn visitor, void* ctx);
+
+/**
+ * @brief Gets the program from an AST.
+ **/
+AstProgram* ii_ast_get_program(const Ast* ast);
+
+/*
+ * Iterator macros. They are ugly as hell (and clang-format isn't helping it), but they massively simplify the
+ * task of traversing through the generated AST.
+ */
+
+#define AST_FOREACH_DECL(ast, var)                                                                           \
+    for (AstProgram* _prog = ii_ast_get_program(ast), *var = NULL;                                           \
+         var = NULL, _prog && (_prog->funcs || _prog->blueprints);)                                          \
+        for (size_t _i = 0;                                                                                  \
+             _i < uf_con_vector_length(_prog->funcs) + uf_con_vector_length(_prog->blueprints) &&            \
+             ((_i < uf_con_vector_length(_prog->funcs) &&                                                    \
+               (var = (Ast*)(*(AstFuncDecl**)uf_con_vector_get(_prog->funcs, _i)), true)) ||                 \
+              (_i >= uf_con_vector_length(_prog->funcs) &&                                                   \
+               (var = (Ast*)(*(AstBlueprintDecl**)uf_con_vector_get(                                         \
+                    _prog->blueprints, _i - uf_con_vector_length(_prog->funcs))),                            \
+               true)));                                                                                      \
+             _i++)
+
+#define AST_FOREACH_FUNC(prog, var)                                                                          \
+    for (size_t _i = 0; prog && prog->funcs && _i < uf_con_vector_length(prog->funcs) &&                     \
+                        (var = *(AstFuncDecl**)uf_con_vector_get(prog->funcs, _i));                          \
+         _i++)
+
+#define AST_FOREACH_BLUEPRINT(prog, var)                                                                     \
+    for (size_t _i = 0; prog && prog->blueprints && _i < uf_con_vector_length(prog->blueprints) &&           \
+                        (var = *(AstBlueprintDecl**)uf_con_vector_get(prog->blueprints, _i));                \
+         _i++)
+
+#define AST_FOREACH_PARENT(bp, var)                                                                          \
+    for (size_t _i = 0; bp && bp->parents && _i < uf_con_vector_length(bp->parents) &&                       \
+                        (var = *(AstInherit**)uf_con_vector_get(bp->parents, _i));                           \
+         _i++)
+
+#define AST_FOREACH_FIELD(bp, var)                                                                           \
+    for (size_t _i = 0; bp && bp->fields && _i < uf_con_vector_length(bp->fields) &&                         \
+                        (var = *(AstField**)uf_con_vector_get(bp->fields, _i));                              \
+         _i++)
+
+#define AST_FOREACH_METHOD(bp, var)                                                                          \
+    for (size_t _i = 0; bp && bp->methods && _i < uf_con_vector_length(bp->methods) &&                       \
+                        (var = *(AstMethod**)uf_con_vector_get(bp->methods, _i));                            \
+         _i++)
+
+#define AST_FOREACH_OVERLOAD(method, var)                                                                    \
+    for (size_t _i = 0; method && method->overloads && _i < uf_con_vector_length(method->overloads) &&       \
+                        (var = *(AstMethodOverload**)uf_con_vector_get(method->overloads, _i));              \
+         _i++)
+
+#define AST_FOREACH_PARAM(func, var)                                                                         \
+    for (size_t _i = 0; func && func->params && _i < uf_con_vector_length(func->params) &&                   \
+                        (var = *(AstParam**)uf_con_vector_get(func->params, _i));                            \
+         _i++)
+
+#define AST_FOREACH_STMT(block, var)                                                                         \
+    for (size_t _i = 0; block && block->stmts && _i < uf_con_vector_length(block->stmts) &&                  \
+                        (var = *(AstStmt**)uf_con_vector_get(block->stmts, _i));                             \
+         _i++)
+
+#define AST_FOREACH_CALL_ARG(call, var)                                                                      \
+    for (size_t _i = 0; call && call->args && _i < uf_con_vector_length(call->args) &&                       \
+                        (var = *(AstExpr**)uf_con_vector_get(call->args, _i));                               \
+         _i++)
+
+#define AST_FOREACH_FFI_ARG(ffi, var)                                                                        \
+    for (size_t _i = 0; ffi && ffi->args && _i < uf_con_vector_length(ffi->args) &&                          \
+                        (var = *(AstExpr**)uf_con_vector_get(ffi->args, _i));                                \
+         _i++)
+
+#define AST_FOREACH_INIT_VALUE(init, var)                                                                    \
+    for (size_t _i = 0; init && init->values && _i < uf_con_vector_length(init->values) &&                   \
+                        (var = *(AstExpr**)uf_con_vector_get(init->values, _i));                             \
+         _i++)
+
+#define AST_FOREACH_INIT_NAMED(init, var)                                                                    \
+    for (size_t _i = 0; init && init->named && _i < uf_con_vector_length(init->named) &&                     \
+                        (var = *(                                                                            \
+                             struct {                                                                        \
+                                 const char* name;                                                           \
+                                 AstExpr* value;                                                             \
+                             }**)uf_con_vector_get(init->named, _i));                                        \
+         _i++)
+
+#define AST_FOREACH_INIT_INDEXED(init, var)                                                                  \
+    for (size_t _i = 0; init && init->indexed && _i < uf_con_vector_length(init->indexed) &&                 \
+                        (var = *(                                                                            \
+                             struct {                                                                        \
+                                 AstExpr* index;                                                             \
+                                 AstExpr* value;                                                             \
+                             }**)uf_con_vector_get(init->indexed, _i));                                      \
+         _i++)
+
+#define AST_FOREACH_CHILD(node, var) /* Implementation-specific iteration based on node type */
+
+/*
  * Utility functions.
  */
 
