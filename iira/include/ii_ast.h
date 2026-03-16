@@ -113,3 +113,13 @@ struct AstNode {
     SourceSpan span;
 };
 
+
+/*
+ * API for interacting with AST.
+ */
+
+Ast* ii_ast_new(Source* source) _nodiscard_;
+void ii_ast_free(Ast* ast);
+void ii_ast_freep(Ast** ast);
+#define _autoast_ _cleanup_(ii_ast_freep)
+
