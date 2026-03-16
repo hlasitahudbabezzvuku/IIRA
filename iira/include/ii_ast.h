@@ -709,32 +709,27 @@ AstError* ii_ast_error(Ast* ast, SourceSpan span);
 /**
  * @brief Visitor callback for AST traversal.
  * @param node Current node
- * @param ctx User context
+ * @param context User context
  * @param depth Current depth in tree (0 = root)
  * @return True to continue traversal, false to stop
  **/
-typedef bool (*AstVisitorFn)(AstNode* node, void* ctx, uint32_t depth);
+typedef bool (*AstVisitorFn)(AstNode* node, void* context, uint32_t depth);
 
 /**
  * @brief Visits all nodes in pre-order (parent before children).
  * @param ast Program to traverse
  * @param visitor Visitor callback
- * @param ctx User context
+ * @param context User context
  **/
-void ii_ast_visit(Ast* ast, AstVisitorFn visitor, void* ctx);
+void ii_ast_visit(Ast* ast, AstVisitorFn visitor, void* context);
 
 /**
  * @brief Visits all nodes in post-order (children before parent).
  * @param ast Program to traverse
  * @param visitor Visitor callback
- * @param ctx User context
+ * @param context User context
  **/
-void ii_ast_visit_reverse(Ast* ast, AstVisitorFn visitor, void* ctx);
-
-/**
- * @brief Gets the program from an AST.
- **/
-AstProgram* ii_ast_get_program(const Ast* ast);
+void ii_ast_visit_reverse(Ast* ast, AstVisitorFn visitor, void* context);
 
 /*
  * Iterator macros. They are ugly as hell (and clang-format isn't helping it), but they massively simplify the
@@ -833,5 +828,6 @@ AstProgram* ii_ast_get_program(const Ast* ast);
  * Utility functions.
  */
 
+AstProgram* ii_ast_get_program(const Ast* ast);
 const char* ii_ast_kind_name(enum AstKind kind);
-void ii_ast_print(const Ast* ast);
+void ii_ast_print_debug(const Ast* ast);

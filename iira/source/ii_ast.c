@@ -765,7 +765,7 @@ void ii_ast_freep(Ast** ast)
     *ast = NULL;
 }
 
-void ii_ast_print(const Ast* ast)
+void ii_ast_print_debug(const Ast* ast)
 {
     /* TODO: implement. */
     (void)ast;
