@@ -563,20 +563,434 @@ AstError* ii_ast_error(Ast* ast, SourceSpan span)
  * Traversal helpers.
  */
 
+static void _visit_type(AstType* type, AstVisitorFn visitor, void* context, uint32_t depth, bool pre_order);
+static void _visit_expr(AstExpr* expr, AstVisitorFn visitor, void* context, uint32_t depth, bool pre_order);
+static void _visit_stmt(AstStmt* stmt, AstVisitorFn visitor, void* context, uint32_t depth, bool pre_order);
+static void _visit_block(AstBlock* block, AstVisitorFn visitor, void* context, uint32_t depth,
+                         bool pre_order);
+
+static void _visit_param(AstParam* param, AstVisitorFn visitor, void* context, uint32_t depth, bool pre_order)
+{
+    if (!param) {
+        return;
+    }
+
+    if (pre_order && !visitor(&param->base, context, depth)) {
+        return;
+    }
+
+    _visit_type(param->type, visitor, context, depth + 1, pre_order);
+    if (!pre_order) {
+        visitor(&param->base, context, depth);
+    }
+}
+
+static void _visit_field(AstField* field, AstVisitorFn visitor, void* context, uint32_t depth, bool pre_order)
+{
+    if (!field) {
+        return;
+    }
+
+    if (pre_order && !visitor(&field->base, context, depth)) {
+        return;
+    }
+
+    _visit_type(field->type, visitor, context, depth + 1, pre_order);
+    if (field->default_value) {
+        _visit_expr(field->default_value, visitor, context, depth + 1, pre_order);
+    }
+
+    if (!pre_order) {
+        visitor(&field->base, context, depth);
+    }
+}
+
+static void _visit_method_overload(AstMethodOverload* overload, AstVisitorFn visitor, void* context,
+                                   uint32_t depth, bool pre_order)
+{
+    if (!overload) {
+        return;
+    }
+
+    if (pre_order && !visitor(&overload->base, context, depth)) {
+        return;
+    }
+
+    for (size_t i = 0; i < uf_con_vector_length(overload->params); i++) {
+        AstParam** p = uf_con_vector_get(overload->params, i);
+        _visit_param(*p, visitor, context, depth + 1, pre_order);
+    }
+
+    if (overload->return_type) {
+        _visit_type(overload->return_type, visitor, context, depth + 1, pre_order);
+    }
+
+    if (overload->body) {
+        _visit_block(overload->body, visitor, context, depth + 1, pre_order);
+    }
+
+    if (!pre_order) {
+        visitor(&overload->base, context, depth);
+    }
+}
+
+static void _visit_method(AstMethod* method, AstVisitorFn visitor, void* context, uint32_t depth,
+                          bool pre_order)
+{
+    if (!method) {
+        return;
+    }
+
+    if (pre_order && !visitor(&method->base, context, depth)) {
+        return;
+    }
+
+    for (size_t i = 0; i < uf_con_vector_length(method->overloads); i++) {
+        AstMethodOverload** ov = uf_con_vector_get(method->overloads, i);
+        _visit_method_overload(*ov, visitor, context, depth + 1, pre_order);
+    }
+
+    if (!pre_order) {
+        visitor(&method->base, context, depth);
+    }
+}
+
+static void _visit_inherit(AstInherit* inherit, AstVisitorFn visitor, void* context, uint32_t depth,
+                           bool pre_order)
+{
+    if (!inherit) {
+        return;
+    }
+
+    if (pre_order && !visitor(&inherit->base, context, depth)) {
+        return;
+    }
+
+    /* Don't visit resolved - it's set during semantic. */
+    if (!pre_order) {
+        visitor(&inherit->base, context, depth);
+    }
+}
+
+static void _visit_blueprint(AstBlueprintDecl* bp, AstVisitorFn visitor, void* context, uint32_t depth,
+                             bool pre_order)
+{
+    if (!bp) {
+        return;
+    }
+
+    if (pre_order && !visitor(&bp->base, context, depth)) {
+        return;
+    }
+
+    for (size_t i = 0; i < uf_con_vector_length(bp->parents); i++) {
+        AstInherit** inh = uf_con_vector_get(bp->parents, i);
+        _visit_inherit(*inh, visitor, context, depth + 1, pre_order);
+    }
+
+    for (size_t i = 0; i < uf_con_vector_length(bp->fields); i++) {
+        AstField** field = uf_con_vector_get(bp->fields, i);
+        _visit_field(*field, visitor, context, depth + 1, pre_order);
+    }
+
+    for (size_t i = 0; i < uf_con_vector_length(bp->methods); i++) {
+        AstMethod** method = uf_con_vector_get(bp->methods, i);
+        _visit_method(*method, visitor, context, depth + 1, pre_order);
+    }
+
+    if (!pre_order) {
+        visitor(&bp->base, context, depth);
+    }
+}
+
+static void _visit_func(AstFuncDecl* func, AstVisitorFn visitor, void* context, uint32_t depth,
+                        bool pre_order)
+{
+    if (!func) {
+        return;
+    }
+
+    if (pre_order && !visitor(&func->base, context, depth)) {
+        return;
+    }
+
+    for (size_t i = 0; i < uf_con_vector_length(func->params); i++) {
+        AstParam** param = uf_con_vector_get(func->params, i);
+        _visit_param(*param, visitor, context, depth + 1, pre_order);
+    }
+
+    if (func->return_type) {
+        _visit_type(func->return_type, visitor, context, depth + 1, pre_order);
+    }
+
+    if (func->body) {
+        _visit_block(func->body, visitor, context, depth + 1, pre_order);
+    }
+
+    if (!pre_order) {
+        visitor(&func->base, context, depth);
+    }
+}
+
+static void _visit_type(AstType* type, AstVisitorFn visitor, void* context, uint32_t depth, bool pre_order)
+{
+    if (!type) {
+        return;
+    }
+
+    if (pre_order && !visitor(&type->base, context, depth)) {
+        return;
+    }
+
+    switch (type->variant) {
+    case AST_TYPE_KIND_POINTER:
+        _visit_type(type->variant_u.pointer.pointed_type, visitor, context, depth + 1, pre_order);
+        break;
+    case AST_TYPE_KIND_ARRAY:
+        _visit_type(type->variant_u.array.element_type, visitor, context, depth + 1, pre_order);
+        if (type->variant_u.array.size_expr) {
+            _visit_expr(type->variant_u.array.size_expr, visitor, context, depth + 1, pre_order);
+        }
+        break;
+    case AST_TYPE_KIND_BLUEPRINT:
+        /* Don't visit resolved - set during semantic */
+        break;
+    case AST_TYPE_KIND_ANON:
+        for (size_t i = 0; i < type->variant_u.anon.field_count; i++) {
+            _visit_field(&type->variant_u.anon.fields[i], visitor, context, depth + 1, pre_order);
+        }
+        break;
+    case AST_TYPE_KIND_PRIMITIVE:
+        break;
+    }
+
+    if (!pre_order) {
+        visitor(&type->base, context, depth);
+    }
+}
+
+static void _visit_expr(AstExpr* expr, AstVisitorFn visitor, void* context, uint32_t depth, bool pre_order)
+{
+    if (!expr) {
+        return;
+    }
+
+    if (pre_order && !visitor(&expr->base, context, depth)) {
+        return;
+    }
+
+    switch (expr->base.kind) {
+    case AST_KIND_LITERAL:
+    case AST_KIND_IDENT:
+        /* No children. */
+        break;
+    case AST_KIND_BINARY: {
+        AstBinary* bin = (AstBinary*)expr;
+        _visit_expr(bin->left, visitor, context, depth + 1, pre_order);
+        _visit_expr(bin->right, visitor, context, depth + 1, pre_order);
+        break;
+    }
+    case AST_KIND_UNARY: {
+        AstUnary* un = (AstUnary*)expr;
+        _visit_expr(un->operand, visitor, context, depth + 1, pre_order);
+        break;
+    }
+    case AST_KIND_CALL: {
+        AstCall* call = (AstCall*)expr;
+        _visit_expr(call->callee, visitor, context, depth + 1, pre_order);
+        for (size_t i = 0; i < uf_con_vector_length(call->args); i++) {
+            AstExpr** arg = uf_con_vector_get(call->args, i);
+            _visit_expr(*arg, visitor, context, depth + 1, pre_order);
+        }
+        break;
+    }
+    case AST_KIND_MEMBER: {
+        AstMember* member = (AstMember*)expr;
+        _visit_expr(member->object, visitor, context, depth + 1, pre_order);
+        break;
+    }
+    case AST_KIND_INDEX: {
+        AstIndex* idx = (AstIndex*)expr;
+        _visit_expr(idx->array, visitor, context, depth + 1, pre_order);
+        _visit_expr(idx->index, visitor, context, depth + 1, pre_order);
+        break;
+    }
+    case AST_KIND_INIT: {
+        AstInit* init = (AstInit*)expr;
+        for (size_t i = 0; i < uf_con_vector_length(init->values); i++) {
+            AstExpr** val = uf_con_vector_get(init->values, i);
+            _visit_expr(*val, visitor, context, depth + 1, pre_order);
+        }
+        /* 'named' and 'indexed' contain pairs. We'll skip them for simplicity. */
+        if (init->target_type) {
+            _visit_type(init->target_type, visitor, context, depth + 1, pre_order);
+        }
+        break;
+    }
+    case AST_KIND_CAST: {
+        AstCast* cast = (AstCast*)expr;
+        _visit_type(cast->target_type, visitor, context, depth + 1, pre_order);
+        _visit_expr(cast->expr_, visitor, context, depth + 1, pre_order);
+        break;
+    }
+    case AST_KIND_FFI: {
+        AstFfi* ffi = (AstFfi*)expr;
+        for (size_t i = 0; i < uf_con_vector_length(ffi->args); i++) {
+            AstExpr** arg = uf_con_vector_get(ffi->args, i);
+            _visit_expr(*arg, visitor, context, depth + 1, pre_order);
+        }
+        break;
+    }
+    default:
+        break;
+    }
+
+    if (!pre_order) {
+        visitor(&expr->base, context, depth);
+    }
+}
+
+static void _visit_block(AstBlock* block, AstVisitorFn visitor, void* context, uint32_t depth, bool pre_order)
+{
+    if (!block) {
+        return;
+    }
+
+    if (pre_order && !visitor(&block->base, context, depth)) {
+        return;
+    }
+
+    for (size_t i = 0; i < uf_con_vector_length(block->stmts); i++) {
+        AstStmt** stmt = uf_con_vector_get(block->stmts, i);
+        _visit_stmt(*stmt, visitor, context, depth + 1, pre_order);
+    }
+
+    if (!pre_order) {
+        visitor(&block->base, context, depth);
+    }
+}
+
+static void _visit_stmt(AstStmt* stmt, AstVisitorFn visitor, void* context, uint32_t depth, bool pre_order)
+{
+    if (!stmt) {
+        return;
+    }
+    if (pre_order && !visitor((AstNode*)stmt, context, depth)) {
+        return;
+    }
+
+    switch (stmt->kind) {
+    case AST_KIND_BLOCK:
+        _visit_block((AstBlock*)stmt, visitor, context, depth + 1, pre_order);
+        break;
+    case AST_KIND_RETURN: {
+        AstReturn* ret = (AstReturn*)stmt;
+        if (ret->value)
+            _visit_expr(ret->value, visitor, context, depth + 1, pre_order);
+        break;
+    }
+    case AST_KIND_DECL: {
+        AstDecl* decl = (AstDecl*)stmt;
+        _visit_type(decl->type, visitor, context, depth + 1, pre_order);
+        if (decl->init)
+            _visit_expr(decl->init, visitor, context, depth + 1, pre_order);
+        break;
+    }
+    case AST_KIND_IF: {
+        AstIf* if_stmt = (AstIf*)stmt;
+        _visit_expr(if_stmt->condition, visitor, context, depth + 1, pre_order);
+        _visit_block(if_stmt->then_block, visitor, context, depth + 1, pre_order);
+        if (if_stmt->else_stmt)
+            _visit_stmt(if_stmt->else_stmt, visitor, context, depth + 1, pre_order);
+        break;
+    }
+    case AST_KIND_FOR: {
+        AstFor* for_stmt = (AstFor*)stmt;
+        if (for_stmt->init)
+            _visit_stmt(for_stmt->init, visitor, context, depth + 1, pre_order);
+        if (for_stmt->condition)
+            _visit_expr(for_stmt->condition, visitor, context, depth + 1, pre_order);
+        if (for_stmt->iter)
+            _visit_expr(for_stmt->iter, visitor, context, depth + 1, pre_order);
+        if (for_stmt->body)
+            _visit_block(for_stmt->body, visitor, context, depth + 1, pre_order);
+        break;
+    }
+    case AST_KIND_WHILE: {
+        AstWhile* while_stmt = (AstWhile*)stmt;
+        _visit_expr(while_stmt->condition, visitor, context, depth + 1, pre_order);
+        _visit_block(while_stmt->body, visitor, context, depth + 1, pre_order);
+        break;
+    }
+    case AST_KIND_DO_WHILE: {
+        AstDoWhile* do_while = (AstDoWhile*)stmt;
+        _visit_block(do_while->body, visitor, context, depth + 1, pre_order);
+        _visit_expr(do_while->condition, visitor, context, depth + 1, pre_order);
+        break;
+    }
+    case AST_KIND_BREAK:
+    case AST_KIND_CONTINUE:
+        /* No children. */
+        break;
+    case AST_KIND_EXPR_STMT: {
+        AstExprStmt* expr_stmt = (AstExprStmt*)stmt;
+        if (expr_stmt->expr)
+            _visit_expr(expr_stmt->expr, visitor, context, depth + 1, pre_order);
+        break;
+    }
+    default:
+        break;
+    }
+
+    if (!pre_order) {
+        visitor((AstNode*)stmt, context, depth);
+    }
+}
+
 void ii_ast_visit(Ast* ast, AstVisitorFn visitor, void* context)
 {
-    /* TODO: implement. */
-    (void)ast;
-    (void)visitor;
-    (void)context;
+    if (!ast || !ast->program || !visitor) {
+        return;
+    }
+
+    /* Visit program node first. */
+    if (!visitor(&ast->program->base, context, 0)) {
+        return;
+    }
+
+    /* Visit functions. */
+    for (size_t i = 0; i < uf_con_vector_length(ast->program->funcs); i++) {
+        AstFuncDecl** func = uf_con_vector_get(ast->program->funcs, i);
+        _visit_func(*func, visitor, context, 1, true);
+    }
+
+    /* Visit blueprints. */
+    for (size_t i = 0; i < uf_con_vector_length(ast->program->blueprints); i++) {
+        AstBlueprintDecl** bp = uf_con_vector_get(ast->program->blueprints, i);
+        _visit_blueprint(*bp, visitor, context, 1, true);
+    }
 }
 
 void ii_ast_visit_reverse(Ast* ast, AstVisitorFn visitor, void* context)
 {
-    /* TODO: implement. */
-    (void)ast;
-    (void)visitor;
-    (void)context;
+    if (!ast || !ast->program || !visitor) {
+        return;
+    }
+
+    /* Visit functions first (in reverse order). */
+    for (size_t i = uf_con_vector_length(ast->program->funcs); i > 0; i--) {
+        AstFuncDecl** func = uf_con_vector_get(ast->program->funcs, i - 1);
+        _visit_func(*func, visitor, context, 1, false);
+    }
+
+    /* Visit blueprints (in reverse order). */
+    for (size_t i = uf_con_vector_length(ast->program->blueprints); i > 0; i--) {
+        AstBlueprintDecl** bp = uf_con_vector_get(ast->program->blueprints, i - 1);
+        _visit_blueprint(*bp, visitor, context, 1, false);
+    }
+
+    /* Visit program node last. */
+    visitor(&ast->program->base, context, 0);
 }
 
 /*
