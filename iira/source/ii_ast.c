@@ -43,7 +43,7 @@ AstFuncDecl* ii_ast_add_func(Ast* ast, const char* name)
     AstFuncDecl* func = _alloc_ast(ast, sizeof(AstFuncDecl));
     memset(func, 0, sizeof(AstFuncDecl));
     func->base.kind = AST_KIND_FUNC_DECL;
-    func->name = ii_src_intern_cstr(ast->source, name);
+    func->name = name;
 
     if (ast->program->funcs == NULL) {
         ast->program->funcs = uf_con_vector_new(sizeof(AstFuncDecl*));
@@ -58,7 +58,7 @@ AstBlueprintDecl* ii_ast_add_blueprint(Ast* ast, const char* name)
     AstBlueprintDecl* bp = _alloc_ast(ast, sizeof(AstBlueprintDecl));
     memset(bp, 0, sizeof(AstBlueprintDecl));
     bp->base.kind = AST_KIND_BLUEPRINT_DECL;
-    bp->name = ii_src_intern_cstr(ast->source, name);
+    bp->name = name;
 
     if (ast->program->blueprints == NULL) {
         ast->program->blueprints = uf_con_vector_new(sizeof(AstBlueprintDecl*));
@@ -122,7 +122,7 @@ AstType* ii_ast_type_blueprint(Ast* ast, const char* name)
 {
     AstType* type = ii_ast_type_new(ast, AST_KIND_TYPE_BLUEPRINT);
     type->variant = AST_TYPE_KIND_BLUEPRINT;
-    type->variant_u.blueprint.name = ii_src_intern_cstr(ast->source, name);
+    type->variant_u.blueprint.name = name;
     type->variant_u.blueprint.resolved = NULL;
     return type;
 }
@@ -133,7 +133,7 @@ AstType* ii_ast_type_anon(Ast* ast, const char* auto_name)
     type->variant = AST_TYPE_KIND_ANON;
     type->variant_u.anon.fields = NULL;
     type->variant_u.anon.field_count = 0;
-    type->variant_u.anon.auto_name = ii_src_intern_cstr(ast->source, auto_name);
+    type->variant_u.anon.auto_name = auto_name;
     return type;
 }
 
@@ -146,7 +146,7 @@ AstParam* ii_ast_param(Ast* ast, const char* name, AstType* type)
     AstParam* param = _alloc_ast(ast, sizeof(AstParam));
     memset(param, 0, sizeof(AstParam));
     param->base.kind = AST_KIND_PARAM;
-    param->name = ii_src_intern_cstr(ast->source, name);
+    param->name = name;
     param->type = type;
     return param;
 }
@@ -156,7 +156,7 @@ AstField* ii_ast_field(Ast* ast, const char* name, AstType* type, AstExpr* defau
     AstField* field = _alloc_ast(ast, sizeof(AstField));
     memset(field, 0, sizeof(AstField));
     field->base.kind = AST_KIND_FIELD;
-    field->name = ii_src_intern_cstr(ast->source, name);
+    field->name = name;
     field->type = type;
     field->default_value = default_value;
     return field;
@@ -179,7 +179,7 @@ AstMethod* ii_ast_method(Ast* ast, const char* name)
     AstMethod* method = _alloc_ast(ast, sizeof(AstMethod));
     memset(method, 0, sizeof(AstMethod));
     method->base.kind = AST_KIND_METHOD;
-    method->name = ii_src_intern_cstr(ast->source, name);
+    method->name = name;
     method->overloads = uf_con_vector_new(sizeof(AstMethodOverload*));
     return method;
 }
@@ -189,7 +189,7 @@ AstInherit* ii_ast_inherit(Ast* ast, const char* parent_name)
     AstInherit* inherit = _alloc_ast(ast, sizeof(AstInherit));
     memset(inherit, 0, sizeof(AstInherit));
     inherit->base.kind = AST_KIND_INHERIT;
-    inherit->parent_name = ii_src_intern_cstr(ast->source, parent_name);
+    inherit->parent_name = parent_name;
     inherit->resolved = NULL;
     inherit->field_aliases = uf_con_vector_new(sizeof(struct {
         const char* original;
@@ -203,7 +203,7 @@ AstBlueprintDecl* ii_ast_blueprint_decl(Ast* ast, const char* name)
     AstBlueprintDecl* blueprint = _alloc_ast(ast, sizeof(AstBlueprintDecl));
     memset(blueprint, 0, sizeof(AstBlueprintDecl));
     blueprint->base.kind = AST_KIND_BLUEPRINT_DECL;
-    blueprint->name = ii_src_intern_cstr(ast->source, name);
+    blueprint->name = name;
     blueprint->parents = uf_con_vector_new(sizeof(AstInherit*));
     blueprint->fields = uf_con_vector_new(sizeof(AstField*));
     blueprint->methods = uf_con_vector_new(sizeof(AstMethod*));
@@ -217,7 +217,7 @@ AstFuncDecl* ii_ast_func_decl(Ast* ast, const char* name, AstType* return_type)
     AstFuncDecl* function = _alloc_ast(ast, sizeof(AstFuncDecl));
     memset(function, 0, sizeof(AstFuncDecl));
     function->base.kind = AST_KIND_FUNC_DECL;
-    function->name = ii_src_intern_cstr(ast->source, name);
+    function->name = name;
     function->return_type = return_type;
     function->params = uf_con_vector_new(sizeof(AstParam*));
     function->body = NULL;
@@ -256,7 +256,7 @@ AstDecl* ii_ast_decl(Ast* ast, const char* name, AstType* type, AstExpr* init, b
     AstDecl* decl = _alloc_ast(ast, sizeof(AstDecl));
     memset(decl, 0, sizeof(AstDecl));
     decl->base.kind = AST_KIND_DECL;
-    decl->name = ii_src_intern_cstr(ast->source, name);
+    decl->name = name;
     decl->type = type;
     decl->init = init;
     decl->is_var = is_var;
@@ -364,7 +364,7 @@ AstLiteral* ii_ast_literal_string(Ast* ast, const char* value)
     lit->expr.base.kind = AST_KIND_LITERAL;
     lit->expr.tast = NULL;
     lit->variant = LITERAL_STRING;
-    lit->literal.string_value = ii_src_intern_cstr(ast->source, value);
+    lit->literal.string_value = value;
     return lit;
 }
 
@@ -406,7 +406,7 @@ AstIdent* ii_ast_ident(Ast* ast, const char* name)
     memset(ident, 0, sizeof(AstIdent));
     ident->expr.base.kind = AST_KIND_IDENT;
     ident->expr.tast = NULL;
-    ident->name = ii_src_intern_cstr(ast->source, name);
+    ident->name = name;
     ident->resolved_kind = AST_IDENT_NONE;
     return ident;
 }
@@ -458,7 +458,7 @@ AstMember* ii_ast_member(Ast* ast, AstExpr* object, const char* member_name)
     member->expr.base.kind = AST_KIND_MEMBER;
     member->expr.tast = NULL;
     member->object = object;
-    member->member_name = ii_src_intern_cstr(ast->source, member_name);
+    member->member_name = member_name;
     member->is_method_call = false;
     member->resolved_field = NULL;
     member->resolved_method = NULL;
@@ -535,7 +535,7 @@ AstFfi* ii_ast_ffi(Ast* ast, const char* function_name)
     memset(ffi, 0, sizeof(AstFfi));
     ffi->expr.base.kind = AST_KIND_FFI;
     ffi->expr.tast = NULL;
-    ffi->function_name = ii_src_intern_cstr(ast->source, function_name);
+    ffi->function_name = function_name;
     ffi->args = uf_con_vector_new(sizeof(AstExpr*));
     return ffi;
 }
