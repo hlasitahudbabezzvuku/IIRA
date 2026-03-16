@@ -120,11 +120,17 @@ typedef struct TastExpr TastExpr;
  * These are the TAST extensions.
  */
 
+enum TastResolutionState {
+    TAST_RESOLUTION_UNRESOLVED,
+    TAST_RESOLUTION_RESOLVING,
+    TAST_RESOLUTION_RESOLVED,
+};
+
 /*
  * This is type information added by semantic analyzer.
  */
 struct TastType {
-    bool is_resolved;
+    enum TastResolutionState state;
     uint32_t size;
     uint32_t alignment;
     const char* c_repr; /* C representation for QBE (e.g., "l", "d") */
