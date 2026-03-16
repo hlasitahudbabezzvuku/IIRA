@@ -1,0 +1,16 @@
+// Test: Method aliasing in inheritance
+Base: {
+    value: int;
+
+    getValue(self): int = {
+        return self.value;
+    }
+}
+
+Derived: Base { getValue as getVal }, { }
+
+main(): int = {
+    var d: Derived;
+    d.value = 10;
+    return d.getValue() + d.getVal();
+}
