@@ -2,6 +2,17 @@
 
 /**
  * @brief Abstract Syntax Tree and Typed AST for iirac.
+ *
+ * The AST represents the parsed program structure. The TAST (Typed AST) extension is added by the semantic
+ * analyzer with type information and resolved symbols.
+ *
+ * This means that we have to use two types of nodes:
+ * - Ast*: Core AST nodes produced by the parser.
+ * - Tast*: Typed AST extension added by semantic analyzer.
+ *
+ * All nodes are allocated from a single memory arena for cache locality. String names ware already interned
+ * via Source manager and lexer module for pointer equality.
+ *
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
