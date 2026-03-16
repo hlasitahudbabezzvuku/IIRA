@@ -597,3 +597,110 @@ void ii_ast_free(Ast* ast);
 void ii_ast_freep(Ast** ast);
 #define _autoast_ _cleanup_(ii_ast_freep)
 
+/*
+ * String handling.
+ */
+
+const char* ii_ast_intern(Ast* ast, const char* str, size_t len);
+const char* ii_ast_intern_cstr(Ast* ast, const char* cstr);
+
+/*
+ * Error handling.
+ */
+
+void ii_ast_report_error(Ast* ast);
+uint32_t ii_ast_get_error_count(const Ast* ast);
+
+/*
+ * Program builder API.
+ */
+
+AstFuncDecl* ii_ast_add_func(Ast* ast, const char* name);
+AstBlueprintDecl* ii_ast_add_blueprint(Ast* ast, const char* name);
+void ii_ast_program_finalize(Ast* ast);
+
+/*
+ * Type constructors.
+ */
+
+AstType* ii_ast_type_new(Ast* ast, enum AstKind kind);
+AstType* ii_ast_type_primitive(Ast* ast, enum LexerPrimitiveType prim);
+AstType* ii_ast_type_pointer(Ast* ast, AstType* pointed);
+AstType* ii_ast_type_array(Ast* ast, AstType* element, AstExpr* size_expr);
+AstType* ii_ast_type_blueprint(Ast* ast, const char* name);
+AstType* ii_ast_type_anon(Ast* ast, const char* auto_name);
+
+/*
+ * Declaration constructors.
+ */
+
+AstParam* ii_ast_param(Ast* ast, const char* name, AstType* type);
+AstField* ii_ast_field(Ast* ast, const char* name, AstType* type, AstExpr* default_value);
+AstMethodOverload* ii_ast_method_overload(Ast* ast, bool is_static, AstType* return_type);
+AstMethod* ii_ast_method(Ast* ast, const char* name);
+AstInherit* ii_ast_inherit(Ast* ast, const char* parent_name);
+AstBlueprintDecl* ii_ast_blueprint_decl(Ast* ast, const char* name);
+AstFuncDecl* ii_ast_func_decl(Ast* ast, const char* name, AstType* return_type);
+
+/*
+ * Statement constructors.
+ */
+
+AstBlock* ii_ast_block(Ast* ast);
+void ii_ast_block_add_stmt(AstBlock* block, AstStmt* stmt);
+
+AstReturn* ii_ast_return(Ast* ast, AstExpr* value);
+AstDecl* ii_ast_decl(Ast* ast, const char* name, AstType* type, AstExpr* init, bool is_var);
+AstIf* ii_ast_if(Ast* ast, AstExpr* condition, AstBlock* then_block, AstStmt* else_stmt);
+AstFor* ii_ast_for(Ast* ast, AstStmt* init, AstExpr* condition, AstExpr* iter, AstBlock* body);
+AstWhile* ii_ast_while(Ast* ast, AstExpr* condition, AstBlock* body);
+AstDoWhile* ii_ast_do_while(Ast* ast, AstBlock* body, AstExpr* condition);
+AstBreak* ii_ast_break(Ast* ast);
+AstContinue* ii_ast_continue(Ast* ast);
+AstExprStmt* ii_ast_expr_stmt(Ast* ast, AstExpr* expr);
+
+/*
+ * Expression constructors.
+ */
+
+AstLiteral* ii_ast_literal_int(Ast* ast, int64_t value);
+AstLiteral* ii_ast_literal_float(Ast* ast, double value);
+AstLiteral* ii_ast_literal_string(Ast* ast, const char* value);
+AstLiteral* ii_ast_literal_bool(Ast* ast, bool value);
+AstLiteral* ii_ast_literal_char(Ast* ast, char value);
+AstLiteral* ii_ast_literal_null(Ast* ast);
+
+AstIdent* ii_ast_ident(Ast* ast, const char* name);
+
+AstBinary* ii_ast_binary(Ast* ast, AstExpr* left, enum LexerTokenType op, AstExpr* right);
+AstUnary* ii_ast_unary(Ast* ast, enum LexerTokenType op, AstExpr* operand);
+
+AstCall* ii_ast_call(Ast* ast, AstExpr* callee);
+void ii_ast_call_add_arg(AstCall* call, AstExpr* arg);
+
+AstMember* ii_ast_member(Ast* ast, AstExpr* object, const char* member_name);
+
+AstIndex* ii_ast_index(Ast* ast, AstExpr* array, AstExpr* index);
+
+AstInit* ii_ast_init(Ast* ast);
+void ii_ast_init_add_value(AstInit* init, AstExpr* value);
+void ii_ast_init_add_named(AstInit* init, const char* name, AstExpr* value);
+void ii_ast_init_add_indexed(AstInit* init, AstExpr* index, AstExpr* value);
+
+AstCast* ii_ast_cast(Ast* ast, AstType* target_type, AstExpr* expr);
+
+AstFfi* ii_ast_ffi(Ast* ast, const char* function_name);
+void ii_ast_ffi_add_arg(AstFfi* ffi, AstExpr* arg);
+
+/*
+ * Error node constructor.
+ */
+
+AstError* ii_ast_error(Ast* ast, SourceSpan span);
+
+/*
+ * Utility functions.
+ */
+
+const char* ii_ast_kind_name(enum AstKind kind);
+void ii_ast_print(const Ast* ast);
