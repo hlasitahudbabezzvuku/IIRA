@@ -24,6 +24,11 @@ struct Ast {
  * Error tracking.
  */
 
+void ii_ast_report_error(Ast* ast)
+{
+    ast->error_count++;
+}
+
 uint32_t ii_ast_get_error_count(const Ast* ast)
 {
     return ast->error_count;
@@ -1362,12 +1367,12 @@ void ii_ast_free(Ast* ast)
         return;
     }
 
-    /* Free program-level vectors. */
-    uf_con_vector_free(ast->program->funcs);
-    uf_con_vector_free(ast->program->blueprints);
+    /* Save lengths before freeing vectors. */
+    size_t funcs_len = (ast->program->funcs) ? uf_con_vector_length(ast->program->funcs) : 0;
+    size_t blueprints_len = (ast->program->blueprints) ? uf_con_vector_length(ast->program->blueprints) : 0;
 
     /* Free function vectors. */
-    for (size_t i = 0; i < uf_con_vector_length(ast->program->funcs); i++) {
+    for (size_t i = 0; i < funcs_len; i++) {
         AstFuncDecl* func = *(AstFuncDecl**)uf_con_vector_get(ast->program->funcs, i);
 
         if (!func) {
@@ -1381,7 +1386,7 @@ void ii_ast_free(Ast* ast)
     }
 
     /* Free blueprint vectors. */
-    for (size_t i = 0; i < uf_con_vector_length(ast->program->blueprints); i++) {
+    for (size_t i = 0; i < blueprints_len; i++) {
         AstBlueprintDecl* bp = *(AstBlueprintDecl**)uf_con_vector_get(ast->program->blueprints, i);
         if (!bp) {
             continue;
@@ -1431,6 +1436,10 @@ void ii_ast_free(Ast* ast)
             }
         }
     }
+
+    /* Free program-level vectors. */
+    uf_con_vector_free(ast->program->funcs);
+    uf_con_vector_free(ast->program->blueprints);
 
     uf_mem_region_free(ast->arena);
     uf_mem_free(ast);
