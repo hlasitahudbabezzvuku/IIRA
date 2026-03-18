@@ -1,5 +1,10 @@
 #pragma once
 
+/**
+ * @brief A lightweight tracing module for debugging parser and semantic analyzer.
+ * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
+ **/
+
 #include "uf_common.h"
 
 #include <stdint.h>
