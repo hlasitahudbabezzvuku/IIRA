@@ -67,6 +67,24 @@ void ii_ast_program_finalize(Ast* ast)
     (void)ast;
 }
 
+void ii_ast_program_add_func(Ast* ast, AstFuncDecl* func)
+{
+    AstProgram* prog = ii_ast_get_program(ast);
+    if (prog->funcs == NULL) {
+        prog->funcs = uf_con_vector_new(sizeof(AstFuncDecl*));
+    }
+    uf_con_vector_push(prog->funcs, &func);
+}
+
+void ii_ast_program_add_blueprint(Ast* ast, AstBlueprintDecl* blueprint)
+{
+    AstProgram* prog = ii_ast_get_program(ast);
+    if (prog->blueprints == NULL) {
+        prog->blueprints = uf_con_vector_new(sizeof(AstBlueprintDecl*));
+    }
+    uf_con_vector_push(prog->blueprints, &blueprint);
+}
+
 AstProgram* ii_ast_get_program(const Ast* ast)
 {
     return ast->program;
@@ -126,6 +144,54 @@ AstType* ii_ast_type_anon(Ast* ast, const char* auto_name)
     type->variant_u.anon.fields = NULL;
     type->variant_u.anon.field_count = 0;
     type->variant_u.anon.auto_name = auto_name;
+    return type;
+}
+
+void ii_ast_type_anon_add_field(Ast* ast, AstType* anon, AstField* field)
+{
+    if (anon->variant_u.anon.fields == NULL) {
+        anon->variant_u.anon.fields = uf_mem_region_zalloc(ast->arena, sizeof(AstField) * 4);
+        anon->variant_u.anon.field_count = 0;
+    }
+    anon->variant_u.anon.fields[anon->variant_u.anon.field_count++] = *field;
+}
+
+/*
+ * Type constructors (span-aware).
+ */
+
+AstType* ii_ast_type_primitive_sp(Ast* ast, SourceSpan span, enum LexerPrimitiveType prim)
+{
+    AstType* type = ii_ast_type_primitive(ast, prim);
+    type->base.span = span;
+    return type;
+}
+
+AstType* ii_ast_type_pointer_sp(Ast* ast, SourceSpan span, AstType* pointed)
+{
+    AstType* type = ii_ast_type_pointer(ast, pointed);
+    type->base.span = span;
+    return type;
+}
+
+AstType* ii_ast_type_array_sp(Ast* ast, SourceSpan span, AstType* element, AstExpr* size_expr)
+{
+    AstType* type = ii_ast_type_array(ast, element, size_expr);
+    type->base.span = span;
+    return type;
+}
+
+AstType* ii_ast_type_blueprint_sp(Ast* ast, SourceSpan span, const char* name)
+{
+    AstType* type = ii_ast_type_blueprint(ast, name);
+    type->base.span = span;
+    return type;
+}
+
+AstType* ii_ast_type_anon_sp(Ast* ast, SourceSpan span, const char* auto_name)
+{
+    AstType* type = ii_ast_type_anon(ast, auto_name);
+    type->base.span = span;
     return type;
 }
 
@@ -207,6 +273,106 @@ AstFuncDecl* ii_ast_func_decl(Ast* ast, const char* name, AstType* return_type)
     function->params = uf_con_vector_new(sizeof(AstParam*));
     function->body = NULL;
     return function;
+}
+
+void ii_ast_blueprint_add_field(AstBlueprintDecl* blueprint, AstField* field)
+{
+    if (blueprint->fields == NULL) {
+        blueprint->fields = uf_con_vector_new(sizeof(AstField*));
+    }
+    uf_con_vector_push(blueprint->fields, &field);
+}
+
+void ii_ast_blueprint_add_method(AstBlueprintDecl* blueprint, AstMethod* method)
+{
+    if (blueprint->methods == NULL) {
+        blueprint->methods = uf_con_vector_new(sizeof(AstMethod*));
+    }
+    uf_con_vector_push(blueprint->methods, &method);
+}
+
+void ii_ast_blueprint_add_inherit(AstBlueprintDecl* blueprint, AstInherit* inherit)
+{
+    if (blueprint->parents == NULL) {
+        blueprint->parents = uf_con_vector_new(sizeof(AstInherit*));
+    }
+    uf_con_vector_push(blueprint->parents, &inherit);
+}
+
+AstMethod* ii_ast_method_get_or_add(AstBlueprintDecl* blueprint, const char* name)
+{
+    if (blueprint->methods != NULL) {
+        size_t len = uf_con_vector_length(blueprint->methods);
+        for (size_t i = 0; i < len; i++) {
+            AstMethod* m = *(AstMethod**)uf_con_vector_get(blueprint->methods, i);
+            if (m->name == name) {
+                return m;
+            }
+        }
+    }
+    return NULL;
+}
+
+void ii_ast_method_add_overload(AstMethod* method, AstMethodOverload* overload)
+{
+    if (method->overloads == NULL) {
+        method->overloads = uf_con_vector_new(sizeof(AstMethodOverload*));
+    }
+    uf_con_vector_push(method->overloads, &overload);
+}
+
+void ii_ast_method_overload_add_param(AstMethodOverload* overload, AstParam* param)
+{
+    if (overload->params == NULL) {
+        overload->params = uf_con_vector_new(sizeof(AstParam*));
+    }
+    uf_con_vector_push(overload->params, &param);
+}
+
+/*
+ * Declaration constructors (span-aware).
+ */
+
+AstParam* ii_ast_param_sp(Ast* ast, SourceSpan span, const char* name, AstType* type)
+{
+    AstParam* param = ii_ast_param(ast, name, type);
+    param->base.span = span;
+    return param;
+}
+
+AstField* ii_ast_field_sp(Ast* ast, SourceSpan span, const char* name, AstType* type, AstExpr* default_value)
+{
+    AstField* field = ii_ast_field(ast, name, type, default_value);
+    field->base.span = span;
+    return field;
+}
+
+AstMethodOverload* ii_ast_method_overload_sp(Ast* ast, SourceSpan span, bool is_static, AstType* return_type)
+{
+    AstMethodOverload* overload = ii_ast_method_overload(ast, is_static, return_type);
+    overload->base.span = span;
+    return overload;
+}
+
+AstInherit* ii_ast_inherit_sp(Ast* ast, SourceSpan span, const char* parent_name)
+{
+    AstInherit* inherit = ii_ast_inherit(ast, parent_name);
+    inherit->base.span = span;
+    return inherit;
+}
+
+AstBlueprintDecl* ii_ast_blueprint_decl_sp(Ast* ast, SourceSpan span, const char* name)
+{
+    AstBlueprintDecl* blueprint = ii_ast_blueprint_decl(ast, name);
+    blueprint->base.span = span;
+    return blueprint;
+}
+
+AstFuncDecl* ii_ast_func_decl_sp(Ast* ast, SourceSpan span, const char* name, AstType* return_type)
+{
+    AstFuncDecl* func = ii_ast_func_decl(ast, name, return_type);
+    func->base.span = span;
+    return func;
 }
 
 /*
@@ -303,6 +469,82 @@ AstExprStmt* ii_ast_expr_stmt(Ast* ast, AstExpr* expr)
     AstExprStmt* stmt = uf_mem_region_zalloc(ast->arena, sizeof(AstExprStmt));
     stmt->base.kind = AST_KIND_EXPR_STMT;
     stmt->expr = expr;
+    return stmt;
+}
+
+/*
+ * Statement constructors (span-aware).
+ */
+
+AstBlock* ii_ast_block_sp(Ast* ast, SourceSpan span)
+{
+    AstBlock* block = ii_ast_block(ast);
+    block->base.span = span;
+    return block;
+}
+
+AstReturn* ii_ast_return_sp(Ast* ast, SourceSpan span, AstExpr* value)
+{
+    AstReturn* ret = ii_ast_return(ast, value);
+    ret->base.span = span;
+    return ret;
+}
+
+AstDecl* ii_ast_decl_sp(Ast* ast, SourceSpan span, const char* name, AstType* type, AstExpr* init,
+                        bool is_var)
+{
+    AstDecl* decl = ii_ast_decl(ast, name, type, init, is_var);
+    decl->base.span = span;
+    return decl;
+}
+
+AstIf* ii_ast_if_sp(Ast* ast, SourceSpan span, AstExpr* condition, AstBlock* then_block, AstStmt* else_stmt)
+{
+    AstIf* if_stmt = ii_ast_if(ast, condition, then_block, else_stmt);
+    if_stmt->base.span = span;
+    return if_stmt;
+}
+
+AstFor* ii_ast_for_sp(Ast* ast, SourceSpan span, AstStmt* init, AstExpr* condition, AstExpr* iter,
+                      AstBlock* body)
+{
+    AstFor* for_stmt = ii_ast_for(ast, init, condition, iter, body);
+    for_stmt->base.span = span;
+    return for_stmt;
+}
+
+AstWhile* ii_ast_while_sp(Ast* ast, SourceSpan span, AstExpr* condition, AstBlock* body)
+{
+    AstWhile* while_stmt = ii_ast_while(ast, condition, body);
+    while_stmt->base.span = span;
+    return while_stmt;
+}
+
+AstDoWhile* ii_ast_do_while_sp(Ast* ast, SourceSpan span, AstBlock* body, AstExpr* condition)
+{
+    AstDoWhile* do_while = ii_ast_do_while(ast, body, condition);
+    do_while->base.span = span;
+    return do_while;
+}
+
+AstBreak* ii_ast_break_sp(Ast* ast, SourceSpan span)
+{
+    AstBreak* brk = ii_ast_break(ast);
+    brk->base.span = span;
+    return brk;
+}
+
+AstContinue* ii_ast_continue_sp(Ast* ast, SourceSpan span)
+{
+    AstContinue* cont = ii_ast_continue(ast);
+    cont->base.span = span;
+    return cont;
+}
+
+AstExprStmt* ii_ast_expr_stmt_sp(Ast* ast, SourceSpan span, AstExpr* expr)
+{
+    AstExprStmt* stmt = ii_ast_expr_stmt(ast, expr);
+    stmt->base.span = span;
     return stmt;
 }
 
@@ -503,6 +745,73 @@ AstFfi* ii_ast_ffi(Ast* ast, const char* function_name)
 void ii_ast_ffi_add_arg(AstFfi* ffi, AstExpr* arg)
 {
     uf_con_vector_push(ffi->args, &arg);
+}
+
+/*
+ * Expression constructors (span-aware).
+ */
+
+AstIdent* ii_ast_ident_sp(Ast* ast, SourceSpan span, const char* name)
+{
+    AstIdent* ident = ii_ast_ident(ast, name);
+    ident->expr.base.span = span;
+    return ident;
+}
+
+AstBinary* ii_ast_binary_sp(Ast* ast, SourceSpan span, AstExpr* left, enum LexerTokenType op, AstExpr* right)
+{
+    AstBinary* bin = ii_ast_binary(ast, left, op, right);
+    bin->expr.base.span = span;
+    return bin;
+}
+
+AstUnary* ii_ast_unary_sp(Ast* ast, SourceSpan span, enum LexerTokenType op, AstExpr* operand)
+{
+    AstUnary* unary = ii_ast_unary(ast, op, operand);
+    unary->expr.base.span = span;
+    return unary;
+}
+
+AstCall* ii_ast_call_sp(Ast* ast, SourceSpan span, AstExpr* callee)
+{
+    AstCall* call = ii_ast_call(ast, callee);
+    call->expr.base.span = span;
+    return call;
+}
+
+AstMember* ii_ast_member_sp(Ast* ast, SourceSpan span, AstExpr* object, const char* member_name)
+{
+    AstMember* member = ii_ast_member(ast, object, member_name);
+    member->expr.base.span = span;
+    return member;
+}
+
+AstIndex* ii_ast_index_sp(Ast* ast, SourceSpan span, AstExpr* array, AstExpr* index)
+{
+    AstIndex* idx = ii_ast_index(ast, array, index);
+    idx->expr.base.span = span;
+    return idx;
+}
+
+AstInit* ii_ast_init_sp(Ast* ast, SourceSpan span)
+{
+    AstInit* init = ii_ast_init(ast);
+    init->expr.base.span = span;
+    return init;
+}
+
+AstCast* ii_ast_cast_sp(Ast* ast, SourceSpan span, AstType* target_type, AstExpr* expr)
+{
+    AstCast* cast = ii_ast_cast(ast, target_type, expr);
+    cast->expr.base.span = span;
+    return cast;
+}
+
+AstFfi* ii_ast_ffi_sp(Ast* ast, SourceSpan span, const char* function_name)
+{
+    AstFfi* ffi = ii_ast_ffi(ast, function_name);
+    ffi->expr.base.span = span;
+    return ffi;
 }
 
 /*

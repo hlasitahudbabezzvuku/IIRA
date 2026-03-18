@@ -629,6 +629,9 @@ AstFuncDecl* ii_ast_add_func(Ast* ast, const char* name);
 AstBlueprintDecl* ii_ast_add_blueprint(Ast* ast, const char* name);
 void ii_ast_program_finalize(Ast* ast);
 
+void ii_ast_program_add_func(Ast* ast, AstFuncDecl* func);
+void ii_ast_program_add_blueprint(Ast* ast, AstBlueprintDecl* blueprint);
+
 /*
  * Type constructors.
  */
@@ -639,6 +642,18 @@ AstType* ii_ast_type_pointer(Ast* ast, AstType* pointed);
 AstType* ii_ast_type_array(Ast* ast, AstType* element, AstExpr* size_expr);
 AstType* ii_ast_type_blueprint(Ast* ast, const char* name);
 AstType* ii_ast_type_anon(Ast* ast, const char* auto_name);
+
+void ii_ast_type_anon_add_field(Ast* ast, AstType* anon, AstField* field);
+
+/*
+ * Type constructors (span-aware).
+ */
+
+AstType* ii_ast_type_primitive_sp(Ast* ast, SourceSpan span, enum LexerPrimitiveType prim);
+AstType* ii_ast_type_pointer_sp(Ast* ast, SourceSpan span, AstType* pointed);
+AstType* ii_ast_type_array_sp(Ast* ast, SourceSpan span, AstType* element, AstExpr* size_expr);
+AstType* ii_ast_type_blueprint_sp(Ast* ast, SourceSpan span, const char* name);
+AstType* ii_ast_type_anon_sp(Ast* ast, SourceSpan span, const char* auto_name);
 
 /*
  * Declaration constructors.
@@ -651,6 +666,25 @@ AstMethod* ii_ast_method(Ast* ast, const char* name);
 AstInherit* ii_ast_inherit(Ast* ast, const char* parent_name);
 AstBlueprintDecl* ii_ast_blueprint_decl(Ast* ast, const char* name);
 AstFuncDecl* ii_ast_func_decl(Ast* ast, const char* name, AstType* return_type);
+
+void ii_ast_blueprint_add_field(AstBlueprintDecl* blueprint, AstField* field);
+void ii_ast_blueprint_add_method(AstBlueprintDecl* blueprint, AstMethod* method);
+void ii_ast_blueprint_add_inherit(AstBlueprintDecl* blueprint, AstInherit* inherit);
+
+AstMethod* ii_ast_method_get_or_add(AstBlueprintDecl* blueprint, const char* name);
+void ii_ast_method_add_overload(AstMethod* method, AstMethodOverload* overload);
+void ii_ast_method_overload_add_param(AstMethodOverload* overload, AstParam* param);
+
+/*
+ * Declaration constructors (span-aware).
+ */
+
+AstParam* ii_ast_param_sp(Ast* ast, SourceSpan span, const char* name, AstType* type);
+AstField* ii_ast_field_sp(Ast* ast, SourceSpan span, const char* name, AstType* type, AstExpr* default_value);
+AstMethodOverload* ii_ast_method_overload_sp(Ast* ast, SourceSpan span, bool is_static, AstType* return_type);
+AstInherit* ii_ast_inherit_sp(Ast* ast, SourceSpan span, const char* parent_name);
+AstBlueprintDecl* ii_ast_blueprint_decl_sp(Ast* ast, SourceSpan span, const char* name);
+AstFuncDecl* ii_ast_func_decl_sp(Ast* ast, SourceSpan span, const char* name, AstType* return_type);
 
 /*
  * Statement constructors.
@@ -668,6 +702,23 @@ AstDoWhile* ii_ast_do_while(Ast* ast, AstBlock* body, AstExpr* condition);
 AstBreak* ii_ast_break(Ast* ast);
 AstContinue* ii_ast_continue(Ast* ast);
 AstExprStmt* ii_ast_expr_stmt(Ast* ast, AstExpr* expr);
+
+/*
+ * Statement constructors (span-aware).
+ */
+
+AstBlock* ii_ast_block_sp(Ast* ast, SourceSpan span);
+AstReturn* ii_ast_return_sp(Ast* ast, SourceSpan span, AstExpr* value);
+AstDecl* ii_ast_decl_sp(Ast* ast, SourceSpan span, const char* name, AstType* type, AstExpr* init,
+                        bool is_var);
+AstIf* ii_ast_if_sp(Ast* ast, SourceSpan span, AstExpr* condition, AstBlock* then_block, AstStmt* else_stmt);
+AstFor* ii_ast_for_sp(Ast* ast, SourceSpan span, AstStmt* init, AstExpr* condition, AstExpr* iter,
+                      AstBlock* body);
+AstWhile* ii_ast_while_sp(Ast* ast, SourceSpan span, AstExpr* condition, AstBlock* body);
+AstDoWhile* ii_ast_do_while_sp(Ast* ast, SourceSpan span, AstBlock* body, AstExpr* condition);
+AstBreak* ii_ast_break_sp(Ast* ast, SourceSpan span);
+AstContinue* ii_ast_continue_sp(Ast* ast, SourceSpan span);
+AstExprStmt* ii_ast_expr_stmt_sp(Ast* ast, SourceSpan span, AstExpr* expr);
 
 /*
  * Expression constructors.
@@ -701,6 +752,20 @@ AstCast* ii_ast_cast(Ast* ast, AstType* target_type, AstExpr* expr);
 
 AstFfi* ii_ast_ffi(Ast* ast, const char* function_name);
 void ii_ast_ffi_add_arg(AstFfi* ffi, AstExpr* arg);
+
+/*
+ * Expression constructors (span-aware).
+ */
+
+AstIdent* ii_ast_ident_sp(Ast* ast, SourceSpan span, const char* name);
+AstBinary* ii_ast_binary_sp(Ast* ast, SourceSpan span, AstExpr* left, enum LexerTokenType op, AstExpr* right);
+AstUnary* ii_ast_unary_sp(Ast* ast, SourceSpan span, enum LexerTokenType op, AstExpr* operand);
+AstCall* ii_ast_call_sp(Ast* ast, SourceSpan span, AstExpr* callee);
+AstMember* ii_ast_member_sp(Ast* ast, SourceSpan span, AstExpr* object, const char* member_name);
+AstIndex* ii_ast_index_sp(Ast* ast, SourceSpan span, AstExpr* array, AstExpr* index);
+AstInit* ii_ast_init_sp(Ast* ast, SourceSpan span);
+AstCast* ii_ast_cast_sp(Ast* ast, SourceSpan span, AstType* target_type, AstExpr* expr);
+AstFfi* ii_ast_ffi_sp(Ast* ast, SourceSpan span, const char* function_name);
 
 /*
  * Error node constructor.
