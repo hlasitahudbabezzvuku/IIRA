@@ -2,6 +2,11 @@
 
 /**
  * @brief A lightweight tracing module for debugging parser and semantic analyzer.
+ *
+ * This module provides scope-based function entry/exit tracing with indentation, colors, and source location
+ * information. It's designed for detecting infinite loops and understanding call flow when developing iira
+ * modules (mainly parser and semantic analyzer).
+ *
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
