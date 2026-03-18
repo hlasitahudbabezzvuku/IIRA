@@ -32,6 +32,7 @@ struct CompilerConfig {
     bool no_warn;
     bool verbose;
     bool debug;
+    bool trace;
     const char* output_file;
     const char* max_errors;
     bool show_lexer_output;
@@ -77,6 +78,13 @@ static const CompilerFlag default_flags[] = {
         .short_name = 0,
         .description = "Enable debug output (overrides the --verbrose flag)",
         .config_field_offset = offsetof(CompilerConfig, debug),
+    },
+    {
+        .type = FLAG_SET,
+        .long_name = "trace",
+        .short_name = 0,
+        .description = "Enable tracing output",
+        .config_field_offset = offsetof(CompilerConfig, trace),
     },
     {
         .type = FLAG_CONSUME,
