@@ -5,7 +5,7 @@
 
 #include "ii_parser_expr.h"
 
-#include "ii_parser.h"
+#include "ii_parser_internal.h"
 
 AstExpr* ii_parser_parse_expression(ParserContext* context)
 {

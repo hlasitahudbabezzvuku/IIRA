@@ -5,7 +5,7 @@
 
 #include "ii_parser_stmt.h"
 
-#include "ii_parser.h"
+#include "ii_parser_internal.h"
 
 AstBlock* ii_parser_parse_block(ParserContext* context)
 {

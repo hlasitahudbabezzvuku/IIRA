@@ -5,7 +5,7 @@
 
 #include "ii_parser_type.h"
 
-#include "ii_parser.h"
+#include "ii_parser_internal.h"
 
 AstType* ii_parser_parse_type(ParserContext* context)
 {
