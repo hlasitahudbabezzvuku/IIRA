@@ -20,11 +20,6 @@ struct Ast {
     uint32_t error_count;
 };
 
-static void* _alloc_ast(Ast* ast, size_t size)
-{
-    return uf_mem_region_malloc(ast->arena, size);
-}
-
 /*
  * Error tracking.
  */
@@ -40,8 +35,7 @@ uint32_t ii_ast_get_error_count(const Ast* ast)
 
 AstFuncDecl* ii_ast_add_func(Ast* ast, const char* name)
 {
-    AstFuncDecl* func = _alloc_ast(ast, sizeof(AstFuncDecl));
-    memset(func, 0, sizeof(AstFuncDecl));
+    AstFuncDecl* func = uf_mem_region_zalloc(ast->arena, sizeof(AstFuncDecl));
     func->base.kind = AST_KIND_FUNC_DECL;
     func->name = name;
 
@@ -55,8 +49,7 @@ AstFuncDecl* ii_ast_add_func(Ast* ast, const char* name)
 
 AstBlueprintDecl* ii_ast_add_blueprint(Ast* ast, const char* name)
 {
-    AstBlueprintDecl* bp = _alloc_ast(ast, sizeof(AstBlueprintDecl));
-    memset(bp, 0, sizeof(AstBlueprintDecl));
+    AstBlueprintDecl* bp = uf_mem_region_zalloc(ast->arena, sizeof(AstBlueprintDecl));
     bp->base.kind = AST_KIND_BLUEPRINT_DECL;
     bp->name = name;
 
@@ -85,8 +78,7 @@ AstProgram* ii_ast_get_program(const Ast* ast)
 
 AstType* ii_ast_type_new(Ast* ast, enum AstKind kind)
 {
-    AstType* type = _alloc_ast(ast, sizeof(AstType));
-    memset(type, 0, sizeof(AstType));
+    AstType* type = uf_mem_region_zalloc(ast->arena, sizeof(AstType));
     type->base.kind = kind;
     type->tast = NULL;
     return type;
@@ -143,8 +135,7 @@ AstType* ii_ast_type_anon(Ast* ast, const char* auto_name)
 
 AstParam* ii_ast_param(Ast* ast, const char* name, AstType* type)
 {
-    AstParam* param = _alloc_ast(ast, sizeof(AstParam));
-    memset(param, 0, sizeof(AstParam));
+    AstParam* param = uf_mem_region_zalloc(ast->arena, sizeof(AstParam));
     param->base.kind = AST_KIND_PARAM;
     param->name = name;
     param->type = type;
@@ -153,8 +144,7 @@ AstParam* ii_ast_param(Ast* ast, const char* name, AstType* type)
 
 AstField* ii_ast_field(Ast* ast, const char* name, AstType* type, AstExpr* default_value)
 {
-    AstField* field = _alloc_ast(ast, sizeof(AstField));
-    memset(field, 0, sizeof(AstField));
+    AstField* field = uf_mem_region_zalloc(ast->arena, sizeof(AstField));
     field->base.kind = AST_KIND_FIELD;
     field->name = name;
     field->type = type;
@@ -164,8 +154,7 @@ AstField* ii_ast_field(Ast* ast, const char* name, AstType* type, AstExpr* defau
 
 AstMethodOverload* ii_ast_method_overload(Ast* ast, bool is_static, AstType* return_type)
 {
-    AstMethodOverload* overload = _alloc_ast(ast, sizeof(AstMethodOverload));
-    memset(overload, 0, sizeof(AstMethodOverload));
+    AstMethodOverload* overload = uf_mem_region_zalloc(ast->arena, sizeof(AstMethodOverload));
     overload->base.kind = AST_KIND_METHOD_OVERLOAD;
     overload->is_static = is_static;
     overload->return_type = return_type;
@@ -176,8 +165,7 @@ AstMethodOverload* ii_ast_method_overload(Ast* ast, bool is_static, AstType* ret
 
 AstMethod* ii_ast_method(Ast* ast, const char* name)
 {
-    AstMethod* method = _alloc_ast(ast, sizeof(AstMethod));
-    memset(method, 0, sizeof(AstMethod));
+    AstMethod* method = uf_mem_region_zalloc(ast->arena, sizeof(AstMethod));
     method->base.kind = AST_KIND_METHOD;
     method->name = name;
     method->overloads = uf_con_vector_new(sizeof(AstMethodOverload*));
@@ -186,8 +174,7 @@ AstMethod* ii_ast_method(Ast* ast, const char* name)
 
 AstInherit* ii_ast_inherit(Ast* ast, const char* parent_name)
 {
-    AstInherit* inherit = _alloc_ast(ast, sizeof(AstInherit));
-    memset(inherit, 0, sizeof(AstInherit));
+    AstInherit* inherit = uf_mem_region_zalloc(ast->arena, sizeof(AstInherit));
     inherit->base.kind = AST_KIND_INHERIT;
     inherit->parent_name = parent_name;
     inherit->resolved = NULL;
@@ -200,8 +187,7 @@ AstInherit* ii_ast_inherit(Ast* ast, const char* parent_name)
 
 AstBlueprintDecl* ii_ast_blueprint_decl(Ast* ast, const char* name)
 {
-    AstBlueprintDecl* blueprint = _alloc_ast(ast, sizeof(AstBlueprintDecl));
-    memset(blueprint, 0, sizeof(AstBlueprintDecl));
+    AstBlueprintDecl* blueprint = uf_mem_region_zalloc(ast->arena, sizeof(AstBlueprintDecl));
     blueprint->base.kind = AST_KIND_BLUEPRINT_DECL;
     blueprint->name = name;
     blueprint->parents = uf_con_vector_new(sizeof(AstInherit*));
@@ -214,8 +200,7 @@ AstBlueprintDecl* ii_ast_blueprint_decl(Ast* ast, const char* name)
 
 AstFuncDecl* ii_ast_func_decl(Ast* ast, const char* name, AstType* return_type)
 {
-    AstFuncDecl* function = _alloc_ast(ast, sizeof(AstFuncDecl));
-    memset(function, 0, sizeof(AstFuncDecl));
+    AstFuncDecl* function = uf_mem_region_zalloc(ast->arena, sizeof(AstFuncDecl));
     function->base.kind = AST_KIND_FUNC_DECL;
     function->name = name;
     function->return_type = return_type;
@@ -230,8 +215,7 @@ AstFuncDecl* ii_ast_func_decl(Ast* ast, const char* name, AstType* return_type)
 
 AstBlock* ii_ast_block(Ast* ast)
 {
-    AstBlock* block = _alloc_ast(ast, sizeof(AstBlock));
-    memset(block, 0, sizeof(AstBlock));
+    AstBlock* block = uf_mem_region_zalloc(ast->arena, sizeof(AstBlock));
     block->base.kind = AST_KIND_BLOCK;
     block->stmts = uf_con_vector_new(sizeof(AstStmt*));
     return block;
@@ -244,8 +228,7 @@ void ii_ast_block_add_stmt(AstBlock* block, AstStmt* stmt)
 
 AstReturn* ii_ast_return(Ast* ast, AstExpr* value)
 {
-    AstReturn* ret = _alloc_ast(ast, sizeof(AstReturn));
-    memset(ret, 0, sizeof(AstReturn));
+    AstReturn* ret = uf_mem_region_zalloc(ast->arena, sizeof(AstReturn));
     ret->base.kind = AST_KIND_RETURN;
     ret->value = value;
     return (AstReturn*)ret;
@@ -253,8 +236,7 @@ AstReturn* ii_ast_return(Ast* ast, AstExpr* value)
 
 AstDecl* ii_ast_decl(Ast* ast, const char* name, AstType* type, AstExpr* init, bool is_var)
 {
-    AstDecl* decl = _alloc_ast(ast, sizeof(AstDecl));
-    memset(decl, 0, sizeof(AstDecl));
+    AstDecl* decl = uf_mem_region_zalloc(ast->arena, sizeof(AstDecl));
     decl->base.kind = AST_KIND_DECL;
     decl->name = name;
     decl->type = type;
@@ -265,8 +247,7 @@ AstDecl* ii_ast_decl(Ast* ast, const char* name, AstType* type, AstExpr* init, b
 
 AstIf* ii_ast_if(Ast* ast, AstExpr* condition, AstBlock* then_block, AstStmt* else_stmt)
 {
-    AstIf* if_stmt = _alloc_ast(ast, sizeof(AstIf));
-    memset(if_stmt, 0, sizeof(AstIf));
+    AstIf* if_stmt = uf_mem_region_zalloc(ast->arena, sizeof(AstIf));
     if_stmt->base.kind = AST_KIND_IF;
     if_stmt->condition = condition;
     if_stmt->then_block = then_block;
@@ -276,8 +257,7 @@ AstIf* ii_ast_if(Ast* ast, AstExpr* condition, AstBlock* then_block, AstStmt* el
 
 AstFor* ii_ast_for(Ast* ast, AstStmt* init, AstExpr* condition, AstExpr* iter, AstBlock* body)
 {
-    AstFor* for_stmt = _alloc_ast(ast, sizeof(AstFor));
-    memset(for_stmt, 0, sizeof(AstFor));
+    AstFor* for_stmt = uf_mem_region_zalloc(ast->arena, sizeof(AstFor));
     for_stmt->base.kind = AST_KIND_FOR;
     for_stmt->init = init;
     for_stmt->condition = condition;
@@ -288,8 +268,7 @@ AstFor* ii_ast_for(Ast* ast, AstStmt* init, AstExpr* condition, AstExpr* iter, A
 
 AstWhile* ii_ast_while(Ast* ast, AstExpr* condition, AstBlock* body)
 {
-    AstWhile* while_stmt = _alloc_ast(ast, sizeof(AstWhile));
-    memset(while_stmt, 0, sizeof(AstWhile));
+    AstWhile* while_stmt = uf_mem_region_zalloc(ast->arena, sizeof(AstWhile));
     while_stmt->base.kind = AST_KIND_WHILE;
     while_stmt->condition = condition;
     while_stmt->body = body;
@@ -298,8 +277,7 @@ AstWhile* ii_ast_while(Ast* ast, AstExpr* condition, AstBlock* body)
 
 AstDoWhile* ii_ast_do_while(Ast* ast, AstBlock* body, AstExpr* condition)
 {
-    AstDoWhile* do_while = _alloc_ast(ast, sizeof(AstDoWhile));
-    memset(do_while, 0, sizeof(AstDoWhile));
+    AstDoWhile* do_while = uf_mem_region_zalloc(ast->arena, sizeof(AstDoWhile));
     do_while->base.kind = AST_KIND_DO_WHILE;
     do_while->body = body;
     do_while->condition = condition;
@@ -308,24 +286,21 @@ AstDoWhile* ii_ast_do_while(Ast* ast, AstBlock* body, AstExpr* condition)
 
 AstBreak* ii_ast_break(Ast* ast)
 {
-    AstBreak* brk = _alloc_ast(ast, sizeof(AstBreak));
-    memset(brk, 0, sizeof(AstBreak));
+    AstBreak* brk = uf_mem_region_zalloc(ast->arena, sizeof(AstBreak));
     brk->base.kind = AST_KIND_BREAK;
     return brk;
 }
 
 AstContinue* ii_ast_continue(Ast* ast)
 {
-    AstContinue* cont = _alloc_ast(ast, sizeof(AstContinue));
-    memset(cont, 0, sizeof(AstContinue));
+    AstContinue* cont = uf_mem_region_zalloc(ast->arena, sizeof(AstContinue));
     cont->base.kind = AST_KIND_CONTINUE;
     return cont;
 }
 
 AstExprStmt* ii_ast_expr_stmt(Ast* ast, AstExpr* expr)
 {
-    AstExprStmt* stmt = _alloc_ast(ast, sizeof(AstExprStmt));
-    memset(stmt, 0, sizeof(AstExprStmt));
+    AstExprStmt* stmt = uf_mem_region_zalloc(ast->arena, sizeof(AstExprStmt));
     stmt->base.kind = AST_KIND_EXPR_STMT;
     stmt->expr = expr;
     return stmt;
@@ -337,8 +312,7 @@ AstExprStmt* ii_ast_expr_stmt(Ast* ast, AstExpr* expr)
 
 AstLiteral* ii_ast_literal_int(Ast* ast, int64_t value)
 {
-    AstLiteral* lit = _alloc_ast(ast, sizeof(AstLiteral));
-    memset(lit, 0, sizeof(AstLiteral));
+    AstLiteral* lit = uf_mem_region_zalloc(ast->arena, sizeof(AstLiteral));
     lit->expr.base.kind = AST_KIND_LITERAL;
     lit->expr.tast = NULL;
     lit->variant = LITERAL_INT;
@@ -348,8 +322,7 @@ AstLiteral* ii_ast_literal_int(Ast* ast, int64_t value)
 
 AstLiteral* ii_ast_literal_float(Ast* ast, double value)
 {
-    AstLiteral* lit = _alloc_ast(ast, sizeof(AstLiteral));
-    memset(lit, 0, sizeof(AstLiteral));
+    AstLiteral* lit = uf_mem_region_zalloc(ast->arena, sizeof(AstLiteral));
     lit->expr.base.kind = AST_KIND_LITERAL;
     lit->expr.tast = NULL;
     lit->variant = LITERAL_FLOAT;
@@ -359,8 +332,7 @@ AstLiteral* ii_ast_literal_float(Ast* ast, double value)
 
 AstLiteral* ii_ast_literal_string(Ast* ast, const char* value)
 {
-    AstLiteral* lit = _alloc_ast(ast, sizeof(AstLiteral));
-    memset(lit, 0, sizeof(AstLiteral));
+    AstLiteral* lit = uf_mem_region_zalloc(ast->arena, sizeof(AstLiteral));
     lit->expr.base.kind = AST_KIND_LITERAL;
     lit->expr.tast = NULL;
     lit->variant = LITERAL_STRING;
@@ -370,8 +342,7 @@ AstLiteral* ii_ast_literal_string(Ast* ast, const char* value)
 
 AstLiteral* ii_ast_literal_bool(Ast* ast, bool value)
 {
-    AstLiteral* lit = _alloc_ast(ast, sizeof(AstLiteral));
-    memset(lit, 0, sizeof(AstLiteral));
+    AstLiteral* lit = uf_mem_region_zalloc(ast->arena, sizeof(AstLiteral));
     lit->expr.base.kind = AST_KIND_LITERAL;
     lit->expr.tast = NULL;
     lit->variant = LITERAL_BOOL;
@@ -381,8 +352,7 @@ AstLiteral* ii_ast_literal_bool(Ast* ast, bool value)
 
 AstLiteral* ii_ast_literal_char(Ast* ast, char value)
 {
-    AstLiteral* lit = _alloc_ast(ast, sizeof(AstLiteral));
-    memset(lit, 0, sizeof(AstLiteral));
+    AstLiteral* lit = uf_mem_region_zalloc(ast->arena, sizeof(AstLiteral));
     lit->expr.base.kind = AST_KIND_LITERAL;
     lit->expr.tast = NULL;
     lit->variant = LITERAL_CHAR;
@@ -392,8 +362,7 @@ AstLiteral* ii_ast_literal_char(Ast* ast, char value)
 
 AstLiteral* ii_ast_literal_null(Ast* ast)
 {
-    AstLiteral* lit = _alloc_ast(ast, sizeof(AstLiteral));
-    memset(lit, 0, sizeof(AstLiteral));
+    AstLiteral* lit = uf_mem_region_zalloc(ast->arena, sizeof(AstLiteral));
     lit->expr.base.kind = AST_KIND_LITERAL;
     lit->expr.tast = NULL;
     lit->variant = LITERAL_NULL;
@@ -402,8 +371,7 @@ AstLiteral* ii_ast_literal_null(Ast* ast)
 
 AstIdent* ii_ast_ident(Ast* ast, const char* name)
 {
-    AstIdent* ident = _alloc_ast(ast, sizeof(AstIdent));
-    memset(ident, 0, sizeof(AstIdent));
+    AstIdent* ident = uf_mem_region_zalloc(ast->arena, sizeof(AstIdent));
     ident->expr.base.kind = AST_KIND_IDENT;
     ident->expr.tast = NULL;
     ident->name = name;
@@ -413,8 +381,7 @@ AstIdent* ii_ast_ident(Ast* ast, const char* name)
 
 AstBinary* ii_ast_binary(Ast* ast, AstExpr* left, enum LexerTokenType op, AstExpr* right)
 {
-    AstBinary* bin = _alloc_ast(ast, sizeof(AstBinary));
-    memset(bin, 0, sizeof(AstBinary));
+    AstBinary* bin = uf_mem_region_zalloc(ast->arena, sizeof(AstBinary));
     bin->expr.base.kind = AST_KIND_BINARY;
     bin->expr.tast = NULL;
     bin->left = left;
@@ -425,8 +392,7 @@ AstBinary* ii_ast_binary(Ast* ast, AstExpr* left, enum LexerTokenType op, AstExp
 
 AstUnary* ii_ast_unary(Ast* ast, enum LexerTokenType op, AstExpr* operand)
 {
-    AstUnary* un = _alloc_ast(ast, sizeof(AstUnary));
-    memset(un, 0, sizeof(AstUnary));
+    AstUnary* un = uf_mem_region_zalloc(ast->arena, sizeof(AstUnary));
     un->expr.base.kind = AST_KIND_UNARY;
     un->expr.tast = NULL;
     un->operand = operand;
@@ -436,8 +402,7 @@ AstUnary* ii_ast_unary(Ast* ast, enum LexerTokenType op, AstExpr* operand)
 
 AstCall* ii_ast_call(Ast* ast, AstExpr* callee)
 {
-    AstCall* call = _alloc_ast(ast, sizeof(AstCall));
-    memset(call, 0, sizeof(AstCall));
+    AstCall* call = uf_mem_region_zalloc(ast->arena, sizeof(AstCall));
     call->expr.base.kind = AST_KIND_CALL;
     call->expr.tast = NULL;
     call->callee = callee;
@@ -453,8 +418,7 @@ void ii_ast_call_add_arg(AstCall* call, AstExpr* arg)
 
 AstMember* ii_ast_member(Ast* ast, AstExpr* object, const char* member_name)
 {
-    AstMember* member = _alloc_ast(ast, sizeof(AstMember));
-    memset(member, 0, sizeof(AstMember));
+    AstMember* member = uf_mem_region_zalloc(ast->arena, sizeof(AstMember));
     member->expr.base.kind = AST_KIND_MEMBER;
     member->expr.tast = NULL;
     member->object = object;
@@ -467,8 +431,7 @@ AstMember* ii_ast_member(Ast* ast, AstExpr* object, const char* member_name)
 
 AstIndex* ii_ast_index(Ast* ast, AstExpr* array, AstExpr* index)
 {
-    AstIndex* idx = _alloc_ast(ast, sizeof(AstIndex));
-    memset(idx, 0, sizeof(AstIndex));
+    AstIndex* idx = uf_mem_region_zalloc(ast->arena, sizeof(AstIndex));
     idx->expr.base.kind = AST_KIND_INDEX;
     idx->expr.tast = NULL;
     idx->array = array;
@@ -478,8 +441,7 @@ AstIndex* ii_ast_index(Ast* ast, AstExpr* array, AstExpr* index)
 
 AstInit* ii_ast_init(Ast* ast)
 {
-    AstInit* init = _alloc_ast(ast, sizeof(AstInit));
-    memset(init, 0, sizeof(AstInit));
+    AstInit* init = uf_mem_region_zalloc(ast->arena, sizeof(AstInit));
     init->expr.base.kind = AST_KIND_INIT;
     init->expr.tast = NULL;
     init->values = uf_con_vector_new(sizeof(AstExpr*));
@@ -520,8 +482,7 @@ void ii_ast_init_add_indexed(AstInit* init, AstExpr* index, AstExpr* value)
 
 AstCast* ii_ast_cast(Ast* ast, AstType* target_type, AstExpr* expr)
 {
-    AstCast* cast = _alloc_ast(ast, sizeof(AstCast));
-    memset(cast, 0, sizeof(AstCast));
+    AstCast* cast = uf_mem_region_zalloc(ast->arena, sizeof(AstCast));
     cast->expr.base.kind = AST_KIND_CAST;
     cast->expr.tast = NULL;
     cast->target_type = target_type;
@@ -531,8 +492,7 @@ AstCast* ii_ast_cast(Ast* ast, AstType* target_type, AstExpr* expr)
 
 AstFfi* ii_ast_ffi(Ast* ast, const char* function_name)
 {
-    AstFfi* ffi = _alloc_ast(ast, sizeof(AstFfi));
-    memset(ffi, 0, sizeof(AstFfi));
+    AstFfi* ffi = uf_mem_region_zalloc(ast->arena, sizeof(AstFfi));
     ffi->expr.base.kind = AST_KIND_FFI;
     ffi->expr.tast = NULL;
     ffi->function_name = function_name;
@@ -551,8 +511,7 @@ void ii_ast_ffi_add_arg(AstFfi* ffi, AstExpr* arg)
 
 AstError* ii_ast_error(Ast* ast, SourceSpan span)
 {
-    AstError* err = _alloc_ast(ast, sizeof(AstError));
-    memset(err, 0, sizeof(AstError));
+    AstError* err = uf_mem_region_zalloc(ast->arena, sizeof(AstError));
     err->base.kind = AST_KIND_ERROR;
     err->base.span = span;
     ast->error_count++;
@@ -1082,8 +1041,7 @@ Ast* ii_ast_new(Source* source)
     Ast* ast = uf_mem_zalloc(sizeof(Ast));
     ast->source = source;
     ast->arena = uf_mem_region_new(4096);
-    ast->program = _alloc_ast(ast, sizeof(AstProgram));
-    memset(ast->program, 0, sizeof(AstProgram));
+    ast->program = uf_mem_region_zalloc(ast->arena, sizeof(AstProgram));
     ast->error_count = 0;
     ast->anon_counter = 0;
     return ast;

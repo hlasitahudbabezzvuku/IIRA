@@ -73,7 +73,7 @@ enum AstKind {
 
     /* Error placeholder */
     AST_KIND_ERROR,
-} AstKind;
+};
 
 typedef struct Ast Ast;
 typedef struct AstNode AstNode;
