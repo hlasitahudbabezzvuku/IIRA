@@ -666,10 +666,12 @@ AstMethod* ii_ast_method(Ast* ast, const char* name);
 AstInherit* ii_ast_inherit(Ast* ast, const char* parent_name);
 AstBlueprintDecl* ii_ast_blueprint_decl(Ast* ast, const char* name);
 AstFuncDecl* ii_ast_func_decl(Ast* ast, const char* name, AstType* return_type);
+void ii_ast_func_add_param(AstFuncDecl* func, AstParam* param);
 
 void ii_ast_blueprint_add_field(AstBlueprintDecl* blueprint, AstField* field);
 void ii_ast_blueprint_add_method(AstBlueprintDecl* blueprint, AstMethod* method);
 void ii_ast_blueprint_add_inherit(AstBlueprintDecl* blueprint, AstInherit* inherit);
+void ii_ast_inherit_add_alias(AstInherit* inherit, const char* original, const char* alias);
 
 AstMethod* ii_ast_method_get_or_add(AstBlueprintDecl* blueprint, const char* name);
 void ii_ast_method_add_overload(AstMethod* method, AstMethodOverload* overload);

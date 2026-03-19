@@ -280,6 +280,11 @@ AstFuncDecl* ii_ast_func_decl(Ast* ast, const char* name, AstType* return_type)
     return function;
 }
 
+void ii_ast_func_add_param(AstFuncDecl* func, AstParam* param)
+{
+    uf_con_vector_push(func->params, &param);
+}
+
 void ii_ast_blueprint_add_field(AstBlueprintDecl* blueprint, AstField* field)
 {
     if (blueprint->fields == NULL) {
@@ -302,6 +307,18 @@ void ii_ast_blueprint_add_inherit(AstBlueprintDecl* blueprint, AstInherit* inher
         blueprint->parents = uf_con_vector_new(sizeof(AstInherit*));
     }
     uf_con_vector_push(blueprint->parents, &inherit);
+}
+
+void ii_ast_inherit_add_alias(AstInherit* inherit, const char* original, const char* alias)
+{
+    struct {
+        const char* original;
+        const char* alias;
+    } entry = {
+        .original = original,
+        .alias = alias,
+    };
+    uf_con_vector_push(inherit->field_aliases, &entry);
 }
 
 AstMethod* ii_ast_method_get_or_add(AstBlueprintDecl* blueprint, const char* name)
