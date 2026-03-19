@@ -29,7 +29,7 @@ struct TraceScope {
 TraceContext* ii_trace_context_new(FILE* output) _nodiscard_;
 void ii_trace_context_free(TraceContext*);
 void ii_trace_context_freep(TraceContext**);
-#define _autotrace_ _cleanup_(ii_trace_context_freep)
+#define _autotrace_ _cleanup_(_ii_trace_scope_exit)
 
 void ii_trace_set_enabled(TraceContext*, bool enabled);
 uint32_t ii_trace_get_depth(const TraceContext*);
