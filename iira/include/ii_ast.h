@@ -731,6 +731,13 @@ AstLiteral* ii_ast_literal_bool(Ast* ast, bool value);
 AstLiteral* ii_ast_literal_char(Ast* ast, char value);
 AstLiteral* ii_ast_literal_null(Ast* ast);
 
+AstLiteral* ii_ast_literal_int_sp(Ast* ast, SourceSpan span, int64_t value);
+AstLiteral* ii_ast_literal_float_sp(Ast* ast, SourceSpan span, double value);
+AstLiteral* ii_ast_literal_string_sp(Ast* ast, SourceSpan span, const char* value);
+AstLiteral* ii_ast_literal_bool_sp(Ast* ast, SourceSpan span, bool value);
+AstLiteral* ii_ast_literal_char_sp(Ast* ast, SourceSpan span, char value);
+AstLiteral* ii_ast_literal_null_sp(Ast* ast, SourceSpan span);
+
 AstIdent* ii_ast_ident(Ast* ast, const char* name);
 
 AstBinary* ii_ast_binary(Ast* ast, AstExpr* left, enum LexerTokenType op, AstExpr* right);

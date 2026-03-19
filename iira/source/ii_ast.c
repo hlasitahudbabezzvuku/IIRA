@@ -616,6 +616,48 @@ AstLiteral* ii_ast_literal_null(Ast* ast)
     return lit;
 }
 
+AstLiteral* ii_ast_literal_int_sp(Ast* ast, SourceSpan span, int64_t value)
+{
+    AstLiteral* lit = ii_ast_literal_int(ast, value);
+    lit->expr.base.span = span;
+    return lit;
+}
+
+AstLiteral* ii_ast_literal_float_sp(Ast* ast, SourceSpan span, double value)
+{
+    AstLiteral* lit = ii_ast_literal_float(ast, value);
+    lit->expr.base.span = span;
+    return lit;
+}
+
+AstLiteral* ii_ast_literal_string_sp(Ast* ast, SourceSpan span, const char* value)
+{
+    AstLiteral* lit = ii_ast_literal_string(ast, value);
+    lit->expr.base.span = span;
+    return lit;
+}
+
+AstLiteral* ii_ast_literal_bool_sp(Ast* ast, SourceSpan span, bool value)
+{
+    AstLiteral* lit = ii_ast_literal_bool(ast, value);
+    lit->expr.base.span = span;
+    return lit;
+}
+
+AstLiteral* ii_ast_literal_char_sp(Ast* ast, SourceSpan span, char value)
+{
+    AstLiteral* lit = ii_ast_literal_char(ast, value);
+    lit->expr.base.span = span;
+    return lit;
+}
+
+AstLiteral* ii_ast_literal_null_sp(Ast* ast, SourceSpan span)
+{
+    AstLiteral* lit = ii_ast_literal_null(ast);
+    lit->expr.base.span = span;
+    return lit;
+}
+
 AstIdent* ii_ast_ident(Ast* ast, const char* name)
 {
     AstIdent* ident = uf_mem_region_zalloc(ast->arena, sizeof(AstIdent));
