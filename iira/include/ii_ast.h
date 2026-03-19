@@ -908,6 +908,7 @@ void ii_ast_visit_reverse(Ast* ast, AstVisitorFn visitor, void* context);
  * Utility functions.
  */
 
+Source* ii_ast_get_source(const Ast* ast);
 AstProgram* ii_ast_get_program(const Ast* ast);
 const char* ii_ast_kind_name(enum AstKind kind);
 void ii_ast_print_debug(const Ast* ast);

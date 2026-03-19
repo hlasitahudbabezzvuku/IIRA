@@ -90,6 +90,11 @@ void ii_ast_program_add_blueprint(Ast* ast, AstBlueprintDecl* blueprint)
     uf_con_vector_push(prog->blueprints, &blueprint);
 }
 
+Source* ii_ast_get_source(const Ast* ast)
+{
+    return ast->source;
+}
+
 AstProgram* ii_ast_get_program(const Ast* ast)
 {
     return ast->program;
