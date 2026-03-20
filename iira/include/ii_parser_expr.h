@@ -1,3 +1,5 @@
+#pragma once
+
 /**
  * @brief Expression parser.
  *
@@ -7,8 +9,6 @@
  *
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
-
-#pragma once
 
 #include "ii_parser.h"
 

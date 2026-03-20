@@ -1,3 +1,5 @@
+#pragma once
+
 /**
  * @brief Private parser types and helpers shared across all parser modules.
  *
@@ -7,11 +9,8 @@
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
-#pragma once
-
-#include "ii_parser.h"
-
 #include "ii_diagnostics.h"
+#include "ii_parser.h"
 #include "ii_trace.h"
 
 struct ParserContext {

@@ -1,3 +1,5 @@
+#pragma once
+
 /**
  * @brief Parser core module.
  *
@@ -7,8 +9,6 @@
  *
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
-
-#pragma once
 
 #include "ii_ast.h"
 #include "ii_diagnostics.h"

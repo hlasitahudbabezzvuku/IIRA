@@ -1,3 +1,5 @@
+#pragma once
+
 /**
  * @brief Type annotation parser.
  *
@@ -6,8 +8,6 @@
  *
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
-
-#pragma once
 
 #include "ii_parser.h"
 
