@@ -7,9 +7,6 @@
 
 #include "ii_parser.h"
 #include "ii_parser_decl.h"
-#include "ii_parser_expr.h"
-#include "ii_parser_stmt.h"
-#include "ii_parser_type.h"
 #include "ii_trace.h"
 
 #include <inttypes.h>
@@ -148,7 +145,6 @@ ParserContext* ii_parser_context_new(Ast* ast, const LexerToken* token_vector, s
         }
     }
 
-    ii_ast_program_finalize(context->ast);
     ii_diag_output(context->diag);
 
     return context;
@@ -156,17 +152,19 @@ ParserContext* ii_parser_context_new(Ast* ast, const LexerToken* token_vector, s
 
 void ii_parser_context_free(ParserContext* context)
 {
-    if (!context)
+    if (!context) {
         return;
+    }
 
     uf_mem_free(context);
 }
 
-void ii_parser_context_freep(ParserContext** contextp)
+void ii_parser_context_freep(ParserContext** context_ptr)
 {
-    if (!contextp || !*contextp)
+    if (!context_ptr || !*context_ptr) {
         return;
+    }
 
-    ii_parser_context_free(*contextp);
-    *contextp = NULL;
+    ii_parser_context_free(*context_ptr);
+    *context_ptr = NULL;
 }
