@@ -10,6 +10,7 @@
 #include "ii_diagnostics.h"
 #include "ii_lexer.h"
 #include "ii_parser.h"
+#include "ii_semantic.h"
 #include "ii_source.h"
 #include "ii_trace.h"
 #include "iic_arguments.h"
@@ -102,6 +103,19 @@ int main(const int argc, const char* argv[])
 
         if (config.stop_after_parser) {
             uf_log_info("Stopping after parsing");
+            continue;
+        }
+
+        uf_log_debug("Creating SemanticAnalyzer for file '%s'", file_path);
+        _autosem_ SemanticContext* semantic_context =
+            ii_sem_context_new(ast, diagnostic_context, trace_context);
+
+        if (config.show_analyzer_output) {
+            ii_ast_print_debug(ast);
+        }
+
+        if (config.stop_after_analyzer) {
+            uf_log_info("Stopping after semantic analysis");
             continue;
         }
 
