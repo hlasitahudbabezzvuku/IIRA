@@ -1425,6 +1425,440 @@ const char* ii_ast_kind_name(enum AstKind kind)
     }
 }
 
+static const char* _token_type_to_string(enum LexerTokenType tok)
+{
+    switch (tok) {
+    case LEXER_TOK_ASSIGN:
+        return "=";
+    case LEXER_TOK_PLUS:
+        return "+";
+    case LEXER_TOK_MINUS:
+        return "-";
+    case LEXER_TOK_STAR:
+        return "*";
+    case LEXER_TOK_SLASH:
+        return "/";
+    case LEXER_TOK_PERCENT:
+        return "%";
+    case LEXER_TOK_PLUS_ASSIGN:
+        return "+=";
+    case LEXER_TOK_MINUS_ASSIGN:
+        return "-=";
+    case LEXER_TOK_STAR_ASSIGN:
+        return "*=";
+    case LEXER_TOK_SLASH_ASSIGN:
+        return "/=";
+    case LEXER_TOK_EQ:
+        return "==";
+    case LEXER_TOK_NEQ:
+        return "!=";
+    case LEXER_TOK_LT:
+        return "<";
+    case LEXER_TOK_GT:
+        return ">";
+    case LEXER_TOK_LTE:
+        return "<=";
+    case LEXER_TOK_GTE:
+        return ">=";
+    case LEXER_TOK_AND:
+        return "&&";
+    case LEXER_TOK_OR:
+        return "||";
+    case LEXER_TOK_NOT:
+        return "!";
+    case LEXER_TOK_BIT_AND:
+        return "&";
+    case LEXER_TOK_BIT_OR:
+        return "|";
+    case LEXER_TOK_BIT_XOR:
+        return "^";
+    case LEXER_TOK_BIT_NOT:
+        return "~";
+    default:
+        return "?";
+    }
+}
+
+static const char* _primitive_type_to_string(enum LexerPrimitiveType prim)
+{
+    switch (prim) {
+    case LEXER_PRIM_VOID:
+        return "void";
+    case LEXER_PRIM_BOOL:
+        return "bool";
+    case LEXER_PRIM_CHAR:
+        return "char";
+    case LEXER_PRIM_INT:
+        return "int";
+    case LEXER_PRIM_LONG:
+        return "long";
+    case LEXER_PRIM_SHORT:
+        return "short";
+    case LEXER_PRIM_FLOAT:
+        return "float";
+    case LEXER_PRIM_DOUBLE:
+        return "double";
+    default:
+        return "?";
+    }
+}
+
+struct AstPrintContext {
+    FILE* output;
+    int indent_level;
+};
+
+static void _print_indent(struct AstPrintContext* context)
+{
+    for (int i = 0; i < context->indent_level; i++) {
+        fprintf(context->output, "  ");
+    }
+}
+
+static void _print_type(struct AstPrintContext* context, AstType* type);
+
+static void _print_type_variant(struct AstPrintContext* ctx, AstType* type)
+{
+    switch (type->variant) {
+    case AST_TYPE_KIND_PRIMITIVE:
+        fprintf(ctx->output, "%s", _primitive_type_to_string(type->variant_u.primitive.prim_type));
+        break;
+    case AST_TYPE_KIND_POINTER:
+        _print_type(ctx, type->variant_u.pointer.pointed_type);
+        fprintf(ctx->output, "*");
+        break;
+    case AST_TYPE_KIND_ARRAY:
+        _print_type(ctx, type->variant_u.array.element_type);
+        fprintf(ctx->output, "[]");
+        break;
+    case AST_TYPE_KIND_BLUEPRINT:
+        fprintf(ctx->output, "%s", type->variant_u.blueprint.name);
+        break;
+    case AST_TYPE_KIND_ANON:
+        fprintf(ctx->output, "{ ... }");
+        break;
+    }
+}
+
+static void _print_type(struct AstPrintContext* context, AstType* type)
+{
+    if (!type) {
+        fprintf(context->output, "<null>");
+        return;
+    }
+    _print_type_variant(context, type);
+}
+
+static void _print_literal(struct AstPrintContext* context, AstLiteral* lit)
+{
+    switch (lit->variant) {
+    case LITERAL_INT:
+        fprintf(context->output, "%lld", (long long)lit->literal.int_value);
+        break;
+    case LITERAL_FLOAT:
+        fprintf(context->output, "%f", lit->literal.float_value);
+        break;
+    case LITERAL_STRING:
+        fprintf(context->output, "\"%s\"", lit->literal.string_value);
+        break;
+    case LITERAL_BOOL:
+        fprintf(context->output, "%s", lit->literal.bool_value ? "true" : "false");
+        break;
+    case LITERAL_CHAR:
+        fprintf(context->output, "'%c'", lit->literal.char_value);
+        break;
+    case LITERAL_NULL:
+        fprintf(context->output, "null");
+        break;
+    }
+}
+
+static void _print_expr(struct AstPrintContext* context, AstExpr* expr)
+{
+    if (!expr) {
+        fprintf(context->output, "<null>");
+        return;
+    }
+
+    switch (expr->base.kind) {
+    case AST_KIND_LITERAL:
+        _print_literal(context, (AstLiteral*)expr);
+        break;
+    case AST_KIND_IDENT:
+        fprintf(context->output, "%s", ((AstIdent*)expr)->name);
+        break;
+    case AST_KIND_BINARY: {
+        AstBinary* bin = (AstBinary*)expr;
+        _print_expr(context, bin->left);
+        fprintf(context->output, " %s ", _token_type_to_string(bin->op));
+        _print_expr(context, bin->right);
+        break;
+    }
+    case AST_KIND_UNARY: {
+        AstUnary* un = (AstUnary*)expr;
+        fprintf(context->output, "%s", _token_type_to_string(un->op));
+        _print_expr(context, un->operand);
+        break;
+    }
+    case AST_KIND_CALL: {
+        AstCall* call = (AstCall*)expr;
+        _print_expr(context, call->callee);
+        fprintf(context->output, "(");
+        ast_foreach_call_args(call, arg)
+        {
+            _print_expr(context, arg);
+        }
+        ast_foreach_end;
+        fprintf(context->output, ")");
+        break;
+    }
+    case AST_KIND_MEMBER: {
+        AstMember* member = (AstMember*)expr;
+        _print_expr(context, member->object);
+        fprintf(context->output, ".%s", member->member_name);
+        break;
+    }
+    case AST_KIND_INDEX: {
+        AstIndex* idx = (AstIndex*)expr;
+        _print_expr(context, idx->array);
+        fprintf(context->output, "[");
+        _print_expr(context, idx->index);
+        fprintf(context->output, "]");
+        break;
+    }
+    case AST_KIND_INIT:
+        fprintf(context->output, "{ ... }");
+        break;
+    case AST_KIND_CAST: {
+        AstCast* cast = (AstCast*)expr;
+        fprintf(context->output, "(");
+        _print_type(context, cast->target_type);
+        fprintf(context->output, ")");
+        _print_expr(context, cast->expr_);
+        break;
+    }
+    case AST_KIND_FFI:
+        fprintf(context->output, "$...");
+        break;
+    default:
+        fprintf(context->output, "<expr>");
+        break;
+    }
+}
+
+static bool _print_visitor(AstNode* node, void* context, uint32_t depth)
+{
+    struct AstPrintContext* print_context = (struct AstPrintContext*)context;
+    print_context->indent_level = (int)depth;
+    _print_indent(print_context);
+
+    fprintf(print_context->output, "%s", ii_ast_kind_name(node->kind));
+
+    switch (node->kind) {
+    case AST_KIND_PROGRAM: {
+        AstProgram* prog = (AstProgram*)node;
+        fprintf(print_context->output, " (errors: %u)", prog->error_count);
+        size_t func_count = prog->funcs ? uf_con_vector_length(prog->funcs) : 0;
+        size_t bp_count = prog->blueprints ? uf_con_vector_length(prog->blueprints) : 0;
+        fprintf(print_context->output, " [funcs: %zu, blueprints: %zu]", func_count, bp_count);
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_FUNC_DECL: {
+        AstFuncDecl* func = (AstFuncDecl*)node;
+        fprintf(print_context->output, " %s(", func->name);
+        ast_foreach_params(func, param)
+        {
+            if (param != *(AstParam**)uf_con_vector_get(func->params, 0)) {
+                fprintf(print_context->output, ", ");
+            }
+            fprintf(print_context->output, "%s: ", param->name);
+            _print_type(print_context, param->type);
+        }
+        ast_foreach_end;
+        fprintf(print_context->output, ")");
+        if (func->return_type) {
+            fprintf(print_context->output, " -> ");
+            _print_type(print_context, func->return_type);
+        }
+        break;
+    }
+    case AST_KIND_BLUEPRINT_DECL: {
+        AstBlueprintDecl* bp = (AstBlueprintDecl*)node;
+        fprintf(print_context->output, " %s", bp->name);
+        if (bp->parents && uf_con_vector_length(bp->parents) > 0) {
+            fprintf(print_context->output, " : ");
+            bool first = true;
+            ast_foreach_parents(bp, inh)
+            {
+                if (!first)
+                    fprintf(print_context->output, ", ");
+                fprintf(print_context->output, "%s", inh->parent_name);
+                first = false;
+            }
+            ast_foreach_end;
+        }
+        size_t field_count = bp->fields ? uf_con_vector_length(bp->fields) : 0;
+        size_t method_count = bp->methods ? uf_con_vector_length(bp->methods) : 0;
+        fprintf(print_context->output, " [fields: %zu, methods: %zu]", field_count, method_count);
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_FIELD: {
+        AstField* field = (AstField*)node;
+        fprintf(print_context->output, " %s: ", field->name);
+        _print_type(print_context, field->type);
+        if (field->default_value) {
+            fprintf(print_context->output, " = ");
+            _print_expr(print_context, field->default_value);
+        }
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_METHOD: {
+        AstMethod* method = (AstMethod*)node;
+        fprintf(print_context->output, " %s", method->name);
+        size_t ov_count = method->overloads ? uf_con_vector_length(method->overloads) : 0;
+        fprintf(print_context->output, " [overloads: %zu]\n", ov_count);
+        break;
+    }
+    case AST_KIND_METHOD_OVERLOAD: {
+        AstMethodOverload* ov = (AstMethodOverload*)node;
+        fprintf(print_context->output, " %sstatic: %s\n", ov->is_static ? "" : "non-",
+                ov->is_static ? "true" : "false");
+        break;
+    }
+    case AST_KIND_PARAM: {
+        AstParam* param = (AstParam*)node;
+        fprintf(print_context->output, " %s: ", param->name);
+        _print_type(print_context, param->type);
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_INHERIT: {
+        AstInherit* inh = (AstInherit*)node;
+        fprintf(print_context->output, " %s\n", inh->parent_name);
+        break;
+    }
+    case AST_KIND_BLOCK: {
+        AstBlock* block = (AstBlock*)node;
+        size_t stmt_count = block->stmts ? uf_con_vector_length(block->stmts) : 0;
+        fprintf(print_context->output, " [statements: %zu]\n", stmt_count);
+        break;
+    }
+    case AST_KIND_RETURN: {
+        AstReturn* ret = (AstReturn*)node;
+        fprintf(print_context->output, " ");
+        _print_expr(print_context, ret->value);
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_DECL: {
+        AstDecl* decl = (AstDecl*)node;
+        fprintf(print_context->output, " %s: ", decl->name);
+        _print_type(print_context, decl->type);
+        if (decl->init) {
+            fprintf(print_context->output, " = ");
+            _print_expr(print_context, decl->init);
+        }
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_IF: {
+        AstIf* if_stmt = (AstIf*)node;
+        fprintf(print_context->output, " ");
+        _print_expr(print_context, if_stmt->condition);
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_FOR: {
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_WHILE: {
+        AstWhile* while_stmt = (AstWhile*)node;
+        fprintf(print_context->output, " ");
+        _print_expr(print_context, while_stmt->condition);
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_DO_WHILE: {
+        AstDoWhile* do_while = (AstDoWhile*)node;
+        fprintf(print_context->output, " ");
+        _print_expr(print_context, do_while->condition);
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_BREAK:
+    case AST_KIND_CONTINUE:
+        fprintf(print_context->output, "\n");
+        break;
+    case AST_KIND_EXPR_STMT: {
+        AstExprStmt* expr_stmt = (AstExprStmt*)node;
+        fprintf(print_context->output, " ");
+        _print_expr(print_context, expr_stmt->expr);
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_LITERAL: {
+        AstLiteral* lit = (AstLiteral*)node;
+        fprintf(print_context->output, " ");
+        _print_literal(print_context, lit);
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_IDENT: {
+        AstIdent* ident = (AstIdent*)node;
+        fprintf(print_context->output, " %s\n", ident->name);
+        break;
+    }
+    case AST_KIND_BINARY:
+    case AST_KIND_UNARY:
+    case AST_KIND_CALL:
+    case AST_KIND_MEMBER:
+    case AST_KIND_INDEX: {
+        fprintf(print_context->output, " ");
+        _print_expr(print_context, (AstExpr*)node);
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_INIT:
+    case AST_KIND_CAST:
+    case AST_KIND_FFI:
+        fprintf(print_context->output, "\n");
+        break;
+    case AST_KIND_TYPE_PRIMITIVE: {
+        AstType* type = (AstType*)node;
+        fprintf(print_context->output, " %s\n",
+                _primitive_type_to_string(type->variant_u.primitive.prim_type));
+        break;
+    }
+    case AST_KIND_TYPE_POINTER: {
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_TYPE_ARRAY: {
+        fprintf(print_context->output, "\n");
+        break;
+    }
+    case AST_KIND_TYPE_BLUEPRINT: {
+        AstType* type = (AstType*)node;
+        fprintf(print_context->output, " %s\n", type->variant_u.blueprint.name);
+        break;
+    }
+    case AST_KIND_TYPE_ANON: {
+        AstType* type = (AstType*)node;
+        fprintf(print_context->output, " [fields: %zu]\n", type->variant_u.anon.field_count);
+        break;
+    }
+    default:
+        fprintf(print_context->output, "\n");
+        break;
+    }
+
+    return true;
+}
+
 /*
  * AST creation, destruction, and utility functions.
  */
@@ -1687,7 +2121,10 @@ void ii_ast_freep(Ast** ast)
 
 void ii_ast_print_debug(const Ast* ast)
 {
-    /* TODO: implement. */
-    (void)ast;
-    printf("AST print not yet implemented\n");
+    if (!ast || !ast->program) {
+        return;
+    }
+
+    struct AstPrintContext print_context = {.output = stdout, .indent_level = 0};
+    ii_ast_visit((Ast*)ast, _print_visitor, &print_context);
 }
