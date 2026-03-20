@@ -147,3 +147,52 @@ static inline bool _ast_foreach_done(const AstForeach* iter)
 #define ast_foreach_idx(ast_or_prog, type, var) _AST_FOREACH_BEGIN_SIMPLE(type, var, ast_or_prog)
 
 #define ast_foreach_idx_end ast_foreach_end_simple
+
+/*
+ * Reverse iterators - iterate from end to start.
+ * Use for cleanup/deallocation (free in reverse order).
+ */
+
+static inline void _ast_foreach_rev_init(AstForeach* iter, const UfConVector* vec)
+{
+    iter->vector = vec;
+    iter->length = vec ? uf_con_vector_length(vec) : 0;
+    iter->index = iter->length;
+    iter->current = NULL;
+}
+
+static inline void _ast_foreach_rev_next(AstForeach* iter)
+{
+    if (iter->index > 0) {
+        iter->index--;
+    }
+}
+
+static inline bool _ast_foreach_rev_done(const AstForeach* iter)
+{
+    return iter->index == 0;
+}
+
+#define _AST_FOREACH_REV_BEGIN(type, iter_name, vec_ptr)                                                     \
+    do {                                                                                                     \
+        AstForeach iter_name##_riter__;                                                                      \
+        _ast_foreach_rev_init(&iter_name##_riter__, (const UfConVector*)(vec_ptr));                          \
+        for (; !_ast_foreach_rev_done(&iter_name##_riter__); _ast_foreach_rev_next(&iter_name##_riter__)) {  \
+            type* iter_name = *(type**)uf_con_vector_get((UfConVector*)iter_name##_riter__.vector,           \
+                                                         iter_name##_riter__.index - 1);                     \
+            if (iter_name != NULL)
+
+#define _AST_FOREACH_REV_END                                                                                 \
+    }                                                                                                        \
+    }                                                                                                        \
+    while (0)
+
+#define ast_foreach_funcs_rev(ast_or_prog, var)                                                              \
+    _AST_FOREACH_REV_BEGIN(AstFuncDecl, var,                                                                 \
+                           (((ast_or_prog)->program) ? (ast_or_prog)->program->funcs : NULL))
+
+#define ast_foreach_blueprints_rev(ast_or_prog, var)                                                         \
+    _AST_FOREACH_REV_BEGIN(AstBlueprintDecl, var,                                                            \
+                           (((ast_or_prog)->program) ? (ast_or_prog)->program->blueprints : NULL))
+
+#define ast_foreach_end_rev _AST_FOREACH_REV_END
