@@ -6,9 +6,12 @@
  * @author: Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
+#include "ii_ast.h"
 #include "ii_diagnostics.h"
 #include "ii_lexer.h"
+#include "ii_parser.h"
 #include "ii_source.h"
+#include "ii_trace.h"
 #include "iic_arguments.h"
 #include "uf_containers.h"
 #include "uf_logger.h"
@@ -75,6 +78,30 @@ int main(const int argc, const char* argv[])
 
         if (config.stop_after_lexer) {
             uf_log_info("Stopping after lexical analysis");
+            continue;
+        }
+
+        uf_log_debug("Creating Ast for file '%s'", file_path);
+        _autoast_ Ast* ast = ii_ast_new(source);
+
+        uf_log_debug("Creating TraceContext for file '%s'", file_path);
+        _autotrace_ TraceContext* trace_context = ii_trace_context_new(stdout);
+
+        if (config.trace) {
+            ii_trace_set_enabled(trace_context, true);
+        }
+
+        uf_log_debug("Creating ParserContext for file '%s'", file_path);
+        _autoparser_ ParserContext* parser_context =
+            ii_parser_context_new(ast, ii_lexer_get_tokens(lexer_context),
+                                  ii_lexer_get_token_count(lexer_context), diagnostic_context, trace_context);
+
+        if (config.show_parser_output) {
+            ii_ast_print_debug(ast);
+        }
+
+        if (config.stop_after_parser) {
+            uf_log_info("Stopping after parsing");
             continue;
         }
 
