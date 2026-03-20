@@ -67,14 +67,19 @@ TraceScope _ii_trace_scope_enter(TraceContext* context, const char* func, const 
         .func = func,
         .file = file,
         .line = line,
-        .depth = context->depth,
+        .depth = context ? context->depth : 0,
     };
+
+    if (context == NULL) {
+        return scope;
+    }
 
     if _likely_ (context->enabled && context->depth < MAX_DEPTH) {
         _print_indent(context, context->output);
         fprintf(context->output, "\033[%im>>\033[%im \033[%im%s\033[%im \033[%im(%s:%d)\033[%im\n",
                 UF_COLOR_GREEN, UF_COLOR_RESET, UF_COLOR_CYAN, func, UF_COLOR_RESET, UF_COLOR_WHITE_LIGHT,
                 file, line, UF_COLOR_RESET);
+        fflush(context->output);
         context->depth++;
     }
 
@@ -89,8 +94,12 @@ TraceScope _ii_trace_scope_enter_message(TraceContext* context, const char* func
         .func = func,
         .file = file,
         .line = line,
-        .depth = context->depth,
+        .depth = context ? context->depth : 0,
     };
+
+    if (context == NULL) {
+        return scope;
+    }
 
     if _likely_ (context->enabled && context->depth < MAX_DEPTH) {
         _print_indent(context, context->output);
@@ -112,6 +121,10 @@ TraceScope _ii_trace_scope_enter_message(TraceContext* context, const char* func
 
 void _ii_trace_scope_exit(TraceScope* scope)
 {
+    if (scope == NULL || scope->context == NULL) {
+        return;
+    }
+
     TraceContext* context = scope->context;
 
     if _likely_ (context->enabled && scope->depth < MAX_DEPTH) {
@@ -119,12 +132,13 @@ void _ii_trace_scope_exit(TraceScope* scope)
         _print_indent(context, context->output);
         fprintf(context->output, "\033[%im<<\033[%im \033[%im%s\033[%im\n", UF_COLOR_YELLOW, UF_COLOR_RESET,
                 UF_COLOR_CYAN, scope->func, UF_COLOR_RESET);
+        fflush(context->output);
     }
 }
 
 void _ii_trace_log(TraceContext* context, const char* file, int line, const char* format, ...)
 {
-    if _unlikely_ (!context->enabled) {
+    if (context == NULL || !context->enabled) {
         return;
     }
 

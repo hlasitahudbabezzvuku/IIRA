@@ -29,23 +29,23 @@ struct TraceScope {
 TraceContext* ii_trace_context_new(FILE* output) _nodiscard_;
 void ii_trace_context_free(TraceContext*);
 void ii_trace_context_freep(TraceContext**);
-#define _autotrace_ _cleanup_(_ii_trace_scope_exit)
+#define _autotrace_ _cleanup_(ii_trace_context_freep)
 
 void ii_trace_set_enabled(TraceContext*, bool enabled);
 uint32_t ii_trace_get_depth(const TraceContext*);
 
 #define TRACE_SCOPE(context)                                                                                 \
-    _autotrace_ TraceScope _trace_scope_ __attribute__((unused, cleanup(_ii_trace_scope_exit))) =            \
+    TraceScope _trace_scope_ __attribute__((unused, cleanup(_ii_trace_scope_exit))) =                        \
         _ii_trace_scope_enter(context, __func__, __FILE__, __LINE__)
 
 #define TRACE_SCOPE_MESSAGE(context, format, ...)                                                            \
-    _autotrace_ TraceScope _trace_scope_ __attribute__((unused, cleanup(_ii_trace_scope_exit))) =            \
+    TraceScope _trace_scope_ __attribute__((unused, cleanup(_ii_trace_scope_exit))) =                        \
         _ii_trace_scope_enter_message(context, __func__, __FILE__, __LINE__, format, ##__VA_ARGS__)
 
 void _ii_trace_log(TraceContext*, const char* file, int line, const char* format, ...)
     __attribute__((format(printf, 4, 5)));
 
-#define TRACE_LOG(context, format, ...) ii_trace_log(context, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define TRACE_LOG(context, format, ...) _ii_trace_log(context, __FILE__, __LINE__, format, ##__VA_ARGS__)
 
 TraceScope _ii_trace_scope_enter(TraceContext*, const char* func, const char* file, int line);
 TraceScope _ii_trace_scope_enter_message(TraceContext*, const char* func, const char* file, int line,
