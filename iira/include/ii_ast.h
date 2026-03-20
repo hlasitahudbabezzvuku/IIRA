@@ -812,16 +812,6 @@ void ii_ast_visit(Ast* ast, AstVisitorFn visitor, void* context);
 void ii_ast_visit_reverse(Ast* ast, AstVisitorFn visitor, void* context);
 
 /*
- * DEPRECATED: Use ii_ast_iter.h for type-safe iterators instead.
- *
- * Old macros have been removed. Include "ii_ast_iter.h" for the new API:
- *   - ast_foreach_funcs(), ast_foreach_blueprints(), ast_foreach_params()
- *   - ast_foreach_stmts(), ast_foreach_fields(), ast_foreach_methods()
- *   - ast_foreach_overloads(), ast_foreach_call_args(), ast_foreach_ffi_args()
- *   - ast_foreach_init_values(), ast_foreach_decl()
- */
-
-/*
  * Utility functions.
  */
 

@@ -1328,16 +1328,18 @@ void ii_ast_visit_reverse(Ast* ast, AstVisitorFn visitor, void* context)
     }
 
     /* Visit functions first (in reverse order). */
-    for (size_t i = uf_con_vector_length(ast->program->funcs); i > 0; i--) {
-        AstFuncDecl** func = uf_con_vector_get(ast->program->funcs, i - 1);
-        _visit_func(*func, visitor, context, 1, false);
+    ast_foreach_funcs_rev(ast, func)
+    {
+        _visit_func(func, visitor, context, 1, false);
     }
+    ast_foreach_end_rev;
 
     /* Visit blueprints (in reverse order). */
-    for (size_t i = uf_con_vector_length(ast->program->blueprints); i > 0; i--) {
-        AstBlueprintDecl** bp = uf_con_vector_get(ast->program->blueprints, i - 1);
-        _visit_blueprint(*bp, visitor, context, 1, false);
+    ast_foreach_blueprints_rev(ast, bp)
+    {
+        _visit_blueprint(bp, visitor, context, 1, false);
     }
+    ast_foreach_end_rev;
 
     /* Visit program node last. */
     visitor(&ast->program->base, context, 0);
@@ -1621,79 +1623,40 @@ static void _free_vectors_in_program(AstProgram* program)
     if (!program)
         return;
 
-    if (program->funcs) {
-        size_t funcs_len = uf_con_vector_length(program->funcs);
-        for (size_t i = 0; i < funcs_len; i++) {
-            AstFuncDecl** func_ptr = (AstFuncDecl**)uf_con_vector_get(program->funcs, i);
-            if (*func_ptr) {
-                AstFuncDecl* func = *func_ptr;
-                if (func->params) {
-                    uf_con_vector_free(func->params);
-                }
-                _free_stmt_vectors((AstStmt*)func->body);
-            }
-        }
+    for (size_t i = 0; i < uf_con_vector_length(program->funcs); i++) {
+        AstFuncDecl* func = *(AstFuncDecl**)uf_con_vector_get(program->funcs, i);
+        uf_con_vector_free(func->params);
+        _free_stmt_vectors((AstStmt*)func->body);
     }
 
-    if (program->blueprints) {
-        size_t blueprints_len = uf_con_vector_length(program->blueprints);
-        for (size_t i = 0; i < blueprints_len; i++) {
-            AstBlueprintDecl** bp_ptr = (AstBlueprintDecl**)uf_con_vector_get(program->blueprints, i);
-            if (*bp_ptr) {
-                AstBlueprintDecl* bp = *bp_ptr;
+    for (size_t i = 0; i < uf_con_vector_length(program->blueprints); i++) {
+        AstBlueprintDecl* bp = *(AstBlueprintDecl**)uf_con_vector_get(program->blueprints, i);
 
-                if (bp->parents) {
-                    size_t parents_len = uf_con_vector_length(bp->parents);
-                    for (size_t j = 0; j < parents_len; j++) {
-                        AstInherit** inh_ptr = (AstInherit**)uf_con_vector_get(bp->parents, j);
-                        if (*inh_ptr) {
-                            uf_con_vector_free((*inh_ptr)->field_aliases);
-                        }
-                    }
-                    uf_con_vector_free(bp->parents);
-                }
-
-                if (bp->fields) {
-                    size_t fields_len = uf_con_vector_length(bp->fields);
-                    for (size_t j = 0; j < fields_len; j++) {
-                        AstField** field_ptr = (AstField**)uf_con_vector_get(bp->fields, j);
-                        if (*field_ptr) {
-                            _free_expr_vectors((*field_ptr)->default_value);
-                        }
-                    }
-                    uf_con_vector_free(bp->fields);
-                }
-
-                if (bp->methods) {
-                    size_t methods_len = uf_con_vector_length(bp->methods);
-                    for (size_t j = 0; j < methods_len; j++) {
-                        AstMethod** method_ptr = (AstMethod**)uf_con_vector_get(bp->methods, j);
-                        if (*method_ptr) {
-                            AstMethod* method = *method_ptr;
-                            if (method->overloads) {
-                                size_t overloads_len = uf_con_vector_length(method->overloads);
-                                for (size_t k = 0; k < overloads_len; k++) {
-                                    AstMethodOverload** ov_ptr =
-                                        (AstMethodOverload**)uf_con_vector_get(method->overloads, k);
-                                    if (*ov_ptr) {
-                                        AstMethodOverload* ov = *ov_ptr;
-                                        if (ov->params) {
-                                            uf_con_vector_free(ov->params);
-                                        }
-                                        _free_stmt_vectors((AstStmt*)ov->body);
-                                    }
-                                }
-                                uf_con_vector_free(method->overloads);
-                            }
-                        }
-                    }
-                    uf_con_vector_free(bp->methods);
-                }
-
-                uf_con_vector_free(bp->flat_fields);
-                uf_con_vector_free(bp->flat_methods);
-            }
+        for (size_t j = 0; j < uf_con_vector_length(bp->parents); j++) {
+            AstInherit* inh = *(AstInherit**)uf_con_vector_get(bp->parents, j);
+            uf_con_vector_free(inh->field_aliases);
         }
+        uf_con_vector_free(bp->parents);
+
+        for (size_t j = 0; j < uf_con_vector_length(bp->fields); j++) {
+            AstField* field = *(AstField**)uf_con_vector_get(bp->fields, j);
+            _free_expr_vectors(field->default_value);
+        }
+        uf_con_vector_free(bp->fields);
+
+        for (size_t j = 0; j < uf_con_vector_length(bp->methods); j++) {
+            AstMethod* method = *(AstMethod**)uf_con_vector_get(bp->methods, j);
+            for (size_t k = 0; k < uf_con_vector_length(method->overloads); k++) {
+                AstMethodOverload* ov = *(AstMethodOverload**)uf_con_vector_get(method->overloads, k);
+                uf_con_vector_free(ov->params);
+                _free_stmt_vectors((AstStmt*)ov->body);
+            }
+            uf_con_vector_free(method->overloads);
+        }
+        uf_con_vector_free(bp->methods);
+
+        uf_con_vector_free(bp->flat_fields);
+        uf_con_vector_free(bp->flat_methods);
     }
 
     uf_con_vector_free(program->funcs);
