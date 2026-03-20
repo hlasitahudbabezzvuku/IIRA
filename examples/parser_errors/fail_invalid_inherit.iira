@@ -1,4 +1,0 @@
-// Test: Invalid inheritance syntax should fail at parser
-Point: Unknown, {
-    x: int;
-}

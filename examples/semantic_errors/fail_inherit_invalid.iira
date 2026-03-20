@@ -1,0 +1,4 @@
+// Test: Invalid inheritance syntax should fail
+Point: Unknown, {
+    x: int;
+}

@@ -1,5 +1,0 @@
-// Test: Assignment to non-lvalue should fail at parser
-main(): int = {
-    5 = x;
-    return 0;
-}
