@@ -4,6 +4,7 @@
  **/
 
 #include "ii_ast.h"
+#include "ii_ast_iter.h"
 #include "uf_memory.h"
 
 #include <stdio.h>
@@ -953,10 +954,11 @@ static void _visit_method_overload(AstMethodOverload* overload, AstVisitorFn vis
         return;
     }
 
-    for (size_t i = 0; i < uf_con_vector_length(overload->params); i++) {
-        AstParam** p = uf_con_vector_get(overload->params, i);
-        _visit_param(*p, visitor, context, depth + 1, pre_order);
+    ast_foreach_params(overload, param)
+    {
+        _visit_param(param, visitor, context, depth + 1, pre_order);
     }
+    ast_foreach_end;
 
     if (overload->return_type) {
         _visit_type(overload->return_type, visitor, context, depth + 1, pre_order);
@@ -982,10 +984,11 @@ static void _visit_method(AstMethod* method, AstVisitorFn visitor, void* context
         return;
     }
 
-    for (size_t i = 0; i < uf_con_vector_length(method->overloads); i++) {
-        AstMethodOverload** ov = uf_con_vector_get(method->overloads, i);
-        _visit_method_overload(*ov, visitor, context, depth + 1, pre_order);
+    ast_foreach_overloads(method, ov)
+    {
+        _visit_method_overload(ov, visitor, context, depth + 1, pre_order);
     }
+    ast_foreach_end;
 
     if (!pre_order) {
         visitor(&method->base, context, depth);
@@ -1020,20 +1023,23 @@ static void _visit_blueprint(AstBlueprintDecl* bp, AstVisitorFn visitor, void* c
         return;
     }
 
-    for (size_t i = 0; i < uf_con_vector_length(bp->parents); i++) {
-        AstInherit** inh = uf_con_vector_get(bp->parents, i);
-        _visit_inherit(*inh, visitor, context, depth + 1, pre_order);
+    ast_foreach_parents(bp, inh)
+    {
+        _visit_inherit(inh, visitor, context, depth + 1, pre_order);
     }
+    ast_foreach_end;
 
-    for (size_t i = 0; i < uf_con_vector_length(bp->fields); i++) {
-        AstField** field = uf_con_vector_get(bp->fields, i);
-        _visit_field(*field, visitor, context, depth + 1, pre_order);
+    ast_foreach_fields(bp, field)
+    {
+        _visit_field(field, visitor, context, depth + 1, pre_order);
     }
+    ast_foreach_end;
 
-    for (size_t i = 0; i < uf_con_vector_length(bp->methods); i++) {
-        AstMethod** method = uf_con_vector_get(bp->methods, i);
-        _visit_method(*method, visitor, context, depth + 1, pre_order);
+    ast_foreach_methods(bp, method)
+    {
+        _visit_method(method, visitor, context, depth + 1, pre_order);
     }
+    ast_foreach_end;
 
     if (!pre_order) {
         visitor(&bp->base, context, depth);
@@ -1051,10 +1057,11 @@ static void _visit_func(AstFuncDecl* func, AstVisitorFn visitor, void* context, 
         return;
     }
 
-    for (size_t i = 0; i < uf_con_vector_length(func->params); i++) {
-        AstParam** param = uf_con_vector_get(func->params, i);
-        _visit_param(*param, visitor, context, depth + 1, pre_order);
+    ast_foreach_params(func, param)
+    {
+        _visit_param(param, visitor, context, depth + 1, pre_order);
     }
+    ast_foreach_end;
 
     if (func->return_type) {
         _visit_type(func->return_type, visitor, context, depth + 1, pre_order);
@@ -1135,10 +1142,11 @@ static void _visit_expr(AstExpr* expr, AstVisitorFn visitor, void* context, uint
     case AST_KIND_CALL: {
         AstCall* call = (AstCall*)expr;
         _visit_expr(call->callee, visitor, context, depth + 1, pre_order);
-        for (size_t i = 0; i < uf_con_vector_length(call->args); i++) {
-            AstExpr** arg = uf_con_vector_get(call->args, i);
-            _visit_expr(*arg, visitor, context, depth + 1, pre_order);
+        ast_foreach_call_args(call, arg)
+        {
+            _visit_expr(arg, visitor, context, depth + 1, pre_order);
         }
+        ast_foreach_end;
         break;
     }
     case AST_KIND_MEMBER: {
@@ -1154,10 +1162,11 @@ static void _visit_expr(AstExpr* expr, AstVisitorFn visitor, void* context, uint
     }
     case AST_KIND_INIT: {
         AstInit* init = (AstInit*)expr;
-        for (size_t i = 0; i < uf_con_vector_length(init->values); i++) {
-            AstExpr** val = uf_con_vector_get(init->values, i);
-            _visit_expr(*val, visitor, context, depth + 1, pre_order);
+        ast_foreach_init_values(init, val)
+        {
+            _visit_expr(val, visitor, context, depth + 1, pre_order);
         }
+        ast_foreach_end;
         /* 'named' and 'indexed' contain pairs. We'll skip them for simplicity. */
         if (init->target_type) {
             _visit_type(init->target_type, visitor, context, depth + 1, pre_order);
@@ -1172,10 +1181,11 @@ static void _visit_expr(AstExpr* expr, AstVisitorFn visitor, void* context, uint
     }
     case AST_KIND_FFI: {
         AstFfi* ffi = (AstFfi*)expr;
-        for (size_t i = 0; i < uf_con_vector_length(ffi->args); i++) {
-            AstExpr** arg = uf_con_vector_get(ffi->args, i);
-            _visit_expr(*arg, visitor, context, depth + 1, pre_order);
+        ast_foreach_ffi_args(ffi, arg)
+        {
+            _visit_expr(arg, visitor, context, depth + 1, pre_order);
         }
+        ast_foreach_end;
         break;
     }
     default:
@@ -1197,10 +1207,11 @@ static void _visit_block(AstBlock* block, AstVisitorFn visitor, void* context, u
         return;
     }
 
-    for (size_t i = 0; i < uf_con_vector_length(block->stmts); i++) {
-        AstStmt** stmt = uf_con_vector_get(block->stmts, i);
-        _visit_stmt(*stmt, visitor, context, depth + 1, pre_order);
+    ast_foreach_stmts(block, stmt)
+    {
+        _visit_stmt(stmt, visitor, context, depth + 1, pre_order);
     }
+    ast_foreach_end;
 
     if (!pre_order) {
         visitor(&block->base, context, depth);
@@ -1296,16 +1307,18 @@ void ii_ast_visit(Ast* ast, AstVisitorFn visitor, void* context)
     }
 
     /* Visit functions. */
-    for (size_t i = 0; i < uf_con_vector_length(ast->program->funcs); i++) {
-        AstFuncDecl** func = uf_con_vector_get(ast->program->funcs, i);
-        _visit_func(*func, visitor, context, 1, true);
+    ast_foreach_funcs(ast, func)
+    {
+        _visit_func(func, visitor, context, 1, true);
     }
+    ast_foreach_end;
 
     /* Visit blueprints. */
-    for (size_t i = 0; i < uf_con_vector_length(ast->program->blueprints); i++) {
-        AstBlueprintDecl** bp = uf_con_vector_get(ast->program->blueprints, i);
-        _visit_blueprint(*bp, visitor, context, 1, true);
+    ast_foreach_blueprints(ast, bp)
+    {
+        _visit_blueprint(bp, visitor, context, 1, true);
     }
+    ast_foreach_end;
 }
 
 void ii_ast_visit_reverse(Ast* ast, AstVisitorFn visitor, void* context)
@@ -1425,85 +1438,275 @@ Ast* ii_ast_new(Source* source)
     return ast;
 }
 
+static void _free_expr_vectors(AstExpr* expr);
+
+static void _free_expr_vectors(AstExpr* expr)
+{
+    if (!expr)
+        return;
+
+    switch (expr->base.kind) {
+    case AST_KIND_BINARY: {
+        AstBinary* bin = (AstBinary*)expr;
+        _free_expr_vectors(bin->left);
+        _free_expr_vectors(bin->right);
+        break;
+    }
+
+    case AST_KIND_UNARY: {
+        AstUnary* un = (AstUnary*)expr;
+        _free_expr_vectors(un->operand);
+        break;
+    }
+
+    case AST_KIND_CALL: {
+        AstCall* call = (AstCall*)expr;
+        _free_expr_vectors(call->callee);
+        if (call->args) {
+            ast_foreach_call_args(call, arg)
+            {
+                _free_expr_vectors(arg);
+            }
+            ast_foreach_end;
+            uf_con_vector_free(call->args);
+        }
+        break;
+    }
+
+    case AST_KIND_MEMBER: {
+        AstMember* member = (AstMember*)expr;
+        _free_expr_vectors(member->object);
+        break;
+    }
+
+    case AST_KIND_INDEX: {
+        AstIndex* idx = (AstIndex*)expr;
+        _free_expr_vectors(idx->array);
+        _free_expr_vectors(idx->index);
+        break;
+    }
+
+    case AST_KIND_INIT: {
+        AstInit* init = (AstInit*)expr;
+        if (init->values) {
+            ast_foreach_init_values(init, val)
+            {
+                _free_expr_vectors(val);
+            }
+            ast_foreach_end;
+            uf_con_vector_free(init->values);
+        }
+        if (init->named) {
+            size_t len = uf_con_vector_length(init->named);
+            for (size_t i = 0; i < len; i++) {
+                void* entry_ptr = uf_con_vector_get(init->named, i);
+                AstExpr** value_ptr = (AstExpr**)((char*)entry_ptr + sizeof(const char*));
+                _free_expr_vectors(*value_ptr);
+            }
+            uf_con_vector_free(init->named);
+        }
+        if (init->indexed) {
+            size_t len = uf_con_vector_length(init->indexed);
+            for (size_t i = 0; i < len; i++) {
+                void* entry_ptr = uf_con_vector_get(init->indexed, i);
+                AstExpr** index_ptr = (AstExpr**)entry_ptr;
+                AstExpr** value_ptr = (AstExpr**)((char*)entry_ptr + sizeof(AstExpr*));
+                _free_expr_vectors(*index_ptr);
+                _free_expr_vectors(*value_ptr);
+            }
+            uf_con_vector_free(init->indexed);
+        }
+        break;
+    }
+
+    case AST_KIND_CAST: {
+        AstCast* cast = (AstCast*)expr;
+        _free_expr_vectors(cast->expr_);
+        break;
+    }
+
+    case AST_KIND_FFI: {
+        AstFfi* ffi = (AstFfi*)expr;
+        if (ffi->args) {
+            ast_foreach_ffi_args(ffi, arg)
+            {
+                _free_expr_vectors(arg);
+            }
+            ast_foreach_end;
+            uf_con_vector_free(ffi->args);
+        }
+        break;
+    }
+
+    default:
+        break;
+    }
+}
+
+static void _free_stmt_vectors(AstStmt* stmt)
+{
+    if (!stmt)
+        return;
+
+    switch (stmt->kind) {
+    case AST_KIND_BLOCK: {
+        AstBlock* block = (AstBlock*)stmt;
+        if (block->stmts) {
+            ast_foreach_stmts(block, s)
+            {
+                _free_stmt_vectors(s);
+            }
+            ast_foreach_end;
+            uf_con_vector_free(block->stmts);
+        }
+        break;
+    }
+
+    case AST_KIND_RETURN: {
+        AstReturn* ret = (AstReturn*)stmt;
+        _free_expr_vectors(ret->value);
+        break;
+    }
+
+    case AST_KIND_DECL: {
+        AstDecl* decl = (AstDecl*)stmt;
+        _free_expr_vectors(decl->init);
+        break;
+    }
+
+    case AST_KIND_IF: {
+        AstIf* if_stmt = (AstIf*)stmt;
+        _free_expr_vectors(if_stmt->condition);
+        _free_stmt_vectors((AstStmt*)if_stmt->then_block);
+        _free_stmt_vectors(if_stmt->else_stmt);
+        break;
+    }
+
+    case AST_KIND_FOR: {
+        AstFor* for_stmt = (AstFor*)stmt;
+        _free_stmt_vectors(for_stmt->init);
+        _free_expr_vectors(for_stmt->condition);
+        _free_expr_vectors(for_stmt->iter);
+        _free_stmt_vectors((AstStmt*)for_stmt->body);
+        break;
+    }
+
+    case AST_KIND_WHILE: {
+        AstWhile* while_stmt = (AstWhile*)stmt;
+        _free_expr_vectors(while_stmt->condition);
+        _free_stmt_vectors((AstStmt*)while_stmt->body);
+        break;
+    }
+
+    case AST_KIND_DO_WHILE: {
+        AstDoWhile* do_while = (AstDoWhile*)stmt;
+        _free_stmt_vectors((AstStmt*)do_while->body);
+        _free_expr_vectors(do_while->condition);
+        break;
+    }
+
+    case AST_KIND_EXPR_STMT: {
+        AstExprStmt* expr_stmt = (AstExprStmt*)stmt;
+        _free_expr_vectors(expr_stmt->expr);
+        break;
+    }
+
+    default:
+        break;
+    }
+}
+
+static void _free_vectors_in_program(AstProgram* program)
+{
+    if (!program)
+        return;
+
+    if (program->funcs) {
+        size_t funcs_len = uf_con_vector_length(program->funcs);
+        for (size_t i = 0; i < funcs_len; i++) {
+            AstFuncDecl** func_ptr = (AstFuncDecl**)uf_con_vector_get(program->funcs, i);
+            if (*func_ptr) {
+                AstFuncDecl* func = *func_ptr;
+                if (func->params) {
+                    uf_con_vector_free(func->params);
+                }
+                _free_stmt_vectors((AstStmt*)func->body);
+            }
+        }
+    }
+
+    if (program->blueprints) {
+        size_t blueprints_len = uf_con_vector_length(program->blueprints);
+        for (size_t i = 0; i < blueprints_len; i++) {
+            AstBlueprintDecl** bp_ptr = (AstBlueprintDecl**)uf_con_vector_get(program->blueprints, i);
+            if (*bp_ptr) {
+                AstBlueprintDecl* bp = *bp_ptr;
+
+                if (bp->parents) {
+                    size_t parents_len = uf_con_vector_length(bp->parents);
+                    for (size_t j = 0; j < parents_len; j++) {
+                        AstInherit** inh_ptr = (AstInherit**)uf_con_vector_get(bp->parents, j);
+                        if (*inh_ptr) {
+                            uf_con_vector_free((*inh_ptr)->field_aliases);
+                        }
+                    }
+                    uf_con_vector_free(bp->parents);
+                }
+
+                if (bp->fields) {
+                    size_t fields_len = uf_con_vector_length(bp->fields);
+                    for (size_t j = 0; j < fields_len; j++) {
+                        AstField** field_ptr = (AstField**)uf_con_vector_get(bp->fields, j);
+                        if (*field_ptr) {
+                            _free_expr_vectors((*field_ptr)->default_value);
+                        }
+                    }
+                    uf_con_vector_free(bp->fields);
+                }
+
+                if (bp->methods) {
+                    size_t methods_len = uf_con_vector_length(bp->methods);
+                    for (size_t j = 0; j < methods_len; j++) {
+                        AstMethod** method_ptr = (AstMethod**)uf_con_vector_get(bp->methods, j);
+                        if (*method_ptr) {
+                            AstMethod* method = *method_ptr;
+                            if (method->overloads) {
+                                size_t overloads_len = uf_con_vector_length(method->overloads);
+                                for (size_t k = 0; k < overloads_len; k++) {
+                                    AstMethodOverload** ov_ptr =
+                                        (AstMethodOverload**)uf_con_vector_get(method->overloads, k);
+                                    if (*ov_ptr) {
+                                        AstMethodOverload* ov = *ov_ptr;
+                                        if (ov->params) {
+                                            uf_con_vector_free(ov->params);
+                                        }
+                                        _free_stmt_vectors((AstStmt*)ov->body);
+                                    }
+                                }
+                                uf_con_vector_free(method->overloads);
+                            }
+                        }
+                    }
+                    uf_con_vector_free(bp->methods);
+                }
+
+                uf_con_vector_free(bp->flat_fields);
+                uf_con_vector_free(bp->flat_methods);
+            }
+        }
+    }
+
+    uf_con_vector_free(program->funcs);
+    uf_con_vector_free(program->blueprints);
+}
+
 void ii_ast_free(Ast* ast)
 {
     if (!ast || !ast->program) {
         return;
     }
 
-    /* Save lengths before freeing vectors. */
-    size_t funcs_len = (ast->program->funcs) ? uf_con_vector_length(ast->program->funcs) : 0;
-    size_t blueprints_len = (ast->program->blueprints) ? uf_con_vector_length(ast->program->blueprints) : 0;
-
-    /* Free function vectors. */
-    for (size_t i = 0; i < funcs_len; i++) {
-        AstFuncDecl* func = *(AstFuncDecl**)uf_con_vector_get(ast->program->funcs, i);
-
-        if (!func) {
-            continue;
-        }
-
-        uf_con_vector_free(func->params);
-        if (func->body) {
-            uf_con_vector_free(func->body->stmts);
-        }
-    }
-
-    /* Free blueprint vectors. */
-    for (size_t i = 0; i < blueprints_len; i++) {
-        AstBlueprintDecl* bp = *(AstBlueprintDecl**)uf_con_vector_get(ast->program->blueprints, i);
-        if (!bp) {
-            continue;
-        }
-
-        uf_con_vector_free(bp->parents);
-        uf_con_vector_free(bp->fields);
-        uf_con_vector_free(bp->methods);
-        uf_con_vector_free(bp->flat_fields);
-        uf_con_vector_free(bp->flat_methods);
-
-        /* Free parent inheritance vectors. */
-        for (size_t j = 0; j < uf_con_vector_length(bp->parents); j++) {
-            AstInherit* inh = *(AstInherit**)uf_con_vector_get(bp->parents, j);
-            if (inh) {
-                uf_con_vector_free(inh->field_aliases);
-            }
-        }
-
-        /* Free field vectors. */
-        for (size_t j = 0; j < uf_con_vector_length(bp->fields); j++) {
-            AstField* field = *(AstField**)uf_con_vector_get(bp->fields, j);
-            /* TODO: free field vectors. */
-            (void)field;
-        }
-
-        /* Free method vectors and their contents. */
-        for (size_t j = 0; j < uf_con_vector_length(bp->methods); j++) {
-            AstMethod* method = *(AstMethod**)uf_con_vector_get(bp->methods, j);
-            if (!method) {
-                continue;
-            }
-
-            uf_con_vector_free(method->overloads);
-
-            /* Free method overload vectors. */
-            for (size_t k = 0; k < uf_con_vector_length(method->overloads); k++) {
-                AstMethodOverload* ov = *(AstMethodOverload**)uf_con_vector_get(method->overloads, k);
-                if (!ov) {
-                    continue;
-                }
-
-                uf_con_vector_free(ov->params);
-                if (ov->body) {
-                    uf_con_vector_free(ov->body->stmts);
-                }
-            }
-        }
-    }
-
-    /* Free program-level vectors. */
-    uf_con_vector_free(ast->program->funcs);
-    uf_con_vector_free(ast->program->blueprints);
+    _free_vectors_in_program(ast->program);
 
     uf_mem_region_free(ast->arena);
     uf_mem_free(ast);
