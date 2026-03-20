@@ -1517,25 +1517,25 @@ static void _print_indent(struct AstPrintContext* context)
 
 static void _print_type(struct AstPrintContext* context, AstType* type);
 
-static void _print_type_variant(struct AstPrintContext* ctx, AstType* type)
+static void _print_type_variant(struct AstPrintContext* context, AstType* type)
 {
     switch (type->variant) {
     case AST_TYPE_KIND_PRIMITIVE:
-        fprintf(ctx->output, "%s", _primitive_type_to_string(type->variant_u.primitive.prim_type));
+        fprintf(context->output, "%s", _primitive_type_to_string(type->variant_u.primitive.prim_type));
         break;
     case AST_TYPE_KIND_POINTER:
-        _print_type(ctx, type->variant_u.pointer.pointed_type);
-        fprintf(ctx->output, "*");
+        _print_type(context, type->variant_u.pointer.pointed_type);
+        fprintf(context->output, "*");
         break;
     case AST_TYPE_KIND_ARRAY:
-        _print_type(ctx, type->variant_u.array.element_type);
-        fprintf(ctx->output, "[]");
+        _print_type(context, type->variant_u.array.element_type);
+        fprintf(context->output, "[]");
         break;
     case AST_TYPE_KIND_BLUEPRINT:
-        fprintf(ctx->output, "%s", type->variant_u.blueprint.name);
+        fprintf(context->output, "%s", type->variant_u.blueprint.name);
         break;
     case AST_TYPE_KIND_ANON:
-        fprintf(ctx->output, "{ ... }");
+        fprintf(context->output, "{ ... }");
         break;
     }
 }
@@ -1604,9 +1604,14 @@ static void _print_expr(struct AstPrintContext* context, AstExpr* expr)
         AstCall* call = (AstCall*)expr;
         _print_expr(context, call->callee);
         fprintf(context->output, "(");
+        bool first = true;
         ast_foreach_call_args(call, arg)
         {
+            if (!first) {
+                fprintf(context->output, ", ");
+            }
             _print_expr(context, arg);
+            first = false;
         }
         ast_foreach_end;
         fprintf(context->output, ")");
@@ -1637,9 +1642,24 @@ static void _print_expr(struct AstPrintContext* context, AstExpr* expr)
         _print_expr(context, cast->expr_);
         break;
     }
-    case AST_KIND_FFI:
-        fprintf(context->output, "$...");
+    case AST_KIND_FFI: {
+        AstFfi* ffi = (AstFfi*)expr;
+        fprintf(context->output, "$%s(", ffi->function_name);
+        if (ffi->args) {
+            bool first = true;
+            ast_foreach_ffi_args(ffi, arg)
+            {
+                if (!first) {
+                    fprintf(context->output, ", ");
+                }
+                _print_expr(context, arg);
+                first = false;
+            }
+            ast_foreach_end;
+        }
+        fprintf(context->output, ")");
         break;
+    }
     default:
         fprintf(context->output, "<expr>");
         break;
@@ -1724,8 +1744,15 @@ static bool _print_visitor(AstNode* node, void* context, uint32_t depth)
     }
     case AST_KIND_METHOD_OVERLOAD: {
         AstMethodOverload* ov = (AstMethodOverload*)node;
-        fprintf(print_context->output, " %sstatic: %s\n", ov->is_static ? "" : "non-",
+        fprintf(print_context->output, " %sstatic: %s", ov->is_static ? "" : "non-",
                 ov->is_static ? "true" : "false");
+        size_t param_count = ov->params ? uf_con_vector_length(ov->params) : 0;
+        fprintf(print_context->output, " [params: %zu]", param_count);
+        if (ov->return_type) {
+            fprintf(print_context->output, " -> ");
+            _print_type(print_context, ov->return_type);
+        }
+        fprintf(print_context->output, "\n");
         break;
     }
     case AST_KIND_PARAM: {
@@ -1755,7 +1782,7 @@ static bool _print_visitor(AstNode* node, void* context, uint32_t depth)
     }
     case AST_KIND_DECL: {
         AstDecl* decl = (AstDecl*)node;
-        fprintf(print_context->output, " %s: ", decl->name);
+        fprintf(print_context->output, " %s%s: ", decl->is_var ? "var " : "", decl->name);
         _print_type(print_context, decl->type);
         if (decl->init) {
             fprintf(print_context->output, " = ");
@@ -1772,6 +1799,16 @@ static bool _print_visitor(AstNode* node, void* context, uint32_t depth)
         break;
     }
     case AST_KIND_FOR: {
+        AstFor* for_stmt = (AstFor*)node;
+        if (for_stmt->init) {
+            fprintf(print_context->output, " INIT:");
+        }
+        if (for_stmt->condition) {
+            fprintf(print_context->output, " COND:");
+        }
+        if (for_stmt->iter) {
+            fprintf(print_context->output, " ITER:");
+        }
         fprintf(print_context->output, "\n");
         break;
     }
@@ -1822,11 +1859,24 @@ static bool _print_visitor(AstNode* node, void* context, uint32_t depth)
         fprintf(print_context->output, "\n");
         break;
     }
-    case AST_KIND_INIT:
+    case AST_KIND_INIT: {
+        AstInit* init = (AstInit*)node;
+        size_t val_count = init->values ? uf_con_vector_length(init->values) : 0;
+        size_t named_count = init->named ? uf_con_vector_length(init->named) : 0;
+        size_t indexed_count = init->indexed ? uf_con_vector_length(init->indexed) : 0;
+        fprintf(print_context->output, " {values: %zu, named: %zu, indexed: %zu}\n", val_count, named_count,
+                indexed_count);
+        break;
+    }
     case AST_KIND_CAST:
-    case AST_KIND_FFI:
         fprintf(print_context->output, "\n");
         break;
+    case AST_KIND_FFI: {
+        AstFfi* ffi = (AstFfi*)node;
+        fprintf(print_context->output, " $%s", ffi->function_name);
+        fprintf(print_context->output, "\n");
+        break;
+    }
     case AST_KIND_TYPE_PRIMITIVE: {
         AstType* type = (AstType*)node;
         fprintf(print_context->output, " %s\n",
@@ -1834,10 +1884,15 @@ static bool _print_visitor(AstNode* node, void* context, uint32_t depth)
         break;
     }
     case AST_KIND_TYPE_POINTER: {
-        fprintf(print_context->output, "\n");
+        fprintf(print_context->output, " *\n");
         break;
     }
     case AST_KIND_TYPE_ARRAY: {
+        AstType* type = (AstType*)node;
+        fprintf(print_context->output, " []");
+        if (type->variant_u.array.size_expr) {
+            fprintf(print_context->output, " [fixed]");
+        }
         fprintf(print_context->output, "\n");
         break;
     }
