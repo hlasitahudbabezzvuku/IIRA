@@ -13,16 +13,14 @@
 #include "ii_ast.h"
 #include "ii_diagnostics.h"
 #include "ii_lexer.h"
-#include "ii_source.h"
 #include "ii_trace.h"
 #include "uf_common.h"
 
-#include <stddef.h>
-
 typedef struct ParserContext ParserContext;
 
-ParserContext* ii_parser_context_new(const char* file_path, bool trace_enabled) _nodiscard_;
+ParserContext* ii_parser_context_new(Ast* ast, const LexerToken* token_vector, size_t token_count,
+                                     DiagnosticContext* diag, TraceContext*) _nodiscard_;
 void ii_parser_context_free(ParserContext*);
-Ast* ii_parser_parse(ParserContext*) _nodiscard_;
+void ii_parser_context_freep(ParserContext**);
 
 #define _autoparser_ _cleanup_(ii_parser_context_freep)
