@@ -76,11 +76,14 @@ static inline bool _ast_foreach_done(const AstForeach* iter)
     while (0)
 
 #define ast_foreach_funcs(ast_or_prog, var)                                                                  \
-    _AST_FOREACH_BEGIN(AstFuncDecl, var, (((ast_or_prog)->program) ? (ast_or_prog)->program->funcs : nullptr))
+    _AST_FOREACH_BEGIN(                                                                                      \
+        AstFuncDecl, var,                                                                                    \
+        ((ii_ast_get_program(ast_or_prog)) ? ii_ast_get_program(ast_or_prog)->funcs : nullptr))
 
 #define ast_foreach_blueprints(ast_or_prog, var)                                                             \
-    _AST_FOREACH_BEGIN(AstBlueprintDecl, var,                                                                \
-                       (((ast_or_prog)->program) ? (ast_or_prog)->program->blueprints : nullptr))
+    _AST_FOREACH_BEGIN(                                                                                      \
+        AstBlueprintDecl, var,                                                                               \
+        ((ii_ast_get_program(ast_or_prog)) ? ii_ast_get_program(ast_or_prog)->blueprints : nullptr))
 
 #define ast_foreach_params(func, var) _AST_FOREACH_BEGIN(AstParam, var, ((func) ? (func)->params : nullptr))
 
@@ -109,8 +112,10 @@ static inline bool _ast_foreach_done(const AstForeach* iter)
 #define ast_foreach_decl(ast, var)                                                                           \
     do {                                                                                                     \
         AstForeach _decl_iter__;                                                                             \
-        const UfConVector* _funcs_vec__ = ((ast)->program ? (ast)->program->funcs : nullptr);                \
-        const UfConVector* _bps_vec__ = ((ast)->program ? (ast)->program->blueprints : nullptr);             \
+        const UfConVector* _funcs_vec__ =                                                                    \
+            ((ii_ast_get_program(ast)) ? ii_ast_get_program(ast)->funcs : nullptr);                          \
+        const UfConVector* _bps_vec__ =                                                                      \
+            ((ii_ast_get_program(ast)) ? ii_ast_get_program(ast)->blueprints : nullptr);                     \
         size_t _funcs_len__ = _funcs_vec__ ? uf_con_vector_length(_funcs_vec__) : 0;                         \
         size_t _bps_len__ = _bps_vec__ ? uf_con_vector_length(_bps_vec__) : 0;                               \
         _ast_foreach_init(&_decl_iter__, nullptr);                                                           \
@@ -189,11 +194,13 @@ static inline bool _ast_foreach_rev_done(const AstForeach* iter)
     while (0)
 
 #define ast_foreach_funcs_rev(ast_or_prog, var)                                                              \
-    _AST_FOREACH_REV_BEGIN(AstFuncDecl, var,                                                                 \
-                           (((ast_or_prog)->program) ? (ast_or_prog)->program->funcs : nullptr))
+    _AST_FOREACH_REV_BEGIN(                                                                                  \
+        AstFuncDecl, var,                                                                                    \
+        ((ii_ast_get_program(ast_or_prog)) ? ii_ast_get_program(ast_or_prog)->funcs : nullptr))
 
 #define ast_foreach_blueprints_rev(ast_or_prog, var)                                                         \
-    _AST_FOREACH_REV_BEGIN(AstBlueprintDecl, var,                                                            \
-                           (((ast_or_prog)->program) ? (ast_or_prog)->program->blueprints : nullptr))
+    _AST_FOREACH_REV_BEGIN(                                                                                  \
+        AstBlueprintDecl, var,                                                                               \
+        ((ii_ast_get_program(ast_or_prog)) ? ii_ast_get_program(ast_or_prog)->blueprints : nullptr))
 
 #define ast_foreach_end_rev _AST_FOREACH_REV_END
