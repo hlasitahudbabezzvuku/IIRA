@@ -27,10 +27,10 @@ static AstStmt* _parse_return(ParserContext* context)
     SourceSpan keyword_span = _span(context);
     _advance(context);
 
-    AstExpr* value = NULL;
+    AstExpr* value = nullptr;
     if (_check(context, LEXER_TOK_SEMICOLON)) {
         /* No value - void return */
-        value = NULL;
+        value = nullptr;
     } else if (_check(context, LEXER_TOK_LBRACE)) {
         /* Block expression as return value */
         value = ii_parser_parse_expression(context);
@@ -77,7 +77,7 @@ static AstStmt* _parse_decl(ParserContext* context)
     AstType* type = ii_parser_parse_type_annotation(context);
 
     /* Optional initializer */
-    AstExpr* init = NULL;
+    AstExpr* init = nullptr;
     if (_match(context, LEXER_TOK_ASSIGN)) {
         init = ii_parser_parse_expression(context);
     }
@@ -109,7 +109,7 @@ static AstStmt* _parse_if(ParserContext* context)
     AstStmt* then_stmt = ii_parser_parse_statement(context);
 
     /* Optional else */
-    AstStmt* else_stmt = NULL;
+    AstStmt* else_stmt = nullptr;
     if (_check_sym(context, LEXER_SYM_KEY_ELSE)) {
         _advance(context);
         else_stmt = ii_parser_parse_statement(context);
@@ -150,7 +150,7 @@ static AstStmt* _parse_while(ParserContext* context)
  * Body executes first, then condition checked.
  * Note: Unlike C, semicolon is required after ')'.
  *
- * Error recovery: Missing 'while' after body - report error, use NULL condition.
+ * Error recovery: Missing 'while' after body - report error, use nullptr condition.
  */
 static AstStmt* _parse_do_while(ParserContext* context)
 {
@@ -165,7 +165,7 @@ static AstStmt* _parse_do_while(ParserContext* context)
     if (!_check_sym(context, LEXER_SYM_KEY_WHILE)) {
         _diag_error(context, "Expected 'while' after do block");
         _sync_to_stmt(context);
-        return (AstStmt*)ii_ast_do_while_sp(context->ast, keyword_span, (AstBlock*)body_stmt, NULL);
+        return (AstStmt*)ii_ast_do_while_sp(context->ast, keyword_span, (AstBlock*)body_stmt, nullptr);
     }
 
     _advance(context);
@@ -198,7 +198,7 @@ static AstStmt* _parse_for(ParserContext* context)
     _expect(context, LEXER_TOK_LPAREN);
 
     /* Init clause: can be var decl, expr, or empty */
-    AstStmt* init = NULL;
+    AstStmt* init = nullptr;
     if (!_check(context, LEXER_TOK_SEMICOLON)) {
         if (_check_sym(context, LEXER_SYM_KEY_VAR)) {
             /* Variable declaration */
@@ -213,7 +213,7 @@ static AstStmt* _parse_for(ParserContext* context)
                     AstType* type = ii_parser_parse_type(context);
 
                     /* Optional initializer in declaration */
-                    AstExpr* init_val = NULL;
+                    AstExpr* init_val = nullptr;
                     if (_match(context, LEXER_TOK_ASSIGN)) {
                         init_val = ii_parser_parse_expression(context);
                     }
@@ -230,14 +230,14 @@ static AstStmt* _parse_for(ParserContext* context)
     _expect(context, LEXER_TOK_SEMICOLON);
 
     /* Condition clause: expression or empty */
-    AstExpr* cond = NULL;
+    AstExpr* cond = nullptr;
     if (!_check(context, LEXER_TOK_SEMICOLON)) {
         cond = ii_parser_parse_expression(context);
     }
     _expect(context, LEXER_TOK_SEMICOLON);
 
     /* Iter clause: expression or empty */
-    AstExpr* iter = NULL;
+    AstExpr* iter = nullptr;
     if (!_check(context, LEXER_TOK_RPAREN)) {
         iter = ii_parser_parse_expression(context);
     }
@@ -297,7 +297,7 @@ AstBlock* ii_parser_parse_block(ParserContext* context)
 
         /* Parse statement, add to block */
         AstStmt* stmt = ii_parser_parse_statement(context);
-        if (stmt != NULL) {
+        if (stmt != nullptr) {
             ii_ast_block_add_stmt(block, stmt);
         }
     }
@@ -313,7 +313,7 @@ AstBlock* ii_parser_parse_block(ParserContext* context)
  * - '{' -> block
  * - Keywords (var, if, while, for, return, break, continue) -> their parsers
  * - ';' -> empty statement
- * - EOF -> NULL
+ * - EOF -> nullptr
  * - Otherwise -> expression statement
  *
  * Dispatch uses symbol type for keywords since they're all LEXER_TOK_SYMBOL.
@@ -368,9 +368,9 @@ AstStmt* ii_parser_parse_statement(ParserContext* context)
         return (AstStmt*)ii_ast_block_sp(context->ast, span);
     }
 
-    /* EOF outside block - return NULL to signal end */
+    /* EOF outside block - return nullptr to signal end */
     if (tok->type == LEXER_TOK_EOF) {
-        return NULL;
+        return nullptr;
     }
 
     /* Anything else is an expression statement */

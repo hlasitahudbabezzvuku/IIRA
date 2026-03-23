@@ -202,7 +202,7 @@ static void _parse_field(ParserContext* context, AstBlueprintDecl* bp)
     AstType* field_type = ii_parser_parse_type(context);
 
     /* Optional default value */
-    AstExpr* default_val = NULL;
+    AstExpr* default_val = nullptr;
     if (_match(context, LEXER_TOK_ASSIGN)) {
         default_val = ii_parser_parse_expression(context);
     }
@@ -225,7 +225,7 @@ static void _parse_field(ParserContext* context, AstBlueprintDecl* bp)
 static AstMethodOverload* _parse_method_overload(ParserContext* context)
 {
     TRACE_SCOPE(context->trace);
-    AstMethodOverload* overload = ii_ast_method_overload_sp(context->ast, _span(context), true, NULL);
+    AstMethodOverload* overload = ii_ast_method_overload_sp(context->ast, _span(context), true, nullptr);
 
     /* Check for self parameter: keyword 'self' followed by ')' or ',' */
     if (_check(context, LEXER_TOK_SYMBOL) &&
@@ -236,7 +236,7 @@ static AstMethodOverload* _parse_method_overload(ParserContext* context)
 
         /* self doesn't have a type annotation - type is inferred from blueprint */
         const char* self_name = ii_src_intern_cstr(context->src, "self");
-        AstParam* self_param = ii_ast_param_sp(context->ast, _prev_span(context), self_name, NULL);
+        AstParam* self_param = ii_ast_param_sp(context->ast, _prev_span(context), self_name, nullptr);
         ii_ast_method_overload_add_param(overload, self_param);
 
         /* Comma means more parameters */
@@ -318,7 +318,7 @@ static void _parse_method(ParserContext* context, AstBlueprintDecl* bp)
 
     /* Get or create method for this name */
     AstMethod* method = ii_ast_method_get_or_add(bp, method_name);
-    if (method == NULL) {
+    if (method == nullptr) {
         method = ii_ast_method(context->ast, method_name);
         ii_ast_blueprint_add_method(bp, method);
     }
@@ -420,7 +420,7 @@ static AstBlueprintDecl* _parse_blueprint(ParserContext* context)
     /* Expect colon after name */
     if (!_expect(context, LEXER_TOK_COLON)) {
         _sync_to_decl(context);
-        return NULL;
+        return nullptr;
     }
 
     AstBlueprintDecl* bp = ii_ast_blueprint_decl_sp(context->ast, name_span, name);
@@ -493,7 +493,7 @@ static AstFuncDecl* _parse_func(ParserContext* context)
     const char* name = _sym_text(context);
     _advance(context);
 
-    AstFuncDecl* func = ii_ast_func_decl_sp(context->ast, name_span, name, NULL);
+    AstFuncDecl* func = ii_ast_func_decl_sp(context->ast, name_span, name, nullptr);
 
     /* Expect opening paren */
     if (!_expect(context, LEXER_TOK_LPAREN)) {
@@ -563,7 +563,7 @@ AstNode* ii_parser_parse_declaration(ParserContext* context)
         _diag_error(context, "Expected function or blueprint declaration");
         _advance(context);
         _sync_to_decl(context);
-        return NULL;
+        return nullptr;
     }
 
     /* Two-peek lookahead: ':' means blueprint, '(' means function */
@@ -576,6 +576,6 @@ AstNode* ii_parser_parse_declaration(ParserContext* context)
         _diag_error(context, "Expected ':' or '(' after identifier");
         _advance(context);
         _sync_to_decl(context);
-        return NULL;
+        return nullptr;
     }
 }

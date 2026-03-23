@@ -142,18 +142,18 @@ static AstExpr* _parse_literal(ParserContext* context, SourceSpan span, const ch
     /* Type suffix detection: 1.5f, .5d, 10F */
     if (len > 0 &&
         (text[len - 1] == 'f' || text[len - 1] == 'F' || text[len - 1] == 'd' || text[len - 1] == 'D')) {
-        double val = strtod(text, NULL);
+        double val = strtod(text, nullptr);
         _advance(context);
         return (AstExpr*)ii_ast_literal_float_sp(context->ast, span, val);
     }
     /* Decimal point detection: 3.14, .5 */
-    if (strchr(text, '.') != NULL) {
-        double val = strtod(text, NULL);
+    if (strchr(text, '.') != nullptr) {
+        double val = strtod(text, nullptr);
         _advance(context);
         return (AstExpr*)ii_ast_literal_float_sp(context->ast, span, val);
     }
     /* Integer literal */
-    int64_t val = strtoll(text, NULL, 0);
+    int64_t val = strtoll(text, nullptr, 0);
     _advance(context);
     return (AstExpr*)ii_ast_literal_int_sp(context->ast, span, val);
 }

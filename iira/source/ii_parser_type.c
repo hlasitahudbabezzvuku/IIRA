@@ -61,7 +61,7 @@ static AstType* _parse_anon_type(ParserContext* context)
         AstType* field_type = ii_parser_parse_type(context);
 
         /* Optional default value */
-        AstExpr* default_val = NULL;
+        AstExpr* default_val = nullptr;
         if (_match(context, LEXER_TOK_ASSIGN)) {
             default_val = ii_parser_parse_expression(context);
         }
@@ -112,7 +112,7 @@ static AstType* _parse_type_suffixes(ParserContext* context, AstType* base)
             _advance(context);
 
             /* Empty brackets: dynamic array */
-            AstExpr* size_expr = NULL;
+            AstExpr* size_expr = nullptr;
             if (!_check(context, LEXER_TOK_RBRACKET)) {
                 size_expr = ii_parser_parse_expression(context);
             }
