@@ -39,6 +39,7 @@ void* uf_con_vector_push(UfConVector*, const void* data);
 void* uf_con_vector_get(UfConVector*, size_t index) _nodiscard_;
 void uf_con_vector_reserve(UfConVector*, size_t capacity);
 void uf_con_vector_remove(UfConVector*, size_t index);
+void uf_con_vector_pop(UfConVector*);
 
 /*
  * Those functions and structures are for Maps. Map is just a list of key-value pairs (a dictionary if you

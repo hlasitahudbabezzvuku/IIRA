@@ -135,6 +135,17 @@ void uf_con_vector_remove(UfConVector* vector, size_t index)
     vector->length--;
 }
 
+void uf_con_vector_pop(UfConVector* vector)
+{
+    uf_assert(vector != nullptr);
+
+    if _unlikely_ (vector->length == 0) {
+        uf_log_panic("Cannot pop from empty vector");
+    }
+
+    vector->length--;
+}
+
 size_t uf_con_vector_length(const UfConVector* vector)
 {
     return vector ? vector->length : 0;
