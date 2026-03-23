@@ -70,7 +70,7 @@ TraceScope _ii_trace_scope_enter(TraceContext* context, const char* func, const 
         .depth = context ? context->depth : 0,
     };
 
-    if (context == NULL) {
+    if (context == nullptr) {
         return scope;
     }
 
@@ -97,7 +97,7 @@ TraceScope _ii_trace_scope_enter_message(TraceContext* context, const char* func
         .depth = context ? context->depth : 0,
     };
 
-    if (context == NULL) {
+    if (context == nullptr) {
         return scope;
     }
 
@@ -121,7 +121,7 @@ TraceScope _ii_trace_scope_enter_message(TraceContext* context, const char* func
 
 void _ii_trace_scope_exit(TraceScope* scope)
 {
-    if (scope == NULL || scope->context == NULL) {
+    if (scope == nullptr || scope->context == nullptr) {
         return;
     }
 
@@ -138,7 +138,7 @@ void _ii_trace_scope_exit(TraceScope* scope)
 
 void _ii_trace_log(TraceContext* context, const char* file, int line, const char* format, ...)
 {
-    if (context == NULL || !context->enabled) {
+    if (context == nullptr || !context->enabled) {
         return;
     }
 
