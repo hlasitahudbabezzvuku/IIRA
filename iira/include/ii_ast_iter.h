@@ -33,7 +33,7 @@ static inline void _ast_foreach_init(AstForeach* iter, const UfConVector* vec)
     iter->vector = vec;
     iter->index = 0;
     iter->length = vec ? uf_con_vector_length(vec) : 0;
-    iter->current = NULL;
+    iter->current = nullptr;
 }
 
 static inline void _ast_foreach_next(AstForeach* iter)
@@ -55,7 +55,7 @@ static inline bool _ast_foreach_done(const AstForeach* iter)
         for (; !_ast_foreach_done(&iter_name##_iter__); _ast_foreach_next(&iter_name##_iter__)) {            \
             type* iter_name = *(type**)uf_con_vector_get((UfConVector*)iter_name##_iter__.vector,            \
                                                          iter_name##_iter__.index);                          \
-            if (iter_name != NULL)
+            if (iter_name != nullptr)
 
 #define _AST_FOREACH_END                                                                                     \
     }                                                                                                        \
@@ -76,30 +76,31 @@ static inline bool _ast_foreach_done(const AstForeach* iter)
     while (0)
 
 #define ast_foreach_funcs(ast_or_prog, var)                                                                  \
-    _AST_FOREACH_BEGIN(AstFuncDecl, var, (((ast_or_prog)->program) ? (ast_or_prog)->program->funcs : NULL))
+    _AST_FOREACH_BEGIN(AstFuncDecl, var, (((ast_or_prog)->program) ? (ast_or_prog)->program->funcs : nullptr))
 
 #define ast_foreach_blueprints(ast_or_prog, var)                                                             \
     _AST_FOREACH_BEGIN(AstBlueprintDecl, var,                                                                \
-                       (((ast_or_prog)->program) ? (ast_or_prog)->program->blueprints : NULL))
+                       (((ast_or_prog)->program) ? (ast_or_prog)->program->blueprints : nullptr))
 
-#define ast_foreach_params(func, var) _AST_FOREACH_BEGIN(AstParam, var, ((func) ? (func)->params : NULL))
+#define ast_foreach_params(func, var) _AST_FOREACH_BEGIN(AstParam, var, ((func) ? (func)->params : nullptr))
 
-#define ast_foreach_stmts(block, var) _AST_FOREACH_BEGIN(AstStmt, var, ((block) ? (block)->stmts : NULL))
+#define ast_foreach_stmts(block, var) _AST_FOREACH_BEGIN(AstStmt, var, ((block) ? (block)->stmts : nullptr))
 
-#define ast_foreach_parents(bp, var) _AST_FOREACH_BEGIN(AstInherit, var, ((bp) ? (bp)->parents : NULL))
+#define ast_foreach_parents(bp, var) _AST_FOREACH_BEGIN(AstInherit, var, ((bp) ? (bp)->parents : nullptr))
 
-#define ast_foreach_fields(bp, var) _AST_FOREACH_BEGIN(AstField, var, ((bp) ? (bp)->fields : NULL))
+#define ast_foreach_fields(bp, var) _AST_FOREACH_BEGIN(AstField, var, ((bp) ? (bp)->fields : nullptr))
 
-#define ast_foreach_methods(bp, var) _AST_FOREACH_BEGIN(AstMethod, var, ((bp) ? (bp)->methods : NULL))
+#define ast_foreach_methods(bp, var) _AST_FOREACH_BEGIN(AstMethod, var, ((bp) ? (bp)->methods : nullptr))
 
 #define ast_foreach_overloads(method, var)                                                                   \
-    _AST_FOREACH_BEGIN(AstMethodOverload, var, ((method) ? (method)->overloads : NULL))
+    _AST_FOREACH_BEGIN(AstMethodOverload, var, ((method) ? (method)->overloads : nullptr))
 
-#define ast_foreach_call_args(call, var) _AST_FOREACH_BEGIN(AstExpr, var, ((call) ? (call)->args : NULL))
+#define ast_foreach_call_args(call, var) _AST_FOREACH_BEGIN(AstExpr, var, ((call) ? (call)->args : nullptr))
 
-#define ast_foreach_ffi_args(ffi, var) _AST_FOREACH_BEGIN(AstExpr, var, ((ffi) ? (ffi)->args : NULL))
+#define ast_foreach_ffi_args(ffi, var) _AST_FOREACH_BEGIN(AstExpr, var, ((ffi) ? (ffi)->args : nullptr))
 
-#define ast_foreach_init_values(init, var) _AST_FOREACH_BEGIN(AstExpr, var, ((init) ? (init)->values : NULL))
+#define ast_foreach_init_values(init, var)                                                                   \
+    _AST_FOREACH_BEGIN(AstExpr, var, ((init) ? (init)->values : nullptr))
 
 #define ast_foreach_end _AST_FOREACH_END
 
@@ -108,24 +109,24 @@ static inline bool _ast_foreach_done(const AstForeach* iter)
 #define ast_foreach_decl(ast, var)                                                                           \
     do {                                                                                                     \
         AstForeach _decl_iter__;                                                                             \
-        const UfConVector* _funcs_vec__ = ((ast)->program ? (ast)->program->funcs : NULL);                   \
-        const UfConVector* _bps_vec__ = ((ast)->program ? (ast)->program->blueprints : NULL);                \
+        const UfConVector* _funcs_vec__ = ((ast)->program ? (ast)->program->funcs : nullptr);                \
+        const UfConVector* _bps_vec__ = ((ast)->program ? (ast)->program->blueprints : nullptr);             \
         size_t _funcs_len__ = _funcs_vec__ ? uf_con_vector_length(_funcs_vec__) : 0;                         \
         size_t _bps_len__ = _bps_vec__ ? uf_con_vector_length(_bps_vec__) : 0;                               \
-        _ast_foreach_init(&_decl_iter__, NULL);                                                              \
+        _ast_foreach_init(&_decl_iter__, nullptr);                                                           \
         for (size_t _decl_idx__ = 0; _decl_idx__ < _funcs_len__ + _bps_len__; _decl_idx__++) {               \
-            Ast* var = NULL;                                                                                 \
+            Ast* var = nullptr;                                                                              \
             if (_decl_idx__ < _funcs_len__) {                                                                \
                 var = (Ast*)*(AstFuncDecl**)uf_con_vector_get(_funcs_vec__, _decl_idx__);                    \
             } else {                                                                                         \
                 var = (Ast*)*(AstBlueprintDecl**)uf_con_vector_get(_bps_vec__, _decl_idx__ - _funcs_len__);  \
             }                                                                                                \
-            if (var != NULL)
+            if (var != nullptr)
 
 #define ast_foreach_init_named(init, var)                                                                    \
     do {                                                                                                     \
         AstForeach _named_iter__;                                                                            \
-        _ast_foreach_init(&_named_iter__, (const UfConVector*)((init) ? (init)->named : NULL));              \
+        _ast_foreach_init(&_named_iter__, (const UfConVector*)((init) ? (init)->named : nullptr));           \
         for (; !_ast_foreach_done(&_named_iter__); _ast_foreach_next(&_named_iter__)) {                      \
             struct {                                                                                         \
                 const char* name;                                                                            \
@@ -136,7 +137,7 @@ static inline bool _ast_foreach_done(const AstForeach* iter)
 #define ast_foreach_init_indexed(init, var)                                                                  \
     do {                                                                                                     \
         AstForeach _indexed_iter__;                                                                          \
-        _ast_foreach_init(&_indexed_iter__, (const UfConVector*)((init) ? (init)->indexed : NULL));          \
+        _ast_foreach_init(&_indexed_iter__, (const UfConVector*)((init) ? (init)->indexed : nullptr));       \
         for (; !_ast_foreach_done(&_indexed_iter__); _ast_foreach_next(&_indexed_iter__)) {                  \
             struct {                                                                                         \
                 AstExpr* index;                                                                              \
@@ -158,7 +159,7 @@ static inline void _ast_foreach_rev_init(AstForeach* iter, const UfConVector* ve
     iter->vector = vec;
     iter->length = vec ? uf_con_vector_length(vec) : 0;
     iter->index = iter->length;
-    iter->current = NULL;
+    iter->current = nullptr;
 }
 
 static inline void _ast_foreach_rev_next(AstForeach* iter)
@@ -180,7 +181,7 @@ static inline bool _ast_foreach_rev_done(const AstForeach* iter)
         for (; !_ast_foreach_rev_done(&iter_name##_riter__); _ast_foreach_rev_next(&iter_name##_riter__)) {  \
             type* iter_name = *(type**)uf_con_vector_get((UfConVector*)iter_name##_riter__.vector,           \
                                                          iter_name##_riter__.index - 1);                     \
-            if (iter_name != NULL)
+            if (iter_name != nullptr)
 
 #define _AST_FOREACH_REV_END                                                                                 \
     }                                                                                                        \
@@ -189,10 +190,10 @@ static inline bool _ast_foreach_rev_done(const AstForeach* iter)
 
 #define ast_foreach_funcs_rev(ast_or_prog, var)                                                              \
     _AST_FOREACH_REV_BEGIN(AstFuncDecl, var,                                                                 \
-                           (((ast_or_prog)->program) ? (ast_or_prog)->program->funcs : NULL))
+                           (((ast_or_prog)->program) ? (ast_or_prog)->program->funcs : nullptr))
 
 #define ast_foreach_blueprints_rev(ast_or_prog, var)                                                         \
     _AST_FOREACH_REV_BEGIN(AstBlueprintDecl, var,                                                            \
-                           (((ast_or_prog)->program) ? (ast_or_prog)->program->blueprints : NULL))
+                           (((ast_or_prog)->program) ? (ast_or_prog)->program->blueprints : nullptr))
 
 #define ast_foreach_end_rev _AST_FOREACH_REV_END
