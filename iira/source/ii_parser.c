@@ -145,8 +145,6 @@ ParserContext* ii_parser_context_new(Ast* ast, const LexerToken* token_vector, s
         }
     }
 
-    ii_diag_output(context->diag);
-
     return context;
 }
 
