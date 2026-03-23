@@ -45,7 +45,7 @@ AstFuncDecl* ii_ast_add_func(Ast* ast, const char* name)
     func->base.kind = AST_KIND_FUNC_DECL;
     func->name = name;
 
-    if (ast->program->funcs == NULL) {
+    if (ast->program->funcs == nullptr) {
         ast->program->funcs = uf_con_vector_new(sizeof(AstFuncDecl*));
     }
     uf_con_vector_push(ast->program->funcs, &func);
@@ -59,7 +59,7 @@ AstBlueprintDecl* ii_ast_add_blueprint(Ast* ast, const char* name)
     bp->base.kind = AST_KIND_BLUEPRINT_DECL;
     bp->name = name;
 
-    if (ast->program->blueprints == NULL) {
+    if (ast->program->blueprints == nullptr) {
         ast->program->blueprints = uf_con_vector_new(sizeof(AstBlueprintDecl*));
     }
     uf_con_vector_push(ast->program->blueprints, &bp);
@@ -76,7 +76,7 @@ void ii_ast_program_finalize(Ast* ast)
 void ii_ast_program_add_func(Ast* ast, AstFuncDecl* func)
 {
     AstProgram* prog = ii_ast_get_program(ast);
-    if (prog->funcs == NULL) {
+    if (prog->funcs == nullptr) {
         prog->funcs = uf_con_vector_new(sizeof(AstFuncDecl*));
     }
     uf_con_vector_push(prog->funcs, &func);
@@ -85,7 +85,7 @@ void ii_ast_program_add_func(Ast* ast, AstFuncDecl* func)
 void ii_ast_program_add_blueprint(Ast* ast, AstBlueprintDecl* blueprint)
 {
     AstProgram* prog = ii_ast_get_program(ast);
-    if (prog->blueprints == NULL) {
+    if (prog->blueprints == nullptr) {
         prog->blueprints = uf_con_vector_new(sizeof(AstBlueprintDecl*));
     }
     uf_con_vector_push(prog->blueprints, &blueprint);
@@ -109,7 +109,7 @@ AstType* ii_ast_type_new(Ast* ast, enum AstKind kind)
 {
     AstType* type = uf_mem_region_zalloc(ast->arena, sizeof(AstType));
     type->base.kind = kind;
-    type->tast = NULL;
+    type->tast = nullptr;
     return type;
 }
 
@@ -144,7 +144,7 @@ AstType* ii_ast_type_blueprint(Ast* ast, const char* name)
     AstType* type = ii_ast_type_new(ast, AST_KIND_TYPE_BLUEPRINT);
     type->variant = AST_TYPE_KIND_BLUEPRINT;
     type->variant_u.blueprint.name = name;
-    type->variant_u.blueprint.resolved = NULL;
+    type->variant_u.blueprint.resolved = nullptr;
     return type;
 }
 
@@ -152,7 +152,7 @@ AstType* ii_ast_type_anon(Ast* ast, const char* auto_name)
 {
     AstType* type = ii_ast_type_new(ast, AST_KIND_TYPE_ANON);
     type->variant = AST_TYPE_KIND_ANON;
-    type->variant_u.anon.fields = NULL;
+    type->variant_u.anon.fields = nullptr;
     type->variant_u.anon.field_count = 0;
     type->variant_u.anon.auto_name = auto_name;
     return type;
@@ -160,7 +160,7 @@ AstType* ii_ast_type_anon(Ast* ast, const char* auto_name)
 
 void ii_ast_type_anon_add_field(Ast* ast, AstType* anon, AstField* field)
 {
-    if (anon->variant_u.anon.fields == NULL) {
+    if (anon->variant_u.anon.fields == nullptr) {
         anon->variant_u.anon.fields = uf_mem_region_zalloc(ast->arena, sizeof(AstField) * 4);
         anon->variant_u.anon.field_count = 0;
     }
@@ -236,7 +236,7 @@ AstMethodOverload* ii_ast_method_overload(Ast* ast, bool is_static, AstType* ret
     overload->is_static = is_static;
     overload->return_type = return_type;
     overload->params = uf_con_vector_new(sizeof(AstParam*));
-    overload->body = NULL;
+    overload->body = nullptr;
     return overload;
 }
 
@@ -254,7 +254,7 @@ AstInherit* ii_ast_inherit(Ast* ast, const char* parent_name)
     AstInherit* inherit = uf_mem_region_zalloc(ast->arena, sizeof(AstInherit));
     inherit->base.kind = AST_KIND_INHERIT;
     inherit->parent_name = parent_name;
-    inherit->resolved = NULL;
+    inherit->resolved = nullptr;
     inherit->field_aliases = uf_con_vector_new(sizeof(struct {
         const char* original;
         const char* alias;
@@ -282,7 +282,7 @@ AstFuncDecl* ii_ast_func_decl(Ast* ast, const char* name, AstType* return_type)
     function->name = name;
     function->return_type = return_type;
     function->params = uf_con_vector_new(sizeof(AstParam*));
-    function->body = NULL;
+    function->body = nullptr;
     return function;
 }
 
@@ -293,7 +293,7 @@ void ii_ast_func_add_param(AstFuncDecl* func, AstParam* param)
 
 void ii_ast_blueprint_add_field(AstBlueprintDecl* blueprint, AstField* field)
 {
-    if (blueprint->fields == NULL) {
+    if (blueprint->fields == nullptr) {
         blueprint->fields = uf_con_vector_new(sizeof(AstField*));
     }
     uf_con_vector_push(blueprint->fields, &field);
@@ -301,7 +301,7 @@ void ii_ast_blueprint_add_field(AstBlueprintDecl* blueprint, AstField* field)
 
 void ii_ast_blueprint_add_method(AstBlueprintDecl* blueprint, AstMethod* method)
 {
-    if (blueprint->methods == NULL) {
+    if (blueprint->methods == nullptr) {
         blueprint->methods = uf_con_vector_new(sizeof(AstMethod*));
     }
     uf_con_vector_push(blueprint->methods, &method);
@@ -309,7 +309,7 @@ void ii_ast_blueprint_add_method(AstBlueprintDecl* blueprint, AstMethod* method)
 
 void ii_ast_blueprint_add_inherit(AstBlueprintDecl* blueprint, AstInherit* inherit)
 {
-    if (blueprint->parents == NULL) {
+    if (blueprint->parents == nullptr) {
         blueprint->parents = uf_con_vector_new(sizeof(AstInherit*));
     }
     uf_con_vector_push(blueprint->parents, &inherit);
@@ -329,7 +329,7 @@ void ii_ast_inherit_add_alias(AstInherit* inherit, const char* original, const c
 
 AstMethod* ii_ast_method_get_or_add(AstBlueprintDecl* blueprint, const char* name)
 {
-    if (blueprint->methods != NULL) {
+    if (blueprint->methods != nullptr) {
         size_t len = uf_con_vector_length(blueprint->methods);
         for (size_t i = 0; i < len; i++) {
             AstMethod* m = *(AstMethod**)uf_con_vector_get(blueprint->methods, i);
@@ -338,12 +338,12 @@ AstMethod* ii_ast_method_get_or_add(AstBlueprintDecl* blueprint, const char* nam
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 void ii_ast_method_add_overload(AstMethod* method, AstMethodOverload* overload)
 {
-    if (method->overloads == NULL) {
+    if (method->overloads == nullptr) {
         method->overloads = uf_con_vector_new(sizeof(AstMethodOverload*));
     }
     uf_con_vector_push(method->overloads, &overload);
@@ -351,7 +351,7 @@ void ii_ast_method_add_overload(AstMethod* method, AstMethodOverload* overload)
 
 void ii_ast_method_overload_add_param(AstMethodOverload* overload, AstParam* param)
 {
-    if (overload->params == NULL) {
+    if (overload->params == nullptr) {
         overload->params = uf_con_vector_new(sizeof(AstParam*));
     }
     uf_con_vector_push(overload->params, &param);
@@ -584,7 +584,7 @@ AstLiteral* ii_ast_literal_int(Ast* ast, int64_t value)
 {
     AstLiteral* lit = uf_mem_region_zalloc(ast->arena, sizeof(AstLiteral));
     lit->expr.base.kind = AST_KIND_LITERAL;
-    lit->expr.tast = NULL;
+    lit->expr.tast = nullptr;
     lit->variant = LITERAL_INT;
     lit->literal.int_value = value;
     return lit;
@@ -594,7 +594,7 @@ AstLiteral* ii_ast_literal_float(Ast* ast, double value)
 {
     AstLiteral* lit = uf_mem_region_zalloc(ast->arena, sizeof(AstLiteral));
     lit->expr.base.kind = AST_KIND_LITERAL;
-    lit->expr.tast = NULL;
+    lit->expr.tast = nullptr;
     lit->variant = LITERAL_FLOAT;
     lit->literal.float_value = value;
     return lit;
@@ -604,7 +604,7 @@ AstLiteral* ii_ast_literal_string(Ast* ast, const char* value)
 {
     AstLiteral* lit = uf_mem_region_zalloc(ast->arena, sizeof(AstLiteral));
     lit->expr.base.kind = AST_KIND_LITERAL;
-    lit->expr.tast = NULL;
+    lit->expr.tast = nullptr;
     lit->variant = LITERAL_STRING;
     lit->literal.string_value = value;
     return lit;
@@ -614,7 +614,7 @@ AstLiteral* ii_ast_literal_bool(Ast* ast, bool value)
 {
     AstLiteral* lit = uf_mem_region_zalloc(ast->arena, sizeof(AstLiteral));
     lit->expr.base.kind = AST_KIND_LITERAL;
-    lit->expr.tast = NULL;
+    lit->expr.tast = nullptr;
     lit->variant = LITERAL_BOOL;
     lit->literal.bool_value = value;
     return lit;
@@ -624,7 +624,7 @@ AstLiteral* ii_ast_literal_char(Ast* ast, char value)
 {
     AstLiteral* lit = uf_mem_region_zalloc(ast->arena, sizeof(AstLiteral));
     lit->expr.base.kind = AST_KIND_LITERAL;
-    lit->expr.tast = NULL;
+    lit->expr.tast = nullptr;
     lit->variant = LITERAL_CHAR;
     lit->literal.char_value = value;
     return lit;
@@ -634,7 +634,7 @@ AstLiteral* ii_ast_literal_null(Ast* ast)
 {
     AstLiteral* lit = uf_mem_region_zalloc(ast->arena, sizeof(AstLiteral));
     lit->expr.base.kind = AST_KIND_LITERAL;
-    lit->expr.tast = NULL;
+    lit->expr.tast = nullptr;
     lit->variant = LITERAL_NULL;
     return lit;
 }
@@ -685,7 +685,7 @@ AstIdent* ii_ast_ident(Ast* ast, const char* name)
 {
     AstIdent* ident = uf_mem_region_zalloc(ast->arena, sizeof(AstIdent));
     ident->expr.base.kind = AST_KIND_IDENT;
-    ident->expr.tast = NULL;
+    ident->expr.tast = nullptr;
     ident->name = name;
     ident->resolved_kind = AST_IDENT_NONE;
     return ident;
@@ -695,7 +695,7 @@ AstBinary* ii_ast_binary(Ast* ast, AstExpr* left, enum LexerTokenType op, AstExp
 {
     AstBinary* bin = uf_mem_region_zalloc(ast->arena, sizeof(AstBinary));
     bin->expr.base.kind = AST_KIND_BINARY;
-    bin->expr.tast = NULL;
+    bin->expr.tast = nullptr;
     bin->left = left;
     bin->right = right;
     bin->op = op;
@@ -706,7 +706,7 @@ AstUnary* ii_ast_unary(Ast* ast, enum LexerTokenType op, AstExpr* operand)
 {
     AstUnary* un = uf_mem_region_zalloc(ast->arena, sizeof(AstUnary));
     un->expr.base.kind = AST_KIND_UNARY;
-    un->expr.tast = NULL;
+    un->expr.tast = nullptr;
     un->operand = operand;
     un->op = op;
     return un;
@@ -716,10 +716,10 @@ AstCall* ii_ast_call(Ast* ast, AstExpr* callee)
 {
     AstCall* call = uf_mem_region_zalloc(ast->arena, sizeof(AstCall));
     call->expr.base.kind = AST_KIND_CALL;
-    call->expr.tast = NULL;
+    call->expr.tast = nullptr;
     call->callee = callee;
     call->args = uf_con_vector_new(sizeof(AstExpr*));
-    call->resolved_overload = NULL;
+    call->resolved_overload = nullptr;
     return call;
 }
 
@@ -732,12 +732,12 @@ AstMember* ii_ast_member(Ast* ast, AstExpr* object, const char* member_name)
 {
     AstMember* member = uf_mem_region_zalloc(ast->arena, sizeof(AstMember));
     member->expr.base.kind = AST_KIND_MEMBER;
-    member->expr.tast = NULL;
+    member->expr.tast = nullptr;
     member->object = object;
     member->member_name = member_name;
     member->is_method_call = false;
-    member->resolved_field = NULL;
-    member->resolved_method = NULL;
+    member->resolved_field = nullptr;
+    member->resolved_method = nullptr;
     return member;
 }
 
@@ -745,7 +745,7 @@ AstIndex* ii_ast_index(Ast* ast, AstExpr* array, AstExpr* index)
 {
     AstIndex* idx = uf_mem_region_zalloc(ast->arena, sizeof(AstIndex));
     idx->expr.base.kind = AST_KIND_INDEX;
-    idx->expr.tast = NULL;
+    idx->expr.tast = nullptr;
     idx->array = array;
     idx->index = index;
     return idx;
@@ -755,7 +755,7 @@ AstInit* ii_ast_init(Ast* ast)
 {
     AstInit* init = uf_mem_region_zalloc(ast->arena, sizeof(AstInit));
     init->expr.base.kind = AST_KIND_INIT;
-    init->expr.tast = NULL;
+    init->expr.tast = nullptr;
     init->values = uf_con_vector_new(sizeof(AstExpr*));
     init->named = uf_con_vector_new(sizeof(struct {
         const char* name;
@@ -765,7 +765,7 @@ AstInit* ii_ast_init(Ast* ast)
         AstExpr* index;
         AstExpr* value;
     }));
-    init->target_type = NULL;
+    init->target_type = nullptr;
     return init;
 }
 
@@ -796,7 +796,7 @@ AstCast* ii_ast_cast(Ast* ast, AstType* target_type, AstExpr* expr)
 {
     AstCast* cast = uf_mem_region_zalloc(ast->arena, sizeof(AstCast));
     cast->expr.base.kind = AST_KIND_CAST;
-    cast->expr.tast = NULL;
+    cast->expr.tast = nullptr;
     cast->target_type = target_type;
     cast->expr_ = expr;
     return cast;
@@ -806,7 +806,7 @@ AstFfi* ii_ast_ffi(Ast* ast, const char* function_name)
 {
     AstFfi* ffi = uf_mem_region_zalloc(ast->arena, sizeof(AstFfi));
     ffi->expr.base.kind = AST_KIND_FFI;
-    ffi->expr.tast = NULL;
+    ffi->expr.tast = nullptr;
     ffi->function_name = function_name;
     ffi->args = uf_con_vector_new(sizeof(AstExpr*));
     return ffi;
@@ -2171,7 +2171,7 @@ void ii_ast_freep(Ast** ast)
     }
 
     ii_ast_free(*ast);
-    *ast = NULL;
+    *ast = nullptr;
 }
 
 void ii_ast_print_debug(const Ast* ast)
