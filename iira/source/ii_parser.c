@@ -139,7 +139,7 @@ ParserContext* ii_parser_context_new(Ast* ast, const LexerToken* token_vector, s
 
         AstNode* declaration = ii_parser_parse_declaration(context);
 
-        if (declaration == NULL) {
+        if (declaration == nullptr) {
             _sync_to_decl(context);
             continue;
         }
@@ -166,5 +166,5 @@ void ii_parser_context_freep(ParserContext** context_ptr)
     }
 
     ii_parser_context_free(*context_ptr);
-    *context_ptr = NULL;
+    *context_ptr = nullptr;
 }
