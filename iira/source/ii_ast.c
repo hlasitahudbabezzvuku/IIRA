@@ -898,6 +898,29 @@ AstError* ii_ast_error(Ast* ast, SourceSpan span)
 }
 
 /*
+ * TAST (Typed AST) helpers.
+ */
+
+TastExpr* ii_tast_expr_new(Ast* ast)
+{
+    TastExpr* tast = uf_mem_region_zalloc(ast->arena, sizeof(TastExpr));
+    tast->is_lvalue = false;
+    tast->is_constant = false;
+    tast->const_int_value = 0;
+    return tast;
+}
+
+TastType* ii_tast_type_new(Ast* ast)
+{
+    TastType* tast = uf_mem_region_zalloc(ast->arena, sizeof(TastType));
+    tast->state = TAST_RESOLUTION_UNRESOLVED;
+    tast->size = 0;
+    tast->alignment = 0;
+    tast->c_repr = nullptr;
+    return tast;
+}
+
+/*
  * Traversal helpers.
  */
 

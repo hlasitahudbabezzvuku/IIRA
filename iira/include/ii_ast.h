@@ -783,6 +783,13 @@ AstFfi* ii_ast_ffi_sp(Ast* ast, SourceSpan span, const char* function_name);
 AstError* ii_ast_error(Ast* ast, SourceSpan span);
 
 /*
+ * TAST (Typed AST) helpers - allocate and initialize TAST extensions.
+ */
+
+TastExpr* ii_tast_expr_new(Ast* ast) _nodiscard_;
+TastType* ii_tast_type_new(Ast* ast) _nodiscard_;
+
+/*
  * Traversal helpers.
  */
 
