@@ -8,7 +8,7 @@ createNode(v: int): Node* = {
     var node: Node;
     node.value = v;
     node.next = 0;
-    return node;
+    return &node;
 }
 
 getValue(n: Node*): int = {
