@@ -95,6 +95,12 @@ static inline bool _ast_foreach_done(const AstForeach* iter)
 
 #define ast_foreach_methods(bp, var) _AST_FOREACH_BEGIN(AstMethod, var, ((bp) ? (bp)->methods : nullptr))
 
+#define ast_foreach_flat_fields(bp, var)                                                                     \
+    _AST_FOREACH_BEGIN(AstField, var, ((bp) ? (bp)->flat_fields : nullptr))
+
+#define ast_foreach_flat_methods(bp, var)                                                                    \
+    _AST_FOREACH_BEGIN(AstMethod, var, ((bp) ? (bp)->flat_methods : nullptr))
+
 #define ast_foreach_overloads(method, var)                                                                   \
     _AST_FOREACH_BEGIN(AstMethodOverload, var, ((method) ? (method)->overloads : nullptr))
 
