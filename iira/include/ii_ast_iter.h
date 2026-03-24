@@ -139,22 +139,34 @@ static inline bool _ast_foreach_done(const AstForeach* iter)
         AstForeach _named_iter__;                                                                            \
         _ast_foreach_init(&_named_iter__, (const UfConVector*)((init) ? (init)->named : nullptr));           \
         for (; !_ast_foreach_done(&_named_iter__); _ast_foreach_next(&_named_iter__)) {                      \
-            struct {                                                                                         \
+            struct _named_init_entry_ {                                                                      \
                 const char* name;                                                                            \
                 AstExpr* value;                                                                              \
-            }* var = *(typeof(var)**)uf_con_vector_get((const UfConVector*)_named_iter__.vector,             \
-                                                       _named_iter__.index)
+            } var = *(struct _named_init_entry_*)uf_con_vector_get((UfConVector*)_named_iter__.vector,       \
+                                                                   _named_iter__.index);                     \
+            if (true)
 
 #define ast_foreach_init_indexed(init, var)                                                                  \
     do {                                                                                                     \
         AstForeach _indexed_iter__;                                                                          \
         _ast_foreach_init(&_indexed_iter__, (const UfConVector*)((init) ? (init)->indexed : nullptr));       \
         for (; !_ast_foreach_done(&_indexed_iter__); _ast_foreach_next(&_indexed_iter__)) {                  \
-            struct {                                                                                         \
+            struct _indexed_init_entry_ {                                                                    \
                 AstExpr* index;                                                                              \
                 AstExpr* value;                                                                              \
-            }* var = *(typeof(var)**)uf_con_vector_get((const UfConVector*)_indexed_iter__.vector,           \
-                                                       _indexed_iter__.index)
+            } var = *(struct _indexed_init_entry_*)uf_con_vector_get((UfConVector*)_indexed_iter__.vector,   \
+                                                                     _indexed_iter__.index);                 \
+            if (true)
+
+#define ast_foreach_init_named_end                                                                           \
+    }                                                                                                        \
+    }                                                                                                        \
+    while (0)
+
+#define ast_foreach_init_indexed_end                                                                         \
+    }                                                                                                        \
+    }                                                                                                        \
+    while (0)
 
 #define ast_foreach_idx(ast_or_prog, type, var) _AST_FOREACH_BEGIN_SIMPLE(type, var, ast_or_prog)
 
