@@ -1,0 +1,8 @@
+// Test: Integer to float coercion in expressions/comparisons
+main(): bool = {
+    var result: bool = 5 < 3.14;
+    var result2: bool = 10 > 2.5;
+    var result3: bool = 5 <= 3.14;
+    var result4: bool = 10 >= 2.5;
+    return result && result2 && result3 && result4;
+}

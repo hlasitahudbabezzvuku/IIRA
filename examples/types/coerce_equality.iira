@@ -1,0 +1,10 @@
+// Test: Equality with zero and null
+main(): bool = {
+    var p: int* = 0;
+    var result: bool = (p == null);
+    var result2: bool = (p == 0);
+    var x: int = 5;
+    var result3: bool = (x == 0);
+    var result4: bool = (x == null);
+    return result;
+}

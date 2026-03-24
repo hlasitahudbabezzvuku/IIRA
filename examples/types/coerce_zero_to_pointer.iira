@@ -1,0 +1,7 @@
+// Test: Zero and null to pointer coercion
+main(): int = {
+    var p: int* = 0;
+    var p2: int* = null;
+    var p3: int* = 0;
+    return 0;
+}

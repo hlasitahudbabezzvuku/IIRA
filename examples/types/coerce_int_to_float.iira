@@ -1,0 +1,8 @@
+// Test: Integer to float coercion in initialization
+main(): int = {
+    var f: float = 0;
+    var d: double = 0;
+    var f2: float = 42;
+    var d2: double = 123;
+    return 0;
+}
