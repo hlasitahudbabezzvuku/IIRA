@@ -494,10 +494,12 @@ static AstFuncDecl* _parse_func(ParserContext* context)
     _advance(context);
 
     AstFuncDecl* func = ii_ast_func_decl_sp(context->ast, name_span, name, nullptr);
+    bool parsed_successfully = false;
 
     /* Expect opening paren */
     if (!_expect(context, LEXER_TOK_LPAREN)) {
         _sync_to_decl(context);
+        uf_con_vector_free(func->params);
         return func;
     }
 
@@ -527,6 +529,7 @@ static AstFuncDecl* _parse_func(ParserContext* context)
     /* Expect colon before return type */
     if (!_expect(context, LEXER_TOK_COLON)) {
         _sync_to_decl(context);
+        uf_con_vector_free(func->params);
         return func;
     }
 
@@ -535,13 +538,20 @@ static AstFuncDecl* _parse_func(ParserContext* context)
     /* Optional body */
     if (_match(context, LEXER_TOK_ASSIGN)) {
         func->body = ii_parser_parse_block(context);
+        parsed_successfully = (func->body != nullptr);
     } else {
-        if (!_expect(context, LEXER_TOK_SEMICOLON)) {
+        if (_expect(context, LEXER_TOK_SEMICOLON)) {
+            parsed_successfully = true;
+        } else {
             _sync_to_decl(context);
         }
     }
 
-    ii_ast_program_add_func(context->ast, func);
+    if (parsed_successfully) {
+        ii_ast_program_add_func(context->ast, func);
+    } else {
+        uf_con_vector_free(func->params);
+    }
     return func;
 }
 
