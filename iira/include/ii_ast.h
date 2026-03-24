@@ -790,6 +790,93 @@ TastExpr* ii_tast_expr_new(Ast* ast) _nodiscard_;
 TastType* ii_tast_type_new(Ast* ast) _nodiscard_;
 
 /*
+ * Type accessors - safely access variant_u union fields.
+ */
+
+static inline enum LexerPrimitiveType ii_ast_type_get_primitive(const AstType* type)
+{
+    return type->variant_u.primitive.prim_type;
+}
+
+static inline AstType* ii_ast_type_get_pointed(const AstType* type)
+{
+    return type->variant_u.pointer.pointed_type;
+}
+
+static inline AstType* ii_ast_type_get_array_element(const AstType* type)
+{
+    return type->variant_u.array.element_type;
+}
+
+static inline AstExpr* ii_ast_type_get_array_size(const AstType* type)
+{
+    return type->variant_u.array.size_expr;
+}
+
+static inline AstBlueprintDecl* ii_ast_type_get_blueprint_resolved(const AstType* type)
+{
+    return type->variant_u.blueprint.resolved;
+}
+
+/*
+ * Node accessors - safely access base node fields.
+ */
+
+static inline enum AstKind ii_ast_node_get_kind(const AstNode* node)
+{
+    return node->kind;
+}
+
+static inline SourceSpan ii_ast_node_get_span(const AstNode* node)
+{
+    return node->span;
+}
+
+static inline enum AstKind ii_ast_expr_get_kind(const AstExpr* expr)
+{
+    return expr->base.kind;
+}
+
+static inline SourceSpan ii_ast_expr_get_span(const AstExpr* expr)
+{
+    return expr->base.span;
+}
+
+/*
+ * TAST helpers - manipulate TAST extension structures.
+ */
+
+static inline void ii_tast_expr_set_type(TastExpr* tast, AstType* type)
+{
+    tast->resolved_type = type;
+}
+
+static inline void ii_tast_expr_set_lvalue(TastExpr* tast, bool is_lvalue)
+{
+    tast->is_lvalue = is_lvalue;
+}
+
+static inline void ii_tast_expr_set_constant_int(TastExpr* tast, int32_t value)
+{
+    tast->is_constant = true;
+    tast->const_int_value = value;
+}
+
+static inline void ii_tast_type_set_resolved(TastType* tast, uint32_t size, uint32_t align,
+                                             const char* c_repr)
+{
+    tast->state = TAST_RESOLUTION_RESOLVED;
+    tast->size = size;
+    tast->alignment = align;
+    tast->c_repr = c_repr;
+}
+
+static inline bool ii_tast_type_is_resolved(const TastType* tast)
+{
+    return tast->state == TAST_RESOLUTION_RESOLVED;
+}
+
+/*
  * Traversal helpers.
  */
 
