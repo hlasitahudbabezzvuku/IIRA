@@ -80,6 +80,9 @@ static AstStmt* _parse_decl(ParserContext* context)
     AstExpr* init = nullptr;
     if (_match(context, LEXER_TOK_ASSIGN)) {
         init = ii_parser_parse_expression(context);
+        if (init != nullptr && init->base.kind == AST_KIND_INIT) {
+            ((AstInit*)init)->target_type = type;
+        }
     }
 
     _expect(context, LEXER_TOK_SEMICOLON);
