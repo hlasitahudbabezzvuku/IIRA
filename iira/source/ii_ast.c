@@ -116,55 +116,55 @@ AstType* ii_ast_type_new(Ast* ast, enum AstKind kind)
 AstType* ii_ast_type_primitive(Ast* ast, enum LexerPrimitiveType prim)
 {
     AstType* type = ii_ast_type_new(ast, AST_KIND_TYPE_PRIMITIVE);
-    type->variant = AST_TYPE_KIND_PRIMITIVE;
-    type->variant_u.primitive.prim_type = prim;
+    type->tag = AST_TYPE_KIND_PRIMITIVE;
+    type->variant.primitive.prim_type = prim;
     return type;
 }
 
 AstType* ii_ast_type_pointer(Ast* ast, AstType* pointed)
 {
     AstType* type = ii_ast_type_new(ast, AST_KIND_TYPE_POINTER);
-    type->variant = AST_TYPE_KIND_POINTER;
-    type->variant_u.pointer.pointed_type = pointed;
+    type->tag = AST_TYPE_KIND_POINTER;
+    type->variant.pointer.pointed_type = pointed;
     return type;
 }
 
 AstType* ii_ast_type_array(Ast* ast, AstType* element, AstExpr* size_expr)
 {
     AstType* type = ii_ast_type_new(ast, AST_KIND_TYPE_ARRAY);
-    type->variant = AST_TYPE_KIND_ARRAY;
-    type->variant_u.array.element_type = element;
-    type->variant_u.array.size_expr = size_expr;
-    type->variant_u.array.fixed_size = 0;
+    type->tag = AST_TYPE_KIND_ARRAY;
+    type->variant.array.element_type = element;
+    type->variant.array.size_expr = size_expr;
+    type->variant.array.fixed_size = 0;
     return type;
 }
 
 AstType* ii_ast_type_blueprint(Ast* ast, const char* name)
 {
     AstType* type = ii_ast_type_new(ast, AST_KIND_TYPE_BLUEPRINT);
-    type->variant = AST_TYPE_KIND_BLUEPRINT;
-    type->variant_u.blueprint.name = name;
-    type->variant_u.blueprint.resolved = nullptr;
+    type->tag = AST_TYPE_KIND_BLUEPRINT;
+    type->variant.blueprint.name = name;
+    type->variant.blueprint.resolved = nullptr;
     return type;
 }
 
 AstType* ii_ast_type_anon(Ast* ast, const char* auto_name)
 {
     AstType* type = ii_ast_type_new(ast, AST_KIND_TYPE_ANON);
-    type->variant = AST_TYPE_KIND_ANON;
-    type->variant_u.anon.fields = nullptr;
-    type->variant_u.anon.field_count = 0;
-    type->variant_u.anon.auto_name = auto_name;
+    type->tag = AST_TYPE_KIND_ANON;
+    type->variant.anon.fields = nullptr;
+    type->variant.anon.field_count = 0;
+    type->variant.anon.auto_name = auto_name;
     return type;
 }
 
 void ii_ast_type_anon_add_field(Ast* ast, AstType* anon, AstField* field)
 {
-    if (anon->variant_u.anon.fields == nullptr) {
-        anon->variant_u.anon.fields = uf_mem_region_zalloc(ast->arena, sizeof(AstField) * 4);
-        anon->variant_u.anon.field_count = 0;
+    if (anon->variant.anon.fields == nullptr) {
+        anon->variant.anon.fields = uf_mem_region_zalloc(ast->arena, sizeof(AstField) * 4);
+        anon->variant.anon.field_count = 0;
     }
-    anon->variant_u.anon.fields[anon->variant_u.anon.field_count++] = *field;
+    anon->variant.anon.fields[anon->variant.anon.field_count++] = *field;
 }
 
 /*
@@ -1109,22 +1109,22 @@ static void _visit_type(AstType* type, AstVisitorFn visitor, void* context, uint
         return;
     }
 
-    switch (type->variant) {
+    switch (type->tag) {
     case AST_TYPE_KIND_POINTER:
-        _visit_type(type->variant_u.pointer.pointed_type, visitor, context, depth + 1, pre_order);
+        _visit_type(type->variant.pointer.pointed_type, visitor, context, depth + 1, pre_order);
         break;
     case AST_TYPE_KIND_ARRAY:
-        _visit_type(type->variant_u.array.element_type, visitor, context, depth + 1, pre_order);
-        if (type->variant_u.array.size_expr) {
-            _visit_expr(type->variant_u.array.size_expr, visitor, context, depth + 1, pre_order);
+        _visit_type(type->variant.array.element_type, visitor, context, depth + 1, pre_order);
+        if (type->variant.array.size_expr) {
+            _visit_expr(type->variant.array.size_expr, visitor, context, depth + 1, pre_order);
         }
         break;
     case AST_TYPE_KIND_BLUEPRINT:
         /* Don't visit resolved - set during semantic */
         break;
     case AST_TYPE_KIND_ANON:
-        for (size_t i = 0; i < type->variant_u.anon.field_count; i++) {
-            _visit_field(&type->variant_u.anon.fields[i], visitor, context, depth + 1, pre_order);
+        for (size_t i = 0; i < type->variant.anon.field_count; i++) {
+            _visit_field(&type->variant.anon.fields[i], visitor, context, depth + 1, pre_order);
         }
         break;
     case AST_TYPE_KIND_PRIMITIVE:
@@ -1542,20 +1542,20 @@ static void _print_type(struct AstPrintContext* context, AstType* type);
 
 static void _print_type_variant(struct AstPrintContext* context, AstType* type)
 {
-    switch (type->variant) {
+    switch (type->tag) {
     case AST_TYPE_KIND_PRIMITIVE:
-        fprintf(context->output, "%s", _primitive_type_to_string(type->variant_u.primitive.prim_type));
+        fprintf(context->output, "%s", _primitive_type_to_string(type->variant.primitive.prim_type));
         break;
     case AST_TYPE_KIND_POINTER:
-        _print_type(context, type->variant_u.pointer.pointed_type);
+        _print_type(context, type->variant.pointer.pointed_type);
         fprintf(context->output, "*");
         break;
     case AST_TYPE_KIND_ARRAY:
-        _print_type(context, type->variant_u.array.element_type);
+        _print_type(context, type->variant.array.element_type);
         fprintf(context->output, "[]");
         break;
     case AST_TYPE_KIND_BLUEPRINT:
-        fprintf(context->output, "%s", type->variant_u.blueprint.name);
+        fprintf(context->output, "%s", type->variant.blueprint.name);
         break;
     case AST_TYPE_KIND_ANON:
         fprintf(context->output, "{ ... }");
@@ -1903,7 +1903,7 @@ static bool _print_visitor(AstNode* node, void* context, uint32_t depth)
     case AST_KIND_TYPE_PRIMITIVE: {
         AstType* type = (AstType*)node;
         fprintf(print_context->output, " %s\n",
-                _primitive_type_to_string(type->variant_u.primitive.prim_type));
+                _primitive_type_to_string(type->variant.primitive.prim_type));
         break;
     }
     case AST_KIND_TYPE_POINTER: {
@@ -1913,7 +1913,7 @@ static bool _print_visitor(AstNode* node, void* context, uint32_t depth)
     case AST_KIND_TYPE_ARRAY: {
         AstType* type = (AstType*)node;
         fprintf(print_context->output, " []");
-        if (type->variant_u.array.size_expr) {
+        if (type->variant.array.size_expr) {
             fprintf(print_context->output, " [fixed]");
         }
         fprintf(print_context->output, "\n");
@@ -1921,12 +1921,12 @@ static bool _print_visitor(AstNode* node, void* context, uint32_t depth)
     }
     case AST_KIND_TYPE_BLUEPRINT: {
         AstType* type = (AstType*)node;
-        fprintf(print_context->output, " %s\n", type->variant_u.blueprint.name);
+        fprintf(print_context->output, " %s\n", type->variant.blueprint.name);
         break;
     }
     case AST_KIND_TYPE_ANON: {
         AstType* type = (AstType*)node;
-        fprintf(print_context->output, " [fields: %zu]\n", type->variant_u.anon.field_count);
+        fprintf(print_context->output, " [fields: %zu]\n", type->variant.anon.field_count);
         break;
     }
     default:

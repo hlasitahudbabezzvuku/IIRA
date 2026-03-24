@@ -175,7 +175,7 @@ struct AstType {
         AST_TYPE_KIND_ARRAY,
         AST_TYPE_KIND_BLUEPRINT,
         AST_TYPE_KIND_ANON,
-    } variant;
+    } tag;
 
     union {
         /* Primitive types: int, float, bool, char, etc. */
@@ -207,7 +207,7 @@ struct AstType {
             size_t field_count;
             const char* auto_name; // e.g., "__anon_0"
         } anon;
-    } variant_u;
+    } variant;
 };
 
 /*
@@ -546,7 +546,7 @@ struct AstMember {
     /* TAST extension: resolved member */
     bool is_method_call;
     AstField* resolved_field;
-    AstMethodOverload* resolved_method;
+    AstMethod* resolved_method;
 };
 
 /*
@@ -795,27 +795,27 @@ TastType* ii_tast_type_new(Ast* ast) _nodiscard_;
 
 static inline enum LexerPrimitiveType ii_ast_type_get_primitive(const AstType* type)
 {
-    return type->variant_u.primitive.prim_type;
+    return type->variant.primitive.prim_type;
 }
 
 static inline AstType* ii_ast_type_get_pointed(const AstType* type)
 {
-    return type->variant_u.pointer.pointed_type;
+    return type->variant.pointer.pointed_type;
 }
 
 static inline AstType* ii_ast_type_get_array_element(const AstType* type)
 {
-    return type->variant_u.array.element_type;
+    return type->variant.array.element_type;
 }
 
 static inline AstExpr* ii_ast_type_get_array_size(const AstType* type)
 {
-    return type->variant_u.array.size_expr;
+    return type->variant.array.size_expr;
 }
 
 static inline AstBlueprintDecl* ii_ast_type_get_blueprint_resolved(const AstType* type)
 {
-    return type->variant_u.blueprint.resolved;
+    return type->variant.blueprint.resolved;
 }
 
 /*
