@@ -89,8 +89,18 @@ void _analyze_function_bodies(SemanticContext* context)
         context->current_function = func;
         context->current_return_type = func->return_type;
 
+        /* Initialize slot allocation for parameters (start at 0) */
+        context->next_slot = 0;
+        context->max_slot = 0;
+
         ast_foreach_params(func, param)
         {
+            /* Assign slot index to parameter */
+            param->slot_index = context->next_slot++;
+            if (context->max_slot < context->next_slot) {
+                context->max_slot = context->next_slot;
+            }
+
             _scope_insert(context, func_scope, param->name, SYMBOL_KIND_PARAM, param, param->type,
                           param->base.span);
         }
@@ -138,6 +148,10 @@ void _analyze_function_bodies(SemanticContext* context)
                 context->current_function = nullptr;
                 context->current_return_type = overload->return_type;
 
+                /* Initialize slot allocation for parameters */
+                context->next_slot = 0;
+                context->max_slot = 0;
+
                 bool has_self_param = false;
                 ast_foreach_params(overload, param)
                 {
@@ -147,6 +161,12 @@ void _analyze_function_bodies(SemanticContext* context)
                             param->type = _make_self_type(context, bp);
                         }
                     }
+                    /* Assign slot index to parameter */
+                    param->slot_index = context->next_slot++;
+                    if (context->max_slot < context->next_slot) {
+                        context->max_slot = context->next_slot;
+                    }
+
                     _scope_insert(context, method_scope, param->name, SYMBOL_KIND_PARAM, param, param->type,
                                   param->base.span);
                 }
@@ -154,6 +174,11 @@ void _analyze_function_bodies(SemanticContext* context)
 
                 if (!overload->is_static && !has_self_param) {
                     AstType* self_type = _make_self_type(context, bp);
+                    /* Assign implicit self parameter a slot */
+                    context->next_slot++;
+                    if (context->max_slot < context->next_slot) {
+                        context->max_slot = context->next_slot;
+                    }
                     _scope_insert(context, method_scope, "self", SYMBOL_KIND_SELF, nullptr, self_type,
                                   bp->base.span);
                 }

@@ -130,6 +130,12 @@ void _analyze_decl_stmt(SemanticContext* context, AstDecl* decl)
         }
     }
 
+    /* Assign slot index for codegen */
+    decl->slot_index = context->next_slot++;
+    if (context->max_slot < context->next_slot) {
+        context->max_slot = context->next_slot;
+    }
+
     _scope_insert(context, context->current_scope, decl->name, SYMBOL_KIND_VAR, decl, decl->type,
                   decl->base.span);
 }
