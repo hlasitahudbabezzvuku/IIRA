@@ -719,3 +719,42 @@ found_member:
     return tast;
 }
 
+/*
+ * Index expression analysis.
+ */
+
+TastExpr* _analyze_index(SemanticContext* context, AstIndex* idx)
+{
+    TRACE_SCOPE(context->trace);
+
+    TastExpr* array_tast = _analyze_expr(context, idx->array);
+    if (array_tast == nullptr) {
+        return nullptr;
+    }
+
+    TastExpr* index_tast = _analyze_expr(context, idx->index);
+    if (index_tast == nullptr) {
+        return nullptr;
+    }
+
+    if (array_tast->resolved_type == nullptr || !_is_array_type(array_tast->resolved_type)) {
+        _diag_error(context, idx->expr.base.span, "Cannot index non-array type");
+        return nullptr;
+    }
+
+    if (index_tast->resolved_type == nullptr || !_is_primitive_type(index_tast->resolved_type) ||
+        !_is_integer_type(index_tast->resolved_type)) {
+        _diag_error(context, idx->expr.base.span, "Array index must be integer type");
+        return nullptr;
+    }
+
+    AstType* result_type = ii_ast_type_get_array_element(array_tast->resolved_type);
+
+    TastExpr* tast = ii_tast_expr_new(context->ast);
+    tast->resolved_type = result_type;
+    tast->is_lvalue = true;
+    idx->expr.tast = tast;
+
+    return tast;
+}
+
