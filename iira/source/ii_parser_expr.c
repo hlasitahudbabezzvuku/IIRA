@@ -139,15 +139,21 @@ static AstExpr* _parse_literal(ParserContext* context, SourceSpan span, const ch
 {
     TRACE_SCOPE(context->trace);
     size_t len = strlen(text);
-    /* Type suffix detection: 1.5f, .5d, 10F */
-    if (len > 0 &&
+
+    bool is_hex = (len > 2 && text[0] == '0' && (text[1] == 'x' || text[1] == 'X'));
+    bool is_bin = (len > 2 && text[0] == '0' && (text[1] == 'b' || text[1] == 'B'));
+    bool is_oct = (len > 2 && text[0] == '0' && (text[1] == 'o' || text[1] == 'O'));
+    bool is_non_decimal = is_hex || is_bin || is_oct;
+
+    /* Type suffix detection: 1.5f, .5d, 10F - but NOT for hex/binary/octal */
+    if (!is_non_decimal && len > 0 &&
         (text[len - 1] == 'f' || text[len - 1] == 'F' || text[len - 1] == 'd' || text[len - 1] == 'D')) {
         double val = strtod(text, nullptr);
         _advance(context);
         return (AstExpr*)ii_ast_literal_float_sp(context->ast, span, val);
     }
-    /* Decimal point detection: 3.14, .5 */
-    if (strchr(text, '.') != nullptr) {
+    /* Decimal point detection: 3.14, .5 - but NOT for hex/binary/octal */
+    if (!is_non_decimal && strchr(text, '.') != nullptr) {
         double val = strtod(text, nullptr);
         _advance(context);
         return (AstExpr*)ii_ast_literal_float_sp(context->ast, span, val);
