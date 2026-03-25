@@ -175,3 +175,41 @@ void _analyze_function_bodies(SemanticContext* context)
     ast_foreach_end;
 }
 
+/*
+ * Expression dispatcher.
+ */
+
+TastExpr* _analyze_expr(SemanticContext* context, AstExpr* expr)
+{
+    TRACE_SCOPE(context->trace);
+
+    if (expr == nullptr) {
+        return nullptr;
+    }
+
+    switch (ii_ast_expr_get_kind(expr)) {
+    case AST_KIND_LITERAL:
+        return _analyze_literal(context, (AstLiteral*)expr);
+    case AST_KIND_IDENT:
+        return _analyze_ident(context, (AstIdent*)expr);
+    case AST_KIND_BINARY:
+        return _analyze_binary(context, (AstBinary*)expr);
+    case AST_KIND_UNARY:
+        return _analyze_unary(context, (AstUnary*)expr);
+    case AST_KIND_CALL:
+        return _analyze_call(context, (AstCall*)expr);
+    case AST_KIND_MEMBER:
+        return _analyze_member(context, (AstMember*)expr);
+    case AST_KIND_INDEX:
+        return _analyze_index(context, (AstIndex*)expr);
+    case AST_KIND_INIT:
+        return _analyze_init(context, (AstInit*)expr);
+    case AST_KIND_CAST:
+        return _analyze_cast(context, (AstCast*)expr);
+    case AST_KIND_FFI:
+        return _analyze_ffi(context, (AstFfi*)expr);
+    default:
+        return nullptr;
+    }
+}
+
