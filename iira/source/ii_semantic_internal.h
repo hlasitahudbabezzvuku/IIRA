@@ -50,6 +50,10 @@ struct SemanticContext {
     LoopContext* loop_stack;
 
     UfMemRegion* symbol_arena;
+
+    /* Codegen support: slot allocation for variables and parameters */
+    uint32_t next_slot;
+    uint32_t max_slot;
 };
 
 struct Symbol {
