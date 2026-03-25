@@ -3,6 +3,7 @@
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
+#include "ii_ast.h"
 #include "ii_ast_iter.h"
 #include "ii_semantic.h"
 #include "ii_semantic_internal.h"
@@ -13,6 +14,7 @@ static void _validate_blueprint(SemanticContext* context, AstBlueprintDecl* bp);
 static void _check_duplicate_params(SemanticContext* context, UfConVector* params);
 static bool _check_inheritance_cycle(SemanticContext* context, AstBlueprintDecl* bp);
 static bool _check_cycle_recursive(SemanticContext* context, AstBlueprintDecl* bp, UfConVector* visited);
+static void _compute_field_offsets(SemanticContext* context, AstBlueprintDecl* bp);
 static void _flatten_blueprint(SemanticContext* context, AstBlueprintDecl* bp);
 
 /*
@@ -225,6 +227,57 @@ static bool _check_cycle_recursive(SemanticContext* context, AstBlueprintDecl* b
     return false;
 }
 
+static void _compute_field_offsets(SemanticContext* context, AstBlueprintDecl* bp)
+{
+    if (bp->flat_fields == nullptr) {
+        return;
+    }
+
+    uint32_t offset = 0;
+    uint32_t max_alignment = 1;
+
+    size_t field_count = uf_con_vector_length(bp->flat_fields);
+    for (size_t i = 0; i < field_count; i++) {
+        AstField* field = *(AstField**)uf_con_vector_get(bp->flat_fields, i);
+        if (field == nullptr) {
+            continue;
+        }
+
+        if (field->type != nullptr && field->type->tast != nullptr) {
+            uint32_t field_size = field->type->tast->size;
+            uint32_t field_align = field->type->tast->alignment;
+
+            /* Align offset to field alignment */
+            offset = (offset + field_align - 1) & ~(field_align - 1);
+            field->offset = offset;
+            offset += field_size;
+
+            if (field_align > max_alignment) {
+                max_alignment = field_align;
+            }
+        } else {
+            /* Default to 8-byte if type not resolved */
+            offset = (offset + 7) & ~7;
+            field->offset = offset;
+            offset += 8;
+            max_alignment = 8;
+        }
+    }
+
+    /* Align total size to max alignment */
+    offset = (offset + max_alignment - 1) & ~(max_alignment - 1);
+
+    /* Store the blueprint size in its type for reference during codegen */
+    AstType* bp_type = ii_ast_type_blueprint(context->ast, bp->name);
+    if (bp_type->tast == nullptr) {
+        bp_type->tast = ii_tast_type_new(context->ast);
+    }
+    bp_type->tast->size = offset;
+    bp_type->tast->alignment = max_alignment;
+    bp_type->variant.blueprint.resolved = bp;
+    bp_type->tast->c_repr = ":Blueprint";
+}
+
 void _flatten_blueprint(SemanticContext* context, AstBlueprintDecl* bp)
 {
     TRACE_SCOPE(context->trace);
@@ -393,4 +446,7 @@ void _flatten_blueprint(SemanticContext* context, AstBlueprintDecl* bp)
         uf_con_vector_push(bp->flat_methods, &local_method);
     }
     ast_foreach_end;
+
+    /* Compute field offsets for codegen */
+    _compute_field_offsets(context, bp);
 }
