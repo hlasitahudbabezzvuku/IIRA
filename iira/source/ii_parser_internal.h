@@ -14,11 +14,10 @@
 #include "ii_trace.h"
 
 struct ParserContext {
+    Ast* ast;
     Source* src;
     DiagnosticContext* diag;
-    LexerContext* lexer;
     TraceContext* trace;
-    Ast* ast;
 
     LexerToken* tokens;
     size_t count;
