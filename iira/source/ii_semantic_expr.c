@@ -941,3 +941,54 @@ TastExpr* _analyze_init(SemanticContext* context, AstInit* init)
     }
 }
 
+/*
+ * Cast analysis.
+ */
+
+TastExpr* _analyze_cast(SemanticContext* context, AstCast* cast)
+{
+    TRACE_SCOPE(context->trace);
+
+    if (cast->target_type == nullptr) {
+        _diag_error(context, cast->expr.base.span, "Cast target type is null");
+        return nullptr;
+    }
+
+    TastExpr* expr_tast = _analyze_expr(context, cast->expr_);
+    if (expr_tast == nullptr) {
+        return nullptr;
+    }
+
+    AstType* src_type = expr_tast->resolved_type;
+    AstType* dst_type = cast->target_type;
+
+    if (src_type == nullptr || dst_type == nullptr) {
+        return nullptr;
+    }
+
+    bool valid_cast = false;
+
+    if (_is_primitive_type(src_type) && _is_primitive_type(dst_type)) {
+        valid_cast = true;
+    } else if (_is_pointer_type(src_type) && _is_pointer_type(dst_type)) {
+        valid_cast = true;
+    } else if (_is_pointer_type(src_type) && _is_primitive_type(dst_type)) {
+        valid_cast = true;
+    } else if (_is_primitive_type(src_type) && _is_pointer_type(dst_type)) {
+        valid_cast = true;
+    } else if (_is_blueprint_type(src_type) && _is_blueprint_type(dst_type)) {
+        valid_cast = true;
+    }
+
+    if (!valid_cast) {
+        _diag_error(context, cast->expr.base.span, "Invalid cast");
+        return nullptr;
+    }
+
+    TastExpr* tast = ii_tast_expr_new(context->ast);
+    tast->resolved_type = cast->target_type;
+    cast->expr.tast = tast;
+
+    return tast;
+}
+
