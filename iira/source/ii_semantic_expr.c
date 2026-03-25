@@ -646,3 +646,76 @@ TastExpr* _analyze_call(SemanticContext* context, AstCall* call)
     return tast;
 }
 
+/*
+ * Member access analysis.
+ */
+
+TastExpr* _analyze_member(SemanticContext* context, AstMember* member)
+{
+    TRACE_SCOPE(context->trace);
+
+    TastExpr* object_tast = _analyze_expr(context, member->object);
+    if (object_tast == nullptr) {
+        return nullptr;
+    }
+
+    AstType* object_type = object_tast->resolved_type;
+    if (object_type == nullptr) {
+        return nullptr;
+    }
+
+    if (_is_pointer_type(object_type)) {
+        object_type = ii_ast_type_get_pointed(object_type);
+    }
+
+    if (object_type == nullptr || !_is_blueprint_type(object_type)) {
+        _diag_error(context, member->expr.base.span, "Cannot access member of non-blueprint type");
+        return nullptr;
+    }
+
+    AstBlueprintDecl* bp = ii_ast_type_get_blueprint_resolved(object_type);
+    if (bp == nullptr) {
+        _diag_error(context, member->expr.base.span, "Unknown blueprint type");
+        return nullptr;
+    }
+
+    AstType* result_type = nullptr;
+    bool is_lvalue = false;
+
+    ast_foreach_flat_fields(bp, field)
+    {
+        if (field->name == member->member_name) {
+            member->resolved_field = field;
+            member->is_method_call = false;
+            result_type = field->type;
+            is_lvalue = true;
+            goto found_member;
+        }
+    }
+    ast_foreach_end;
+
+    ast_foreach_flat_methods(bp, method)
+    {
+        if (method->name == member->member_name) {
+            AstMethodOverload* first_overload = *(AstMethodOverload**)uf_con_vector_get(method->overloads, 0);
+            member->resolved_method = method;
+            member->is_method_call = true;
+            result_type = first_overload->return_type;
+            is_lvalue = false;
+            goto found_member;
+        }
+    }
+    ast_foreach_end;
+
+    _diag_error(context, member->expr.base.span, "Unknown member '%s'", member->member_name);
+    return nullptr;
+
+found_member:
+    TastExpr* tast = ii_tast_expr_new(context->ast);
+    tast->resolved_type = result_type;
+    tast->is_lvalue = is_lvalue;
+    member->expr.tast = tast;
+
+    return tast;
+}
+
