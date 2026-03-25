@@ -131,7 +131,6 @@ SemanticContext* ii_sem_context_new(Ast* ast, DiagnosticContext* diag, TraceCont
     }
 
     ii_ast_program_finalize(context->ast);
-    ii_diag_output(context->diag);
 
     return context;
 }
