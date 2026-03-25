@@ -213,3 +213,54 @@ TastExpr* _analyze_expr(SemanticContext* context, AstExpr* expr)
     }
 }
 
+/*
+ * Literal analysis.
+ */
+
+TastExpr* _analyze_literal(SemanticContext* context, AstLiteral* lit)
+{
+    TRACE_SCOPE(context->trace);
+
+    TastExpr* tast = ii_tast_expr_new(context->ast);
+
+    enum LexerPrimitiveType prim;
+    AstType* result_type = nullptr;
+    switch (lit->variant) {
+    case LITERAL_INT:
+        prim = LEXER_PRIM_INT;
+        tast->const_int_value = (int32_t)lit->literal.int_value;
+        break;
+    case LITERAL_FLOAT:
+        prim = LEXER_PRIM_FLOAT;
+        break;
+    case LITERAL_STRING: {
+        prim = LEXER_PRIM_CHAR;
+        AstType* char_type = ii_ast_type_primitive(context->ast, LEXER_PRIM_CHAR);
+        result_type = ii_ast_type_array(context->ast, char_type, nullptr);
+        break;
+    }
+    case LITERAL_NULL: {
+        prim = LEXER_PRIM_VOID;
+        result_type = ii_ast_type_pointer(context->ast, ii_ast_type_primitive(context->ast, LEXER_PRIM_VOID));
+        break;
+    }
+    case LITERAL_BOOL:
+        prim = LEXER_PRIM_BOOL;
+        break;
+    case LITERAL_CHAR:
+        prim = LEXER_PRIM_CHAR;
+        break;
+    default:
+        prim = LEXER_PRIM_VOID;
+        break;
+    }
+
+    if (result_type == nullptr) {
+        result_type = ii_ast_type_primitive(context->ast, prim);
+    }
+    tast->resolved_type = result_type;
+    lit->expr.tast = tast;
+
+    return tast;
+}
+
