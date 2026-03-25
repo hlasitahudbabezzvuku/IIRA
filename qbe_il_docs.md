@@ -1,36 +1,6 @@
 ## QBE Intermediate Language
 
-### [Table of Contents]{#Table-of-Contents}
-
-1.  [Basic Concepts](#Basic-Concepts)
-    - [Input Files](#Input-Files)
-    - [BNF Notation](#BNF-Notation)
-    - [Sigils](#Sigils)
-    - [Spacing](#Spacing)
-2.  [Types](#Types)
-    - [Simple Types](#Simple-Types)
-    - [Subtyping](#Subtyping)
-3.  [Constants and Vals](#Constants-and-Vals)
-4.  [Linkage](#Linkage)
-5.  [Definitions](#Definitions)
-    - [Aggregate Types](#Aggregate-Types)
-    - [Data](#Data)
-    - [Functions](#Functions)
-6.  [Control](#Control)
-    - [Blocks](#Blocks)
-    - [Jumps](#Jumps)
-7.  [Instructions](#Instructions)
-    - [Arithmetic and Bits](#Arithmetic-and-Bits)
-    - [Memory](#Memory)
-    - [Comparisons](#Comparisons)
-    - [Conversions](#Conversions)
-    - [Cast and Copy](#Cast-and-Copy)
-    - [Call](#Call)
-    - [Variadic](#Variadic)
-    - [Phi](#Phi)
-8.  [Instructions Index](#Instructions-Index)
-
-### [1. Basic Concepts]{#Basic-Concepts}
+### 1. Basic Concepts
 
 The intermediate language (IL) is a higher-level language than the
 machine\'s assembly language. It smoothes most of the irregularities of
@@ -38,7 +8,7 @@ the underlying hardware and allows an infinite number of temporaries to
 be used. This higher abstraction level lets frontend programmers focus
 on language design issues.
 
-#### [Input Files]{#Input-Files}
+#### Input Files
 
 The intermediate language is provided to QBE as text. Usually, one file
 is generated per each compilation unit from the frontend input language.
@@ -65,7 +35,7 @@ If you have read the LLVM language reference, you might recognize the
 example above. In comparison, QBE makes a much lighter use of types and
 the syntax is terser.
 
-#### [BNF Notation]{#BNF-Notation}
+#### BNF Notation
 
 The language syntax is vaporously described in the sections below using
 BNF syntax. The different BNF constructs used are listed below.
@@ -78,7 +48,7 @@ BNF syntax. The different BNF constructs used are listed below.
 - `...*` and `...+` are used for arbitrary and at-least-once repetition
   respectively.
 
-#### [Sigils]{#Sigils}
+#### Sigils
 
 The intermediate language makes heavy use of sigils, all user-defined
 names are prefixed with a sigil. This is to avoid keyword conflicts, and
@@ -92,7 +62,7 @@ also to quickly spot the scope and nature of identifiers.
 In this BNF syntax, we use `?IDENT` to designate an identifier starting
 with the sigil `?`.
 
-#### [Spacing]{#Spacing}
+#### Spacing
 
 ``` bnf
 NL := '\n'+
@@ -104,9 +74,9 @@ In data and type definitions, newlines may also be used as spaces to
 prevent overly long lines. When exactly one of two consecutive tokens is
 a symbol (for example `,` or `=` or `{`), spacing may be omitted.
 
-### [2. Types]{#Types}
+### 2. Types
 
-#### [Simple Types]{#Simple-Types}
+#### Simple Types
 
 ``` bnf
 BASETY := 'w' | 'l' | 's' | 'd' # Base types
@@ -134,7 +104,7 @@ well as signed and unsigned variants of the sub-word extended types.
 Read more about these types in the [Aggregate Types](#Aggregate-Types)
 and [Functions](#Functions) sections.
 
-#### [Subtyping]{#Subtyping}
+#### Subtyping
 
 The IL has a minimal subtyping feature, for integer types only. Any
 value of type `l` can be used in a `w` context. In that case, only the
@@ -146,7 +116,7 @@ cannot be used in word context. The rationale is that a word can be
 signed or unsigned, so extending it to a long could be done in two ways,
 either by zero-extension, or by sign-extension.
 
-### [3. Constants and Vals]{#Constants-and-Vals}
+### 3. Constants and Vals
 
 ``` bnf
 CONST :=
@@ -201,7 +171,7 @@ Vals are used as arguments in regular, phi, and jump instructions within
 function definitions. They are either constants or function-scope
 temporaries.
 
-### [4. Linkage]{#Linkage}
+### 4. Linkage
 
 ``` bnf
 LINKAGE :=
@@ -247,7 +217,7 @@ The section and export linkage flags should each appear at most once in
 a definition. If multiple occurrences are present, QBE is free to use
 any.
 
-### [5. Definitions]{#Definitions}
+### 5. Definitions
 
 Definitions are the essential components of an IL file. They can define
 three types of objects: aggregate types, data, and functions. Aggregate
@@ -256,7 +226,7 @@ function definitions have file scope and are mutually recursive (even
 across IL files). Their visibility can be controlled using linkage
 flags.
 
-#### [Aggregate Types]{#Aggregate-Types}
+#### Aggregate Types
 
 ``` bnf
 TYPEDEF :=
@@ -313,7 +283,7 @@ simply by enclosing their size between curly braces.
 
     type :opaque = align 16 { 32 }
 
-#### [Data]{#Data}
+#### Data
 
 ``` bnf
 DATADEF :=
@@ -368,7 +338,7 @@ Here are various examples of data definitions.
     # object itself.
     data $c = { l -1, l $c }
 
-#### [Functions]{#Functions}
+#### Functions
 
 ``` bnf
 FUNCDEF :=
@@ -461,13 +431,13 @@ call is in the instruction itself.
 The syntax and semantics for the body of functions are described in the
 [Control](#Control) section.
 
-### [6. Control]{#Control}
+### 6. Control
 
 The IL represents programs as textual transcriptions of control flow
 graphs. The control flow is serialized as a sequence of blocks of
 straight-line code which are connected using jump instructions.
 
-#### [Blocks]{#Blocks}
+#### Blocks
 
 ``` bnf
 BLOCK :=
@@ -502,7 +472,7 @@ directly to the loop block.
             ret
     }
 
-#### [Jumps]{#Jumps}
+#### Jumps
 
 ``` bnf
 JUMP :=
@@ -542,7 +512,7 @@ following list.
     execution never reaches the end of the block it closes; for example,
     after having called a function such as `exit()`.
 
-### [7. Instructions]{#Instructions}
+### 7. Instructions
 
 Instructions are the smallest piece of code in the IL, they form the
 body of [Blocks](#Blocks). The IL uses a three-address code, which means
@@ -594,7 +564,7 @@ For example, consider the type string `wl(F)`, it mentions that the
 instruction has only one argument and that if the return type used is
 long, the argument must be of type double.
 
-#### [Arithmetic and Bits]{#Arithmetic-and-Bits}
+#### Arithmetic and Bits
 
 - `add`, `sub`, `div`, `mul` \-- `T(T,T)`
 - `neg` \-- `T(T)`
@@ -632,7 +602,7 @@ division by a power of two for non-negative numbers. This is because the
 shift right \"truncates\" towards minus infinity, while the division
 truncates towards zero.
 
-#### [Memory]{#Memory}
+#### Memory
 
 - Store instructions.
 
@@ -758,7 +728,7 @@ point numbers and returns 1 if the two floating points are not NaNs, or
 representing signed numbers and returns 1 when the first argument is
 smaller than the second one.
 
-#### [Conversions]{#Conversions}
+#### Conversions
 
 Conversion operations change the representation of a value, possibly
 modifying it if the target type cannot hold the value of the source
@@ -802,7 +772,7 @@ float).
 Because of [Subtyping](#Subtyping), there is no need to have an
 instruction to lower the precision of an integer temporary.
 
-#### [Cast and Copy]{#Cast-and-Copy}
+#### Cast and Copy
 
 The `cast` and `copy` instructions return the bits of their argument
 verbatim. However a `cast` will change an integer into a floating point
@@ -820,7 +790,7 @@ the opposite of the single-precision floating point number `%f` into
     %b1 =w xor 2147483648, %b0  # flip the msb
     %rs =s cast %b1
 
-#### [Call]{#Call}
+#### Call
 
 ``` bnf
 CALL := [%IDENT '=' ABITY] 'call' VAL '(' (ARG), ')'
@@ -864,7 +834,7 @@ about environment parameters.
 When the called function is variadic, there must be a `...` marker
 separating the named and variadic arguments.
 
-#### [Variadic]{#Variadic}
+#### Variadic
 
 The `vastart` and `vaarg` instructions provide a portable way to access
 the extra parameters of a variadic function.
@@ -910,7 +880,7 @@ arguments.
             ret %e
     }
 
-#### [Phi]{#Phi}
+#### Phi
 
 ``` bnf
 PHI := %IDENT '=' BASETY 'phi' ( @IDENT VAL ),
@@ -976,7 +946,7 @@ variable is defined by a phi it respects all the SSA invariants. So it
 is critical to not use phi instructions unless you know exactly what you
 are doing.
 
-### [8. Instructions Index]{#Instructions-Index}
+### 8. Instructions Index
 
 - [Arithmetic and Bits](#Arithmetic-and-Bits):
 
