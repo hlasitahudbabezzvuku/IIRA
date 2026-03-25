@@ -992,3 +992,23 @@ TastExpr* _analyze_cast(SemanticContext* context, AstCast* cast)
     return tast;
 }
 
+/*
+ * FFI analysis.
+ */
+
+TastExpr* _analyze_ffi(SemanticContext* context, AstFfi* ffi)
+{
+    TRACE_SCOPE(context->trace);
+
+    ast_foreach_ffi_args(ffi, arg)
+    {
+        _analyze_expr(context, arg);
+    }
+    ast_foreach_end;
+
+    TastExpr* tast = ii_tast_expr_new(context->ast);
+    tast->resolved_type = nullptr;
+    ffi->expr.tast = tast;
+
+    return tast;
+}
