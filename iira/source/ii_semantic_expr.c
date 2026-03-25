@@ -264,3 +264,54 @@ TastExpr* _analyze_literal(SemanticContext* context, AstLiteral* lit)
     return tast;
 }
 
+/*
+ * Identifier analysis.
+ */
+
+TastExpr* _analyze_ident(SemanticContext* context, AstIdent* ident)
+{
+    TRACE_SCOPE(context->trace);
+
+    Symbol* symbol = _scope_lookup_in_chain(context->current_scope, ident->name);
+    if (symbol == nullptr) {
+        _diag_error(context, ident->expr.base.span, "Undefined variable '%s'", ident->name);
+        return nullptr;
+    }
+
+    switch (symbol->kind) {
+    case SYMBOL_KIND_VAR:
+        ident->resolved_kind = AST_IDENT_VAR;
+        ident->resolved.var_decl = symbol->decl;
+        break;
+    case SYMBOL_KIND_PARAM:
+        ident->resolved_kind = AST_IDENT_PARAM;
+        ident->resolved.param_decl = symbol->decl;
+        break;
+    case SYMBOL_KIND_FUNC:
+        ident->resolved_kind = AST_IDENT_FUNC;
+        ident->resolved.func_decl = symbol->decl;
+        break;
+    case SYMBOL_KIND_BLUEPRINT:
+        ident->resolved_kind = AST_IDENT_BLUEPRINT;
+        ident->resolved.blueprint_decl = symbol->decl;
+        break;
+    case SYMBOL_KIND_FIELD:
+        ident->resolved_kind = AST_IDENT_FIELD;
+        ident->resolved.field_decl = symbol->decl;
+        break;
+    default:
+        ident->resolved_kind = AST_IDENT_NONE;
+        break;
+    }
+
+    TastExpr* tast = ii_tast_expr_new(context->ast);
+    tast->resolved_type = symbol->type;
+    if (symbol->type != nullptr) {
+        _resolve_type(context, symbol->type);
+    }
+    tast->is_lvalue = (symbol->kind == SYMBOL_KIND_VAR || symbol->kind == SYMBOL_KIND_FIELD);
+    ident->expr.tast = tast;
+
+    return tast;
+}
+
