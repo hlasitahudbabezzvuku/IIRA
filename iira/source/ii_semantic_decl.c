@@ -97,3 +97,300 @@ static void _check_duplicate_params(SemanticContext* context, UfConVector* param
     }
 }
 
+/*
+ * Inheritance resolution.
+ */
+
+void _resolve_inheritance(SemanticContext* context)
+{
+    TRACE_SCOPE(context->trace);
+
+    ast_foreach_blueprints(context->ast, bp)
+    {
+        _resolve_blueprint_inheritance(context, bp);
+    }
+    ast_foreach_end;
+}
+
+void _resolve_blueprint_inheritance(SemanticContext* context, AstBlueprintDecl* bp)
+{
+    TRACE_SCOPE(context->trace);
+
+    if (bp->parents == nullptr) {
+        return;
+    }
+
+    ast_foreach_parents(bp, inherit)
+    {
+        Symbol* sym = _scope_lookup_in_chain(context->global_scope, inherit->parent_name);
+        if (sym == nullptr) {
+            _diag_error(context, inherit->base.span, "Unknown parent blueprint '%s'", inherit->parent_name);
+            inherit->resolved = nullptr;
+            continue;
+        }
+
+        if (sym->kind != SYMBOL_KIND_BLUEPRINT) {
+            _diag_error(context, inherit->base.span, "Parent '%s' is not a blueprint", inherit->parent_name);
+            inherit->resolved = nullptr;
+            continue;
+        }
+
+        inherit->resolved = (AstBlueprintDecl*)sym->decl;
+    }
+    ast_foreach_end;
+
+    ast_foreach_parents(bp, inherit)
+    {
+        if (inherit->field_aliases != nullptr) {
+            size_t alias_count = uf_con_vector_length(inherit->field_aliases);
+            for (size_t j = 0; j < alias_count; j++) {
+                struct {
+                    const char* original;
+                    const char* alias;
+                }* alias_ptr = (void*)uf_con_vector_get(inherit->field_aliases, j);
+                if (inherit->resolved != nullptr) {
+                    bool found = false;
+                    if (inherit->resolved->flat_fields != nullptr) {
+                        ast_foreach_flat_fields(inherit->resolved, field)
+                        {
+                            if (field->name == alias_ptr->original) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        ast_foreach_end;
+                    }
+                    if (!found && inherit->resolved->flat_methods != nullptr) {
+                        ast_foreach_flat_methods(inherit->resolved, method)
+                        {
+                            if (method->name == alias_ptr->original) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        ast_foreach_end;
+                    }
+                    if (!found) {
+                        _diag_error(context, inherit->base.span, "Unknown field '%s' in alias specification",
+                                    alias_ptr->original);
+                    }
+                }
+            }
+        }
+    }
+    ast_foreach_end;
+
+    if (_check_inheritance_cycle(context, bp)) {
+        _diag_error(context, bp->base.span, "Circular inheritance detected involving '%s'", bp->name);
+    }
+
+    _flatten_blueprint(context, bp);
+}
+
+static bool _check_inheritance_cycle(SemanticContext* context, AstBlueprintDecl* bp)
+{
+    UfConVector* visited = uf_con_vector_new(sizeof(AstBlueprintDecl*));
+    bool has_cycle = _check_cycle_recursive(context, bp, visited);
+    uf_con_vector_free(visited);
+    return has_cycle;
+}
+
+static bool _check_cycle_recursive(SemanticContext* context, AstBlueprintDecl* bp, UfConVector* visited)
+{
+    size_t visited_count = uf_con_vector_length(visited);
+    for (size_t i = 0; i < visited_count; i++) {
+        AstBlueprintDecl* visited_bp = *(AstBlueprintDecl**)uf_con_vector_get(visited, i);
+        if (visited_bp == bp) {
+            return true;
+        }
+    }
+
+    uf_con_vector_push(visited, bp);
+
+    if (bp->parents == nullptr) {
+        return false;
+    }
+
+    ast_foreach_parents(bp, inherit)
+    {
+        if (inherit->resolved == nullptr) {
+            continue;
+        }
+        if (_check_cycle_recursive(context, inherit->resolved, visited)) {
+            return true;
+        }
+    }
+    ast_foreach_end;
+
+    return false;
+}
+
+void _flatten_blueprint(SemanticContext* context, AstBlueprintDecl* bp)
+{
+    TRACE_SCOPE(context->trace);
+
+    if (bp->flat_fields == nullptr) {
+        bp->flat_fields = uf_con_vector_new(sizeof(AstField*));
+    }
+    if (bp->flat_methods == nullptr) {
+        bp->flat_methods = uf_con_vector_new(sizeof(AstMethod*));
+    }
+
+    ast_foreach_parents(bp, inherit)
+    {
+        if (inherit->resolved == nullptr) {
+            continue;
+        }
+
+        AstBlueprintDecl* parent = inherit->resolved;
+        if (parent->flat_fields == nullptr) {
+            _flatten_blueprint(context, parent);
+        }
+
+        ast_foreach_flat_fields(parent, parent_field)
+        {
+            const char* alias_name = nullptr;
+            if (inherit->field_aliases != nullptr) {
+                size_t alias_count = uf_con_vector_length(inherit->field_aliases);
+                for (size_t k = 0; k < alias_count; k++) {
+                    struct {
+                        const char* original;
+                        const char* alias;
+                    }* alias_ptr = (void*)uf_con_vector_get(inherit->field_aliases, k);
+                    if (alias_ptr->original == parent_field->name) {
+                        alias_name = alias_ptr->alias;
+                        break;
+                    }
+                }
+            }
+
+            bool has_original_conflict = false;
+            ast_foreach_flat_fields(bp, existing)
+            {
+                if (existing->name == parent_field->name) {
+                    has_original_conflict = true;
+                    break;
+                }
+            }
+            ast_foreach_end;
+
+            if (!has_original_conflict) {
+                uf_con_vector_push(bp->flat_fields, &parent_field);
+            }
+
+            if (alias_name != nullptr) {
+                bool has_alias_conflict = false;
+                ast_foreach_flat_fields(bp, existing)
+                {
+                    if (existing->name == alias_name) {
+                        has_alias_conflict = true;
+                        break;
+                    }
+                }
+                ast_foreach_end;
+
+                if (!has_alias_conflict) {
+                    AstField* field_copy = uf_mem_region_zalloc(context->symbol_arena, sizeof(AstField));
+                    field_copy->name = alias_name;
+                    field_copy->type = parent_field->type;
+                    field_copy->default_value = parent_field->default_value;
+                    uf_con_vector_push(bp->flat_fields, &field_copy);
+                }
+            }
+        }
+        ast_foreach_end;
+    }
+    ast_foreach_end;
+
+    ast_foreach_fields(bp, local_field)
+    {
+        bool conflict = false;
+        ast_foreach_flat_fields(bp, existing)
+        {
+            if (existing->name == local_field->name) {
+                conflict = true;
+                break;
+            }
+        }
+        ast_foreach_end;
+
+        if (conflict) {
+            _diag_error(context, local_field->base.span, "Cannot override field '%s' from parent",
+                        local_field->name);
+        } else {
+            uf_con_vector_push(bp->flat_fields, &local_field);
+        }
+    }
+    ast_foreach_end;
+
+    ast_foreach_parents(bp, inherit)
+    {
+        if (inherit->resolved == nullptr) {
+            continue;
+        }
+
+        AstBlueprintDecl* parent = inherit->resolved;
+        if (parent->flat_methods == nullptr) {
+            _flatten_blueprint(context, parent);
+        }
+
+        ast_foreach_flat_methods(parent, parent_method)
+        {
+            const char* alias_name = nullptr;
+            if (inherit->field_aliases != nullptr) {
+                size_t alias_count = uf_con_vector_length(inherit->field_aliases);
+                for (size_t k = 0; k < alias_count; k++) {
+                    struct {
+                        const char* original;
+                        const char* alias;
+                    }* alias_ptr = (void*)uf_con_vector_get(inherit->field_aliases, k);
+                    if (alias_ptr->original == parent_method->name) {
+                        alias_name = alias_ptr->alias;
+                        break;
+                    }
+                }
+            }
+
+            bool has_override = false;
+            ast_foreach_methods(bp, local_method)
+            {
+                if (local_method->name == parent_method->name) {
+                    has_override = true;
+                    break;
+                }
+            }
+            ast_foreach_end;
+
+            if (!has_override) {
+                uf_con_vector_push(bp->flat_methods, &parent_method);
+            }
+
+            if (alias_name != nullptr) {
+                bool has_alias_override = false;
+                ast_foreach_methods(bp, local_method)
+                {
+                    if (local_method->name == alias_name) {
+                        has_alias_override = true;
+                        break;
+                    }
+                }
+                ast_foreach_end;
+                if (!has_alias_override) {
+                    AstMethod* alias_method = uf_mem_region_zalloc(context->symbol_arena, sizeof(AstMethod));
+                    alias_method->base.kind = AST_KIND_METHOD;
+                    alias_method->name = alias_name;
+                    alias_method->overloads = parent_method->overloads;
+                    uf_con_vector_push(bp->flat_methods, &alias_method);
+                }
+            }
+        }
+        ast_foreach_end;
+    }
+    ast_foreach_end;
+
+    ast_foreach_methods(bp, local_method)
+    {
+        uf_con_vector_push(bp->flat_methods, &local_method);
+    }
+    ast_foreach_end;
+}
