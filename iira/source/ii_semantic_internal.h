@@ -40,5 +40,40 @@ struct SemanticContext {
     Ast* ast;
 
     bool had_error;
+
+    Scope* global_scope;
+    Scope* current_scope;
+
+    AstBlueprintDecl* current_blueprint;
+    AstFuncDecl* current_function;
+    AstType* current_return_type;
+    LoopContext* loop_stack;
+
+    UfMemRegion* symbol_arena;
+};
+
+struct Symbol {
+    const char* name;
+    enum SymbolKind kind;
+    void* decl;
+    AstType* type;
+    SourceSpan decl_span;
+};
+
+struct Scope {
+    Scope* parent;
+    const char* owner_name;
+    UfConMap* symbols;
+};
+
+struct LoopContext {
+    LoopContext* next;
+    AstNode* node;
+};
+
+struct PrimitiveTypeInfo {
+    uint32_t size;
+    uint32_t alignment;
+    const char* c_repr;
 };
 
