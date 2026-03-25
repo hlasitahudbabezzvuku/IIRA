@@ -12,6 +12,26 @@
 #include "ii_ast.h"
 #include "ii_diagnostics.h"
 #include "ii_trace.h"
+#include "uf_containers.h"
+
+/*
+ * Type definitions.
+ */
+
+enum SymbolKind {
+    SYMBOL_KIND_VAR,
+    SYMBOL_KIND_PARAM,
+    SYMBOL_KIND_FUNC,
+    SYMBOL_KIND_BLUEPRINT,
+    SYMBOL_KIND_FIELD,
+    SYMBOL_KIND_SELF,
+};
+
+typedef struct SemanticContext SemanticContext;
+typedef struct Symbol Symbol;
+typedef struct Scope Scope;
+typedef struct LoopContext LoopContext;
+typedef struct PrimitiveTypeInfo PrimitiveTypeInfo;
 
 struct SemanticContext {
     Source* src;
