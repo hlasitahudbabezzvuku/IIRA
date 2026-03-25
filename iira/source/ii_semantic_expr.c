@@ -511,3 +511,138 @@ TastExpr* _analyze_unary(SemanticContext* context, AstUnary* un)
     return tast;
 }
 
+/*
+ * Call expression analysis.
+ */
+
+TastExpr* _analyze_call(SemanticContext* context, AstCall* call)
+{
+    TRACE_SCOPE(context->trace);
+
+    TastExpr* callee_tast = _analyze_expr(context, call->callee);
+    if (callee_tast == nullptr) {
+        return nullptr;
+    }
+
+    size_t arg_count = call->args ? uf_con_vector_length(call->args) : 0;
+    TastExpr** args_tast = nullptr;
+    if (arg_count > 0) {
+        args_tast = uf_mem_region_zalloc(context->symbol_arena, sizeof(TastExpr*) * arg_count);
+        size_t i = 0;
+        ast_foreach_call_args(call, arg)
+        {
+            args_tast[i] = _analyze_expr(context, arg);
+            if (args_tast[i] == nullptr) {
+                return nullptr;
+            }
+            i++;
+        }
+        ast_foreach_end;
+    }
+
+    AstMethodOverload* overload = nullptr;
+    const char* func_name = nullptr;
+
+    if (ii_ast_expr_get_kind(call->callee) == AST_KIND_MEMBER) {
+        AstMember* member = (AstMember*)call->callee;
+        if (member->resolved_method == nullptr) {
+            _diag_error(context, call->expr.base.span, "Unknown method '%s'", member->member_name);
+            return nullptr;
+        }
+        func_name = member->member_name;
+
+        AstMethod* method = (AstMethod*)member->resolved_method;
+        if (method->overloads != nullptr) {
+            ast_foreach_overloads(method, ov)
+            {
+                size_t param_count = ov->params ? uf_con_vector_length(ov->params) : 0;
+                bool is_static = ov->is_static;
+                if (!is_static && param_count > 0) {
+                    param_count--;
+                }
+                if (param_count != arg_count) {
+                    continue;
+                }
+                bool match = true;
+                size_t j = 0;
+                ast_foreach_params(ov, param)
+                {
+                    if (!is_static && j == 0 && param->name == ii_src_intern_cstr(context->src, "self")) {
+                        continue;
+                    }
+                    if (!_types_match(context, args_tast[j]->resolved_type, param->type)) {
+                        match = false;
+                        break;
+                    }
+                    j++;
+                }
+                ast_foreach_end;
+                if (match) {
+                    overload = ov;
+                    break;
+                }
+            }
+            ast_foreach_end;
+        }
+
+        if (overload == nullptr) {
+            _diag_error(context, call->expr.base.span, "No matching overload for '%s'", func_name);
+            return nullptr;
+        }
+
+        if (overload->body == nullptr) {
+            _diag_error(context, call->expr.base.span, "Cannot call unimplemented method '%s'", func_name);
+            return nullptr;
+        }
+
+        call->resolved_overload = overload;
+    } else if (ii_ast_expr_get_kind(call->callee) == AST_KIND_IDENT) {
+        AstIdent* ident = (AstIdent*)call->callee;
+        if (ident->resolved_kind != AST_IDENT_FUNC || ident->resolved.func_decl == nullptr) {
+            _diag_error(context, call->expr.base.span, "'%s' is not a function", ident->name);
+            return nullptr;
+        }
+        func_name = ident->name;
+        AstFuncDecl* func = ident->resolved.func_decl;
+
+        size_t param_count = func->params ? uf_con_vector_length(func->params) : 0;
+        if (param_count != arg_count) {
+            _diag_error(context, call->expr.base.span, "Argument count mismatch for '%s'", func_name);
+            return nullptr;
+        }
+
+        size_t i = 0;
+        ast_foreach_params(func, param)
+        {
+            if (!_types_match(context, args_tast[i]->resolved_type, param->type)) {
+                _diag_error(context, call->expr.base.span, "Argument type mismatch for '%s'", func_name);
+                return nullptr;
+            }
+            i++;
+        }
+        ast_foreach_end;
+
+        if (func->body == nullptr) {
+            _diag_error(context, call->expr.base.span, "Cannot call unimplemented function '%s'", func_name);
+            return nullptr;
+        }
+    } else {
+        _diag_error(context, call->expr.base.span, "Cannot call non-function");
+        return nullptr;
+    }
+
+    AstType* result_type = nullptr;
+    if (ii_ast_expr_get_kind(call->callee) == AST_KIND_MEMBER && overload) {
+        result_type = overload->return_type;
+    } else if (ii_ast_expr_get_kind(call->callee) == AST_KIND_IDENT) {
+        AstIdent* ident = (AstIdent*)call->callee;
+        result_type = ident->resolved.func_decl->return_type;
+    }
+
+    TastExpr* tast = ii_tast_expr_new(context->ast);
+    tast->resolved_type = result_type;
+    call->expr.tast = tast;
+
+    return tast;
+}
+
