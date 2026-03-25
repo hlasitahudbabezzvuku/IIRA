@@ -1,5 +1,12 @@
 /**
  * @brief Semantic analyzer core module.
+ *
+ * The semantic analyzer performs type checking and analysis in 4 sequential phases:
+ * 1. Register all symbols (functions, blueprints) in global scope.
+ * 2. Resolve parent blueprints, flatten fields/methods, detect cycles.
+ * 3. Resolve all types, compute sizes and alignments.
+ * 4. Analyze function/method bodies, type-check expressions.
+ *
  * @author Frantisek Lednicky (HlasitaHudbaBezZvuku)
  **/
 
