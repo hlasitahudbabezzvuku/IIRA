@@ -758,3 +758,186 @@ TastExpr* _analyze_index(SemanticContext* context, AstIndex* idx)
     return tast;
 }
 
+/*
+ * Initialization expression analysis.
+ */
+
+TastExpr* _analyze_init(SemanticContext* context, AstInit* init)
+{
+    TRACE_SCOPE(context->trace);
+
+    if (init->target_type == nullptr) {
+        _diag_error(context, init->expr.base.span, "Initialization target has no type");
+        return nullptr;
+    }
+
+    _resolve_type(context, init->target_type);
+
+    switch (init->target_type->tag) {
+    case AST_TYPE_KIND_ARRAY: {
+        AstType* element_type = ii_ast_type_get_array_element(init->target_type);
+
+        AstExpr* size_expr = ii_ast_type_get_array_size(init->target_type);
+        if (size_expr != nullptr && ii_ast_expr_get_kind(size_expr) == AST_KIND_LITERAL) {
+            AstLiteral* size_lit = (AstLiteral*)size_expr;
+            if (size_lit->variant == LITERAL_INT) {
+                int64_t declared_size = size_lit->literal.int_value;
+                size_t init_count = init->values ? uf_con_vector_length(init->values) : 0;
+                if (declared_size >= 0 && (int64_t)init_count > declared_size) {
+                    _diag_error(context, init->expr.base.span, "Array initializer has too many elements");
+                }
+            }
+        }
+
+        if (init->named != nullptr && uf_con_vector_length(init->named) > 0) {
+            _diag_error(context, init->expr.base.span, "Array initialization does not support named values");
+        }
+
+        if (init->values != nullptr) {
+            size_t count = uf_con_vector_length(init->values);
+            for (size_t i = 0; i < count; i++) {
+                AstExpr** value_ptr = uf_con_vector_get(init->values, i);
+                if (value_ptr != nullptr && *value_ptr != nullptr &&
+                    ii_ast_expr_get_kind(*value_ptr) == AST_KIND_INIT) {
+                    ((AstInit*)*value_ptr)->target_type = element_type;
+                }
+            }
+        }
+
+        if (element_type != nullptr) {
+            ast_foreach_init_values(init, value)
+            {
+                TastExpr* value_tast = _analyze_expr(context, value);
+                if (value_tast != nullptr && value_tast->resolved_type != nullptr) {
+                    if (!_types_match(context, value_tast->resolved_type, element_type) &&
+                        !_can_coerce_numeric(element_type, value_tast->resolved_type)) {
+                        _diag_error(context, init->expr.base.span, "Type mismatch in initialization");
+                    }
+                }
+            }
+            ast_foreach_end;
+
+            ast_foreach_init_indexed(init, entry)
+            {
+                TastExpr* value_tast = _analyze_expr(context, entry.value);
+                if (value_tast != nullptr && value_tast->resolved_type != nullptr) {
+                    if (!_types_match(context, value_tast->resolved_type, element_type) &&
+                        !_can_coerce_numeric(element_type, value_tast->resolved_type)) {
+                        _diag_error(context, init->expr.base.span,
+                                    "Type mismatch in indexed array initialization");
+                    }
+                }
+            }
+            ast_foreach_init_indexed_end;
+        }
+
+        TastExpr* tast = ii_tast_expr_new(context->ast);
+        tast->resolved_type = init->target_type;
+        init->expr.tast = tast;
+        return tast;
+    }
+
+    case AST_TYPE_KIND_ANON: {
+        TastExpr* tast = ii_tast_expr_new(context->ast);
+        tast->resolved_type = init->target_type;
+        init->expr.tast = tast;
+        return tast;
+    }
+
+    case AST_TYPE_KIND_BLUEPRINT: {
+        AstBlueprintDecl* bp = ii_ast_type_get_blueprint_resolved(init->target_type);
+        if (bp == nullptr) {
+            _diag_error(context, init->expr.base.span, "Unknown blueprint type in initialization");
+            return nullptr;
+        }
+
+        if (bp->flat_fields == nullptr) {
+            bp->flat_fields = uf_con_vector_new(sizeof(AstField*));
+        }
+        size_t field_count = uf_con_vector_length(bp->flat_fields);
+
+        if (init->values != nullptr) {
+            size_t value_count = uf_con_vector_length(init->values);
+            if (value_count > field_count) {
+                _diag_error(context, init->expr.base.span, "Too many values in initialization");
+            }
+            size_t i = 0;
+            ast_foreach_init_values(init, value)
+            {
+                TastExpr* value_tast = _analyze_expr(context, value);
+                if (value_tast == nullptr) {
+                    i++;
+                    continue;
+                }
+                AstField* field = *(AstField**)uf_con_vector_get(bp->flat_fields, i);
+                if (field != nullptr && (!_types_match(context, value_tast->resolved_type, field->type) &&
+                                         !_can_coerce_numeric(field->type, value_tast->resolved_type))) {
+                    _diag_error(context, init->expr.base.span,
+                                "Type mismatch in initialization for field '%s'", field->name);
+                }
+                i++;
+            }
+            ast_foreach_end;
+        }
+
+        ast_foreach_init_named(init, entry)
+        {
+            bool found = false;
+            ast_foreach_flat_fields(bp, field)
+            {
+                if (field->name == entry.name) {
+                    TastExpr* value_tast = _analyze_expr(context, entry.value);
+                    if (value_tast != nullptr && value_tast->resolved_type != nullptr &&
+                        !_types_match(context, value_tast->resolved_type, field->type) &&
+                        !_can_coerce_numeric(field->type, value_tast->resolved_type)) {
+                        _diag_error(context, init->expr.base.span,
+                                    "Type mismatch in initialization for field '%s'", field->name);
+                    }
+                    found = true;
+                    break;
+                }
+            }
+            ast_foreach_end;
+            if (!found) {
+                _diag_error(context, init->expr.base.span, "Unknown field '%s' in initialization",
+                            entry.name);
+            }
+        }
+        ast_foreach_init_named_end;
+
+        ast_foreach_init_indexed(init, entry)
+        {
+            TastExpr* index_tast = _analyze_expr(context, entry.index);
+            if (index_tast == nullptr || index_tast->resolved_type == nullptr ||
+                !_is_primitive_type(index_tast->resolved_type) ||
+                ii_ast_type_get_primitive(index_tast->resolved_type) != LEXER_PRIM_INT) {
+                _diag_error(context, init->expr.base.span, "Array index must be integer constant");
+                continue;
+            }
+            int32_t idx = index_tast->const_int_value;
+            if (idx < 0 || (size_t)idx >= field_count) {
+                _diag_error(context, init->expr.base.span, "Index out of bounds");
+                continue;
+            }
+            AstField* field = *(AstField**)uf_con_vector_get(bp->flat_fields, idx);
+            TastExpr* value_tast = _analyze_expr(context, entry.value);
+            if (value_tast != nullptr && !_types_match(context, value_tast->resolved_type, field->type) &&
+                !_can_coerce_numeric(field->type, value_tast->resolved_type)) {
+                _diag_error(context, init->expr.base.span, "Type mismatch in initialization for field '%s'",
+                            field->name);
+            }
+        }
+        ast_foreach_init_indexed_end;
+
+        TastExpr* tast = ii_tast_expr_new(context->ast);
+        tast->resolved_type = init->target_type;
+        init->expr.tast = tast;
+        return tast;
+    }
+
+    default:
+        _diag_error(context, init->expr.base.span, "Can only initialize blueprint or array types");
+        return nullptr;
+    }
+}
+
