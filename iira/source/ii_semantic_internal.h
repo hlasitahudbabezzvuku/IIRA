@@ -78,6 +78,108 @@ struct PrimitiveTypeInfo {
 };
 
 /*
+ * Inline type classification helpers.
+ */
+
+static inline bool _is_primitive_type(AstType* type)
+{
+    return type != nullptr && type->tag == AST_TYPE_KIND_PRIMITIVE;
+}
+
+static inline bool _is_pointer_type(AstType* type)
+{
+    return type != nullptr && type->tag == AST_TYPE_KIND_POINTER;
+}
+
+static inline bool _is_array_type(AstType* type)
+{
+    return type != nullptr && type->tag == AST_TYPE_KIND_ARRAY;
+}
+
+static inline bool _is_blueprint_type(AstType* type)
+{
+    return type != nullptr && type->tag == AST_TYPE_KIND_BLUEPRINT;
+}
+
+static inline bool _is_arithmetic_prim(enum LexerPrimitiveType prim)
+{
+    return prim == LEXER_PRIM_INT || prim == LEXER_PRIM_LONG || prim == LEXER_PRIM_SHORT ||
+           prim == LEXER_PRIM_FLOAT || prim == LEXER_PRIM_DOUBLE;
+}
+
+static inline bool _is_numeric_type(AstType* type)
+{
+    return _is_primitive_type(type) && _is_arithmetic_prim(ii_ast_type_get_primitive(type));
+}
+
+static inline bool _is_integer_prim(enum LexerPrimitiveType prim)
+{
+    return prim == LEXER_PRIM_INT || prim == LEXER_PRIM_LONG || prim == LEXER_PRIM_SHORT ||
+           prim == LEXER_PRIM_CHAR;
+}
+
+static inline bool _is_integer_type(AstType* type)
+{
+    return _is_primitive_type(type) && _is_integer_prim(ii_ast_type_get_primitive(type));
+}
+
+static inline bool _is_int_type(AstType* type)
+{
+    if (!_is_primitive_type(type)) {
+        return false;
+    }
+    enum LexerPrimitiveType prim = ii_ast_type_get_primitive(type);
+    return prim == LEXER_PRIM_INT || prim == LEXER_PRIM_LONG || prim == LEXER_PRIM_SHORT;
+}
+
+static inline bool _is_float_type(AstType* type)
+{
+    if (!_is_primitive_type(type)) {
+        return false;
+    }
+    enum LexerPrimitiveType prim = ii_ast_type_get_primitive(type);
+    return prim == LEXER_PRIM_FLOAT || prim == LEXER_PRIM_DOUBLE;
+}
+
+static inline bool _is_bool_type(AstType* type)
+{
+    return _is_primitive_type(type) && ii_ast_type_get_primitive(type) == LEXER_PRIM_BOOL;
+}
+
+static inline bool _is_void_ptr(AstType* type)
+{
+    if (!_is_pointer_type(type)) {
+        return false;
+    }
+    AstType* pointed = ii_ast_type_get_pointed(type);
+    return pointed != nullptr && _is_primitive_type(pointed) &&
+           ii_ast_type_get_primitive(pointed) == LEXER_PRIM_VOID;
+}
+
+static inline bool _is_zero_literal(AstExpr* expr)
+{
+    return expr != nullptr && ii_ast_expr_get_kind(expr) == AST_KIND_LITERAL &&
+           ((AstLiteral*)expr)->variant == LITERAL_INT && ((AstLiteral*)expr)->literal.int_value == 0;
+}
+
+static inline bool _is_int_literal(AstExpr* expr)
+{
+    return expr != nullptr && ii_ast_expr_get_kind(expr) == AST_KIND_LITERAL &&
+           ((AstLiteral*)expr)->variant == LITERAL_INT;
+}
+
+static inline bool _is_null_literal(AstExpr* expr)
+{
+    return expr != nullptr && ii_ast_expr_get_kind(expr) == AST_KIND_LITERAL &&
+           ((AstLiteral*)expr)->variant == LITERAL_NULL;
+}
+
+static inline bool _is_valid_condition_type(AstType* type, AstExpr* expr)
+{
+    return _is_bool_type(type) || _is_int_literal(expr);
+}
+
+/*
  * Scope management.
  */
 
