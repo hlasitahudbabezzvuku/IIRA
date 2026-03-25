@@ -315,3 +315,119 @@ TastExpr* _analyze_ident(SemanticContext* context, AstIdent* ident)
     return tast;
 }
 
+/*
+ * Binary expression analysis.
+ */
+
+TastExpr* _analyze_binary(SemanticContext* context, AstBinary* bin)
+{
+    TRACE_SCOPE(context->trace);
+
+    TastExpr* left_tast = _analyze_expr(context, bin->left);
+    TastExpr* right_tast = _analyze_expr(context, bin->right);
+
+    if (left_tast == nullptr || right_tast == nullptr) {
+        return nullptr;
+    }
+
+    AstType* result_type = nullptr;
+
+    switch (bin->op) {
+    case LEXER_TOK_PLUS:
+    case LEXER_TOK_MINUS:
+    case LEXER_TOK_STAR:
+    case LEXER_TOK_SLASH:
+    case LEXER_TOK_PERCENT: {
+        if (!_is_numeric_type(left_tast->resolved_type) || !_is_numeric_type(right_tast->resolved_type)) {
+            _diag_error(context, bin->expr.base.span, "Arithmetic operators require numeric operands");
+            return nullptr;
+        }
+        if (!_types_match(context, left_tast->resolved_type, right_tast->resolved_type)) {
+            _diag_error(context, bin->expr.base.span, "Type mismatch: operands must have the same type");
+            return nullptr;
+        }
+        result_type = left_tast->resolved_type;
+        break;
+    }
+
+    case LEXER_TOK_LT:
+    case LEXER_TOK_GT:
+    case LEXER_TOK_LTE:
+    case LEXER_TOK_GTE: {
+        if (!_is_numeric_type(left_tast->resolved_type) || !_is_numeric_type(right_tast->resolved_type)) {
+            _diag_error(context, bin->expr.base.span, "Comparison operators require numeric operands");
+            return nullptr;
+        }
+        if (!_types_match(context, left_tast->resolved_type, right_tast->resolved_type)) {
+            bool left_is_int = _is_int_type(left_tast->resolved_type);
+            bool right_is_int = _is_int_type(right_tast->resolved_type);
+            bool left_is_float = _is_float_type(left_tast->resolved_type);
+            bool right_is_float = _is_float_type(right_tast->resolved_type);
+            bool allowed = (left_is_int && right_is_float) || (left_is_float && right_is_int);
+            if (!allowed) {
+                _diag_error(context, bin->expr.base.span, "Type mismatch: operands must have the same type");
+                return nullptr;
+            }
+        }
+        result_type = ii_ast_type_primitive(context->ast, LEXER_PRIM_BOOL);
+        break;
+    }
+
+    case LEXER_TOK_EQ:
+    case LEXER_TOK_NEQ: {
+        bool allowed = _can_coerce_for_equality(context, left_tast->resolved_type, right_tast->resolved_type,
+                                                bin->left, bin->right);
+        if (!allowed) {
+            _diag_error(context, bin->expr.base.span,
+                        "Type mismatch: operands must have the same type for equality");
+            return nullptr;
+        }
+        result_type = ii_ast_type_primitive(context->ast, LEXER_PRIM_BOOL);
+        break;
+    }
+
+    case LEXER_TOK_AND:
+    case LEXER_TOK_OR: {
+        if (!_is_bool_type(left_tast->resolved_type) || !_is_bool_type(right_tast->resolved_type)) {
+            _diag_error(context, bin->expr.base.span, "Logical operators require boolean operands");
+            return nullptr;
+        }
+        result_type = ii_ast_type_primitive(context->ast, LEXER_PRIM_BOOL);
+        break;
+    }
+
+    case LEXER_TOK_BIT_AND:
+    case LEXER_TOK_BIT_OR:
+    case LEXER_TOK_BIT_XOR: {
+        if (!_is_integer_type(left_tast->resolved_type) || !_is_integer_type(right_tast->resolved_type)) {
+            _diag_error(context, bin->expr.base.span, "Bitwise operators require integer operands");
+            return nullptr;
+        }
+        if (!_types_match(context, left_tast->resolved_type, right_tast->resolved_type)) {
+            _diag_error(context, bin->expr.base.span, "Type mismatch: operands must have the same type");
+            return nullptr;
+        }
+        result_type = left_tast->resolved_type;
+        break;
+    }
+
+    case LEXER_TOK_ASSIGN:
+    case LEXER_TOK_PLUS_ASSIGN:
+    case LEXER_TOK_MINUS_ASSIGN:
+    case LEXER_TOK_STAR_ASSIGN:
+    case LEXER_TOK_SLASH_ASSIGN:
+        return nullptr;
+
+    default:
+        _diag_error(context, bin->expr.base.span, "Unknown binary operator");
+        return nullptr;
+    }
+
+    TastExpr* tast = ii_tast_expr_new(context->ast);
+    tast->resolved_type = result_type;
+    tast->is_constant = left_tast->is_constant && right_tast->is_constant;
+    bin->expr.tast = tast;
+
+    return tast;
+}
+
