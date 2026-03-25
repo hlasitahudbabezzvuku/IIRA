@@ -21,7 +21,7 @@ CodegenContext* iic_gen_context_new(Ast* ast, FILE* output, DiagnosticContext* d
     return context;
 }
 
-void iic_gen_context_free(DiagnosticContext* context)
+void iic_gen_context_free(CodegenContext* context)
 {
     if (!context) {
         return;
@@ -30,7 +30,7 @@ void iic_gen_context_free(DiagnosticContext* context)
     uf_mem_free(context);
 }
 
-void iic_gen_context_freep(DiagnosticContext** context_ptr)
+void iic_gen_context_freep(CodegenContext** context_ptr)
 {
     if (!context_ptr || !*context_ptr) {
         return;

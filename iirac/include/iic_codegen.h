@@ -14,7 +14,7 @@
 typedef struct CodegenContext CodegenContext;
 
 CodegenContext* iic_gen_context_new(Ast* ast, FILE* output, DiagnosticContext* diag, TraceContext*);
-void iic_gen_context_free(DiagnosticContext*);
-void iic_gen_context_freep(DiagnosticContext**);
+void iic_gen_context_free(CodegenContext*);
+void iic_gen_context_freep(CodegenContext**);
 
 #define _autogen_ _cleanup_(iic_gen_context_freep)
