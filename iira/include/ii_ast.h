@@ -238,6 +238,9 @@ struct AstFuncDecl {
     UfConVector* params;
     AstType* return_type;
     AstBlock* body; // nullptr = declaration only
+
+    /* TAST extension: total stack frame size, populated by semantic analyzer */
+    uint32_t frame_size;
 };
 
 /*
@@ -282,6 +285,9 @@ struct AstField {
     const char* name; // Interned
     AstType* type;
     AstExpr* default_value; // nullptr if no default
+
+    /* TAST extension: offset in flattened blueprint, populated by semantic analyzer */
+    uint32_t offset;
 };
 
 /*
@@ -317,6 +323,9 @@ struct AstParam {
 
     const char* name; // Interned
     AstType* type;
+
+    /* TAST extension: stack slot index, populated by semantic analyzer */
+    uint32_t slot_index;
 };
 
 /*
@@ -351,6 +360,9 @@ struct AstDecl {
     AstType* type;
     AstExpr* init;
     bool is_var; // true for "var x:", false for "x:" shorthand
+
+    /* TAST extension: stack slot index, populated by semantic analyzer */
+    uint32_t slot_index;
 };
 
 /*
