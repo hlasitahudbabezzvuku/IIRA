@@ -120,6 +120,9 @@ void _analyze_function_bodies(SemanticContext* context)
             }
         }
 
+        /* Compute frame size: round up max_slot to 8-byte alignment */
+        func->frame_size = (context->max_slot + 7) & ~7;
+
         _scope_pop(context);
 
         context->current_function = nullptr;
