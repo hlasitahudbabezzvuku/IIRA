@@ -431,3 +431,83 @@ TastExpr* _analyze_binary(SemanticContext* context, AstBinary* bin)
     return tast;
 }
 
+/*
+ * Unary expression analysis.
+ */
+
+TastExpr* _analyze_unary(SemanticContext* context, AstUnary* un)
+{
+    TRACE_SCOPE(context->trace);
+
+    TastExpr* operand_tast = _analyze_expr(context, un->operand);
+    if (operand_tast == nullptr) {
+        return nullptr;
+    }
+
+    AstType* result_type = nullptr;
+    bool is_lvalue = false;
+
+    switch (un->op) {
+    case LEXER_TOK_MINUS:
+        if (!_is_numeric_type(operand_tast->resolved_type)) {
+            _diag_error(context, un->expr.base.span, "Unary minus requires numeric operand");
+            return nullptr;
+        }
+        result_type = operand_tast->resolved_type;
+        break;
+
+    case LEXER_TOK_PLUS:
+        if (!_is_numeric_type(operand_tast->resolved_type)) {
+            _diag_error(context, un->expr.base.span, "Unary plus requires numeric operand");
+            return nullptr;
+        }
+        result_type = operand_tast->resolved_type;
+        break;
+
+    case LEXER_TOK_NOT:
+        if (!_is_bool_type(operand_tast->resolved_type)) {
+            _diag_error(context, un->expr.base.span, "Logical not requires boolean operand");
+            return nullptr;
+        }
+        result_type = ii_ast_type_primitive(context->ast, LEXER_PRIM_BOOL);
+        break;
+
+    case LEXER_TOK_BIT_NOT:
+        if (!_is_integer_type(operand_tast->resolved_type)) {
+            _diag_error(context, un->expr.base.span, "Bitwise not requires integer operand");
+            return nullptr;
+        }
+        result_type = operand_tast->resolved_type;
+        break;
+
+    case LEXER_TOK_STAR:
+        if (operand_tast->resolved_type == nullptr || !_is_pointer_type(operand_tast->resolved_type)) {
+            _diag_error(context, un->expr.base.span, "Dereference requires pointer operand");
+            return nullptr;
+        }
+        result_type = ii_ast_type_get_pointed(operand_tast->resolved_type);
+        is_lvalue = true;
+        break;
+
+    case LEXER_TOK_BIT_AND:
+        if (!operand_tast->is_lvalue) {
+            _diag_error(context, un->expr.base.span, "Address-of requires lvalue operand");
+            return nullptr;
+        }
+        result_type = ii_ast_type_pointer(context->ast, operand_tast->resolved_type);
+        break;
+
+    default:
+        _diag_error(context, un->expr.base.span, "Unknown unary operator");
+        return nullptr;
+    }
+
+    TastExpr* tast = ii_tast_expr_new(context->ast);
+    tast->resolved_type = result_type;
+    tast->is_lvalue = is_lvalue;
+    tast->is_constant = operand_tast->is_constant;
+    un->expr.tast = tast;
+
+    return tast;
+}
+
