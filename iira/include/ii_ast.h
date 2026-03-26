@@ -300,6 +300,12 @@ struct AstMethodOverload {
     UfConVector* params;
     AstType* return_type;
     AstBlock* body; // nullptr means declaration only
+
+    /* TAST extension: total stack frame size, populated by semantic analyzer */
+    uint32_t frame_size;
+
+    /* TAST extension: slot index for implicit self parameter */
+    uint32_t self_slot;
 };
 
 /*
@@ -501,6 +507,7 @@ struct AstIdent {
         AST_IDENT_FUNC,
         AST_IDENT_BLUEPRINT,
         AST_IDENT_FIELD,
+        AST_IDENT_SELF,
     } resolved_kind;
 
     union {
@@ -509,6 +516,7 @@ struct AstIdent {
         AstFuncDecl* func_decl;
         AstBlueprintDecl* blueprint_decl;
         AstField* field_decl;
+        AstMethodOverload* method_overload;
     } resolved;
 };
 
