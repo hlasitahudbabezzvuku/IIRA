@@ -178,10 +178,56 @@ TastType* _resolve_type(SemanticContext* context, AstType* type)
         const char* name = type->variant.blueprint.name;
         Symbol* sym = _scope_lookup_in_chain(context->global_scope, name);
         if (sym != nullptr && sym->kind == SYMBOL_KIND_BLUEPRINT) {
-            type->variant.blueprint.resolved = (AstBlueprintDecl*)sym->decl;
+            AstBlueprintDecl* bp = (AstBlueprintDecl*)sym->decl;
+            type->variant.blueprint.resolved = bp;
+
+            uint32_t bp_size = 0;
+            uint32_t bp_align = 1;
+
+            if (bp->flat_fields != nullptr) {
+                size_t field_count = uf_con_vector_length(bp->flat_fields);
+                for (size_t i = 0; i < field_count; i++) {
+                    AstField* f = *(AstField**)uf_con_vector_get(bp->flat_fields, i);
+                    if (f != nullptr && f->type != nullptr) {
+                        if (f->type->tast == nullptr || f->type->tast->state != TAST_RESOLUTION_RESOLVING) {
+                            _resolve_type(context, f->type);
+                        }
+                    }
+
+                    uint32_t f_size = 0;
+                    uint32_t f_align = 1;
+
+                    if (f != nullptr && f->type != nullptr) {
+                        if (f->type->tag == AST_TYPE_KIND_POINTER) {
+                            f_size = 8;
+                            f_align = 8;
+                        } else if (f->type->tast != nullptr &&
+                                   f->type->tast->state == TAST_RESOLUTION_RESOLVED) {
+                            f_size = f->type->tast->size;
+                            f_align = f->type->tast->alignment;
+                        } else {
+                            f_size = 8;
+                            f_align = 8;
+                        }
+                    }
+
+                    if (f_size > 0) {
+                        bp_size = (bp_size + f_align - 1) & ~(f_align - 1);
+                        bp_size += f_size;
+                        if (f_align > bp_align)
+                            bp_align = f_align;
+                    }
+                }
+                bp_size = (bp_size + bp_align - 1) & ~(bp_align - 1);
+            }
+
+            if (bp->flat_fields != nullptr && uf_con_vector_length(bp->flat_fields) > 0) {
+                uf_assert_msg(bp_size > 0, "Blueprint '%s' has fields but zero size", name);
+            }
+
+            type->tast->size = bp_size > 0 ? bp_size : 8;
+            type->tast->alignment = bp_align;
             type->tast->c_repr = "l";
-            type->tast->size = 8;
-            type->tast->alignment = 8;
         } else {
             Symbol* var_sym = _scope_lookup_in_chain(context->current_scope, name);
             if (var_sym != nullptr &&
@@ -232,9 +278,31 @@ TastType* _resolve_type(SemanticContext* context, AstType* type)
                                       new_bp, nullptr, type->base.span);
 
                         type->variant.blueprint.resolved = new_bp;
+
+                        uint32_t bp_size = 0;
+                        uint32_t bp_align = 1;
+
+                        if (new_bp->flat_fields != nullptr) {
+                            size_t field_count = uf_con_vector_length(new_bp->flat_fields);
+                            for (size_t i = 0; i < field_count; i++) {
+                                AstField* f = *(AstField**)uf_con_vector_get(new_bp->flat_fields, i);
+                                if (f != nullptr && f->type != nullptr && f->type->tast != nullptr) {
+                                    uint32_t f_align = f->type->tast->alignment;
+                                    uint32_t f_size = f->type->tast->size;
+
+                                    bp_size = (bp_size + f_align - 1) & ~(f_align - 1);
+                                    bp_size += f_size;
+
+                                    if (f_align > bp_align)
+                                        bp_align = f_align;
+                                }
+                            }
+                            bp_size = (bp_size + bp_align - 1) & ~(bp_align - 1);
+                        }
+
+                        type->tast->size = bp_size > 0 ? bp_size : 8;
+                        type->tast->alignment = bp_align;
                         type->tast->c_repr = "l";
-                        type->tast->size = 8;
-                        type->tast->alignment = 8;
                         break;
                     }
                 }
@@ -247,9 +315,35 @@ TastType* _resolve_type(SemanticContext* context, AstType* type)
     }
 
     case AST_TYPE_KIND_ANON: {
-        type->tast->c_repr = "anon";
-        type->tast->size = 8;
-        type->tast->alignment = 8;
+        uint32_t anon_size = 0;
+        uint32_t anon_align = 1;
+
+        if (type->variant.anon.fields != nullptr && type->variant.anon.field_count > 0) {
+            for (size_t i = 0; i < type->variant.anon.field_count; i++) {
+                AstField* field = &type->variant.anon.fields[i];
+                if (field->type != nullptr) {
+                    _resolve_type(context, field->type);
+                }
+                if (field->type != nullptr && field->type->tast != nullptr) {
+                    uint32_t f_align = field->type->tast->alignment;
+                    uint32_t f_size = field->type->tast->size;
+
+                    anon_size = (anon_size + f_align - 1) & ~(f_align - 1);
+                    field->offset = anon_size;
+                    anon_size += f_size;
+
+                    if (f_align > anon_align)
+                        anon_align = f_align;
+                }
+            }
+            anon_size = (anon_size + anon_align - 1) & ~(anon_align - 1);
+
+            uf_assert_msg(anon_size > 0, "Anonymous type has fields but zero size");
+        }
+
+        type->tast->size = anon_size > 0 ? anon_size : 8;
+        type->tast->alignment = anon_align;
+        type->tast->c_repr = "l";
         break;
     }
 
