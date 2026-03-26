@@ -178,11 +178,12 @@ void _analyze_function_bodies(SemanticContext* context)
                 if (!overload->is_static && !has_self_param) {
                     AstType* self_type = _make_self_type(context, bp);
                     /* Assign implicit self parameter a slot */
+                    overload->self_slot = context->next_slot;
                     context->next_slot++;
                     if (context->max_slot < context->next_slot) {
                         context->max_slot = context->next_slot;
                     }
-                    _scope_insert(context, method_scope, "self", SYMBOL_KIND_SELF, nullptr, self_type,
+                    _scope_insert(context, method_scope, "self", SYMBOL_KIND_SELF, overload, self_type,
                                   bp->base.span);
                 }
 
@@ -191,6 +192,9 @@ void _analyze_function_bodies(SemanticContext* context)
                 if (overload->body != nullptr) {
                     _analyze_block(context, overload->body);
                 }
+
+                /* Compute frame size: round up max_slot to 8-byte alignment */
+                overload->frame_size = (context->max_slot + 7) & ~7;
 
                 _scope_pop(context);
 
@@ -327,6 +331,10 @@ TastExpr* _analyze_ident(SemanticContext* context, AstIdent* ident)
         ident->resolved_kind = AST_IDENT_FIELD;
         ident->resolved.field_decl = symbol->decl;
         break;
+    case SYMBOL_KIND_SELF:
+        ident->resolved_kind = AST_IDENT_SELF;
+        ident->resolved.method_overload = symbol->decl;
+        break;
     default:
         ident->resolved_kind = AST_IDENT_NONE;
         break;
@@ -337,7 +345,8 @@ TastExpr* _analyze_ident(SemanticContext* context, AstIdent* ident)
     if (symbol->type != nullptr) {
         _resolve_type(context, symbol->type);
     }
-    tast->is_lvalue = (symbol->kind == SYMBOL_KIND_VAR || symbol->kind == SYMBOL_KIND_FIELD);
+    tast->is_lvalue = (symbol->kind == SYMBOL_KIND_VAR || symbol->kind == SYMBOL_KIND_FIELD ||
+                       symbol->kind == SYMBOL_KIND_SELF);
     ident->expr.tast = tast;
 
     return tast;
