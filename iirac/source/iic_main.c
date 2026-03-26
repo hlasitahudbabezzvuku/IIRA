@@ -14,6 +14,7 @@
 #include "ii_source.h"
 #include "ii_trace.h"
 #include "iic_arguments.h"
+#include "iic_codegen.h"
 #include "uf_containers.h"
 #include "uf_logger.h"
 
@@ -126,6 +127,10 @@ int main(const int argc, const char* argv[])
             ret = EXIT_FAILURE;
             continue;
         }
+
+        uf_log_debug("Creating CodegenContext for file '%s'", file_path);
+        _autogen_ CodegenContext* codegen_context =
+            iic_gen_context_new(ast, stdout, diagnostic_context, trace_context);
 
         uf_log_info("Compilation finished: %s", file_path);
     }
