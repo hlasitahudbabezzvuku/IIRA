@@ -9,7 +9,7 @@
 #include <string.h>
 
 static const struct PrimitiveTypeInfo _prim_info[] = {
-    [LEXER_PRIM_VOID] = {.size = 0, .alignment = 1, .c_repr = "b"},
+    [LEXER_PRIM_VOID] = {.size = 0, .alignment = 1, .c_repr = nullptr},
     [LEXER_PRIM_BOOL] = {.size = 1, .alignment = 1, .c_repr = "b"},
     [LEXER_PRIM_CHAR] = {.size = 1, .alignment = 1, .c_repr = "b"},
     [LEXER_PRIM_SHORT] = {.size = 2, .alignment = 2, .c_repr = "h"},
