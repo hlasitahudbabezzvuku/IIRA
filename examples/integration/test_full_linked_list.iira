@@ -1,21 +1,31 @@
-// Test: Linked list operations
+// Test: Linked list operations with stack-allocated nodes
 Node: {
     value: int;
     next: Node*;
 }
 
-createNode(v: int): Node* = {
-    var node: Node;
-    node.value = v;
-    node.next = 0;
-    return &node;
-}
-
-getValue(n: Node*): int = {
-    return n.value;
+initNode(n: Node*, v: int, nextNode: Node*): void = {
+    n.value = v;
+    n.next = nextNode;
+    return;
 }
 
 main(): int = {
-    var head: Node* = createNode(10);
-    return getValue(head);
+    var node3: Node;
+    var node2: Node;
+    var node1: Node;
+
+    initNode(&node3, 30, null);
+    initNode(&node2, 20, &node3);
+    initNode(&node1, 10, &node2);
+
+    $printf("Linked list values: ");
+    var current: Node* = &node1;
+    while (current != null) {
+        $printf("%d ", current.value);
+        current = current.next;
+    }
+    $printf("\n");
+
+    return 0;
 }
