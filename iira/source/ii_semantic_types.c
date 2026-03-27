@@ -397,8 +397,12 @@ bool _types_match(SemanticContext* context, AstType* a, AstType* b)
         return false;
     }
 
-    case AST_TYPE_KIND_POINTER:
+    case AST_TYPE_KIND_POINTER: {
+        if (_is_void_ptr(a) || _is_void_ptr(b)) {
+            return true;
+        }
         return _types_match(context, ii_ast_type_get_pointed(a), ii_ast_type_get_pointed(b));
+    }
 
     case AST_TYPE_KIND_ARRAY:
         if (!_types_match(context, ii_ast_type_get_array_element(a), ii_ast_type_get_array_element(b))) {
