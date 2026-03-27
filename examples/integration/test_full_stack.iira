@@ -33,8 +33,14 @@ main(): int = {
     push(&s, 10);
     push(&s, 20);
     push(&s, 30);
+
+    $printf("Popped values: ");
     var x: int = pop(&s);
+    $printf("%d ", x);
     x = x + pop(&s);
+    $printf("%d ", pop(&s));
     x = x + pop(&s);
-    return x;
+    $printf("%d\n", pop(&s));
+    $printf("Sum of all popped values: %d\n", x);
+    return 0;
 }
