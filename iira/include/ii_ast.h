@@ -274,6 +274,8 @@ struct AstBlueprintDecl {
     /* TAST extension: populated by semantic analyzer */
     UfConVector* flat_fields;
     UfConVector* flat_methods;
+
+    enum TastResolutionState inheritance_state;
 };
 
 /*
