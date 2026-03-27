@@ -9,5 +9,8 @@ stringLen(s: char[]): int = {
 
 main(): int = {
     var str: char[] = "Hello";
-    return stringLen(str);
+    var len: int = stringLen(str);
+    $printf("String: \"%s\"\n", str);
+    $printf("Length: %d\n", len);
+    return 0;
 }
