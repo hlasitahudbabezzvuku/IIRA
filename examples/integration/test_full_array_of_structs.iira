@@ -22,6 +22,15 @@ Point: {
     }
 }
 
+printPoints(arr: Point[], n: int): void = {
+    var i: int = 0;
+    while (i < n) {
+        $printf("Point(%d, %d) distance: %d\n", arr[i].x, arr[i].y, arr[i].distanceToOrigin());
+        i = i + 1;
+    }
+    return;
+}
+
 main(): int = {
     var points: Point[] = { { x = 0, y = 0 }, { x = 3, y = 4 }, { x = 6, y = 8 } };
     var sum: int = 0;
@@ -30,5 +39,6 @@ main(): int = {
         sum = sum + points[i].distanceToOrigin();
         i = i + 1;
     }
-    return sum;
+    $printf("Total sum of distances: %d\n", sum);
+    return 0;
 }
