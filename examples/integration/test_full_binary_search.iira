@@ -16,8 +16,28 @@ binarySearch(arr: int[], size: int, target: int): int = {
     return -1;
 }
 
+printArray(arr: int[], size: int): void = {
+    var i: int = 0;
+    $printf("Array: ");
+    while (i < size) {
+        $printf("%d ", arr[i]);
+        i = i + 1;
+    }
+    $printf("\n");
+    return;
+}
+
 main(): int = {
     var arr: int[] = { 1, 3, 5, 7, 9, 11, 13, 15 };
-    var result: int = binarySearch(arr, 8, 7);
-    return result;
+    printArray(arr, 8);
+
+    var target: int = 7;
+    var result: int = binarySearch(arr, 8, target);
+    if (result >= 0) {
+        $printf("Found %d at index %d\n", target, result);
+    } else {
+        $printf("%d not found in array\n", target);
+    }
+
+    return 0;
 }
