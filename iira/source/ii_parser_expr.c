@@ -534,12 +534,16 @@ static AstExpr* _pratt(ParserContext* context, uint8_t min_prec)
             if (!_is_postfix(op)) {
                 break;
             }
-        } else if (prec < min_prec) {
+        } else if (!_is_right_assoc(op) && prec <= min_prec) {
+            /* Left-associative: stop at equal or lower precedence */
+            break;
+        } else if (_is_right_assoc(op) && prec < min_prec) {
+            /* Right-associative: stop only at lower precedence */
             break;
         }
 
         /* Right-associative: use prec+1 for RHS to allow nesting */
-        uint8_t next_min = _is_right_assoc(op) ? (uint8_t)(prec + 1) : prec;
+        uint8_t next_min = _is_right_assoc(op) ? (uint8_t)(prec + 1) : (uint8_t)(prec + 1);
         _advance(context); /* consume operator */
 
         /* Postfix operators don't parse RHS - they use the left operand directly */
