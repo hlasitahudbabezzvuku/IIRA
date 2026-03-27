@@ -165,7 +165,7 @@ TastType* _resolve_type(SemanticContext* context, AstType* type)
                 type->tast->size = element->size;
             }
             type->tast->alignment = element->alignment;
-            type->tast->c_repr = element->c_repr;
+            type->tast->c_repr = "l";
         } else {
             type->tast->size = 8;
             type->tast->alignment = 8;
@@ -350,7 +350,7 @@ TastType* _resolve_type(SemanticContext* context, AstType* type)
     default:
         type->tast->size = 0;
         type->tast->alignment = 1;
-        type->tast->c_repr = "b";
+        type->tast->c_repr = "w";
         break;
     }
 
