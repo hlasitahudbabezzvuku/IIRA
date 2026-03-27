@@ -16,18 +16,24 @@ isPrime(n: int): int = {
     return 1;
 }
 
-countPrimes(limit: int): int = {
+printPrimes(limit: int): int = {
     var count: int = 0;
     var i: int = 2;
+    $printf("Primes up to %d: ", limit);
     while (i <= limit) {
         if (isPrime(i) == 1) {
+            $printf("%d ", i);
             count = count + 1;
         }
         i = i + 1;
     }
+    $printf("\n");
     return count;
 }
 
 main(): int = {
-    return countPrimes(20);
+    var limit: int = 20;
+    var count: int = printPrimes(limit);
+    $printf("Total primes found: %d\n", count);
+    return 0;
 }
