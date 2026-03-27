@@ -210,8 +210,17 @@ static inline void _sync_to_stmt(ParserContext* context)
 {
     TRACE_SCOPE(context->trace);
 
+    SourceSpan start_span = _span(context);
+
     while (!_in_sync_set_stmt(context) && context->current < context->count - 1) {
         _advance(context);
+    }
+
+    if (_span(context).offset == start_span.offset) {
+        _diag_error(context, "Cannot recover from parsing error");
+        if (context->current < context->count - 1) {
+            _advance(context);
+        }
     }
 }
 
@@ -219,8 +228,17 @@ static inline void _sync_to_decl(ParserContext* context)
 {
     TRACE_SCOPE(context->trace);
 
+    SourceSpan start_span = _span(context);
+
     while (!_in_sync_set_decl(context) && context->current < context->count - 1) {
         _advance(context);
+    }
+
+    if (_span(context).offset == start_span.offset) {
+        _diag_error(context, "Cannot recover from parsing error");
+        if (context->current < context->count - 1) {
+            _advance(context);
+        }
     }
 }
 
