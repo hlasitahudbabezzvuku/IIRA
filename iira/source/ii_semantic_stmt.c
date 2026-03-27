@@ -109,6 +109,19 @@ void _analyze_decl_stmt(SemanticContext* context, AstDecl* decl)
             if (size_expr == nullptr && decl->init == nullptr) {
                 _diag_error(context, decl->type->base.span, "Array declaration requires explicit size");
             }
+            if (size_expr == nullptr && decl->init != nullptr && decl->init->base.kind == AST_KIND_INIT) {
+                AstInit* init = (AstInit*)decl->init;
+                if (init->values != nullptr && uf_con_vector_length(init->values) > 0) {
+                    size_t elem_count = uf_con_vector_length(init->values);
+                    TastType* elem_tast = nullptr;
+                    AstType* elem_type = ii_ast_type_get_array_element(decl->type);
+                    if (elem_type != nullptr && elem_type->tast != nullptr) {
+                        elem_tast = elem_type->tast;
+                    }
+                    uint32_t elem_size = elem_tast != nullptr ? elem_tast->size : 4;
+                    decl->type->tast->size = (uint32_t)(elem_count * elem_size);
+                }
+            }
         }
     }
 
