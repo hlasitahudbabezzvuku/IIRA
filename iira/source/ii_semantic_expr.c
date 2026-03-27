@@ -120,8 +120,8 @@ void _analyze_function_bodies(SemanticContext* context)
             }
         }
 
-        /* Compute frame size: round up max_slot to 8-byte alignment */
-        func->frame_size = (context->max_slot + 7) & ~7;
+        /* Compute frame size: round up max_slot*8 to 8-byte alignment */
+        func->frame_size = (context->max_slot * 8 + 7) & ~7;
 
         _scope_pop(context);
 
@@ -193,8 +193,8 @@ void _analyze_function_bodies(SemanticContext* context)
                     _analyze_block(context, overload->body);
                 }
 
-                /* Compute frame size: round up max_slot to 8-byte alignment */
-                overload->frame_size = (context->max_slot + 7) & ~7;
+                /* Compute frame size: round up max_slot*8 to 8-byte alignment */
+                overload->frame_size = (context->max_slot * 8 + 7) & ~7;
 
                 _scope_pop(context);
 
@@ -452,8 +452,27 @@ TastExpr* _analyze_binary(SemanticContext* context, AstBinary* bin)
     case LEXER_TOK_PLUS_ASSIGN:
     case LEXER_TOK_MINUS_ASSIGN:
     case LEXER_TOK_STAR_ASSIGN:
-    case LEXER_TOK_SLASH_ASSIGN:
-        return nullptr;
+    case LEXER_TOK_SLASH_ASSIGN: {
+        if (left_tast == nullptr || !left_tast->is_lvalue) {
+            _diag_error(context, bin->expr.base.span, "Assignment target must be an lvalue");
+            return nullptr;
+        }
+
+        if (!_types_match(context, left_tast->resolved_type, right_tast->resolved_type)) {
+            if (!_can_coerce_numeric(left_tast->resolved_type, right_tast->resolved_type)) {
+                _diag_error(context, bin->expr.base.span, "Type mismatch in assignment");
+                return nullptr;
+            }
+        }
+
+        TastExpr* tast = ii_tast_expr_new(context->ast);
+        tast->resolved_type = left_tast->resolved_type;
+        tast->is_lvalue = false;
+        tast->is_constant = false;
+        bin->expr.tast = tast;
+
+        return tast;
+    }
 
     default:
         _diag_error(context, bin->expr.base.span, "Unknown binary operator");
