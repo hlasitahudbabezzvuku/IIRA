@@ -7,5 +7,8 @@ fib(n: int): int = {
 }
 
 main(): int = {
-    return fib(10);
+    var n: int = 10;
+    var result: int = fib(n);
+    $printf("Fibonacci(%d) = %d\n", n, result);
+    return 0;
 }
