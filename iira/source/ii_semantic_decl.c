@@ -12,8 +12,6 @@
 
 static void _validate_blueprint(SemanticContext* context, AstBlueprintDecl* bp);
 static void _check_duplicate_params(SemanticContext* context, UfConVector* params);
-static bool _check_inheritance_cycle(SemanticContext* context, AstBlueprintDecl* bp);
-static bool _check_cycle_recursive(SemanticContext* context, AstBlueprintDecl* bp, UfConVector* visited);
 static void _compute_field_offsets(SemanticContext* context, AstBlueprintDecl* bp);
 static void _flatten_blueprint(SemanticContext* context, AstBlueprintDecl* bp);
 
@@ -118,28 +116,42 @@ void _resolve_blueprint_inheritance(SemanticContext* context, AstBlueprintDecl* 
 {
     TRACE_SCOPE(context->trace);
 
-    if (bp->parents == nullptr) {
+    if (bp->inheritance_state == TAST_RESOLUTION_RESOLVED) {
         return;
     }
 
-    ast_foreach_parents(bp, inherit)
-    {
-        Symbol* sym = _scope_lookup_in_chain(context->global_scope, inherit->parent_name);
-        if (sym == nullptr) {
-            _diag_error(context, inherit->base.span, "Unknown parent blueprint '%s'", inherit->parent_name);
-            inherit->resolved = nullptr;
-            continue;
-        }
-
-        if (sym->kind != SYMBOL_KIND_BLUEPRINT) {
-            _diag_error(context, inherit->base.span, "Parent '%s' is not a blueprint", inherit->parent_name);
-            inherit->resolved = nullptr;
-            continue;
-        }
-
-        inherit->resolved = (AstBlueprintDecl*)sym->decl;
+    if (bp->inheritance_state == TAST_RESOLUTION_RESOLVING) {
+        _diag_error(context, bp->base.span, "Circular inheritance detected involving '%s'", bp->name);
+        return;
     }
-    ast_foreach_end;
+
+    bp->inheritance_state = TAST_RESOLUTION_RESOLVING;
+
+    if (bp->parents != nullptr) {
+        ast_foreach_parents(bp, inherit)
+        {
+            Symbol* sym = _scope_lookup_in_chain(context->global_scope, inherit->parent_name);
+            if (sym == nullptr) {
+                _diag_error(context, inherit->base.span, "Unknown parent blueprint '%s'",
+                            inherit->parent_name);
+                inherit->resolved = nullptr;
+                continue;
+            }
+
+            if (sym->kind != SYMBOL_KIND_BLUEPRINT) {
+                _diag_error(context, inherit->base.span, "Parent '%s' is not a blueprint",
+                            inherit->parent_name);
+                inherit->resolved = nullptr;
+                continue;
+            }
+
+            inherit->resolved = (AstBlueprintDecl*)sym->decl;
+            _resolve_blueprint_inheritance(context, inherit->resolved);
+        }
+        ast_foreach_end;
+    }
+
+    bp->inheritance_state = TAST_RESOLUTION_RESOLVED;
 
     ast_foreach_parents(bp, inherit)
     {
@@ -182,49 +194,7 @@ void _resolve_blueprint_inheritance(SemanticContext* context, AstBlueprintDecl* 
     }
     ast_foreach_end;
 
-    if (_check_inheritance_cycle(context, bp)) {
-        _diag_error(context, bp->base.span, "Circular inheritance detected involving '%s'", bp->name);
-    }
-
     _flatten_blueprint(context, bp);
-}
-
-static bool _check_inheritance_cycle(SemanticContext* context, AstBlueprintDecl* bp)
-{
-    UfConVector* visited = uf_con_vector_new(sizeof(AstBlueprintDecl*));
-    bool has_cycle = _check_cycle_recursive(context, bp, visited);
-    uf_con_vector_free(visited);
-    return has_cycle;
-}
-
-static bool _check_cycle_recursive(SemanticContext* context, AstBlueprintDecl* bp, UfConVector* visited)
-{
-    size_t visited_count = uf_con_vector_length(visited);
-    for (size_t i = 0; i < visited_count; i++) {
-        AstBlueprintDecl* visited_bp = *(AstBlueprintDecl**)uf_con_vector_get(visited, i);
-        if (visited_bp == bp) {
-            return true;
-        }
-    }
-
-    uf_con_vector_push(visited, bp);
-
-    if (bp->parents == nullptr) {
-        return false;
-    }
-
-    ast_foreach_parents(bp, inherit)
-    {
-        if (inherit->resolved == nullptr) {
-            continue;
-        }
-        if (_check_cycle_recursive(context, inherit->resolved, visited)) {
-            return true;
-        }
-    }
-    ast_foreach_end;
-
-    return false;
 }
 
 static void _compute_field_offsets(SemanticContext* context, AstBlueprintDecl* bp)
