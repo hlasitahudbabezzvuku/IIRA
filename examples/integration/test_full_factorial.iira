@@ -10,5 +10,8 @@ factorial(n: int): int = {
 }
 
 main(): int = {
-    return factorial(5);
+    var n: int = 5;
+    var result: int = factorial(n);
+    $printf("Factorial of %d is %d\n", n, result);
+    return 0;
 }
