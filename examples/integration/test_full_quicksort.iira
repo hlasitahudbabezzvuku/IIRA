@@ -27,8 +27,21 @@ quickSort(arr: int[], low: int, high: int): void = {
     return;
 }
 
+printArray(arr: int[], n: int): void = {
+    var i: int = 0;
+    $printf("Sorted array: ");
+    while (i < n) {
+        $printf("%d ", arr[i]);
+        i = i + 1;
+    }
+    $printf("\n");
+    return;
+}
+
 main(): int = {
     var arr: int[] = { 64, 34, 25, 12, 22, 11, 90 };
+    $printf("Original array: 64 34 25 12 22 11 90\n");
     quickSort(arr, 0, 6);
-    return arr[0];
+    printArray(arr, 7);
+    return 0;
 }
