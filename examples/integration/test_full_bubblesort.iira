@@ -16,8 +16,21 @@ sort(arr: int[], n: int): void = {
     return;
 }
 
+printArray(arr: int[], n: int): void = {
+    var i: int = 0;
+    $printf("Sorted array: ");
+    while (i < n) {
+        $printf("%d ", arr[i]);
+        i = i + 1;
+    }
+    $printf("\n");
+    return;
+}
+
 main(): int = {
     var arr: int[] = { 5, 3, 8, 1, 2 };
+    $printf("Original array: 5 3 8 1 2\n");
     sort(arr, 5);
-    return arr[0];
+    printArray(arr, 5);
+    return 0;
 }
