@@ -104,9 +104,15 @@ static AstStmt* _parse_if(ParserContext* context)
     SourceSpan keyword_span = _span(context);
     _advance(context);
 
-    _expect(context, LEXER_TOK_LPAREN);
+    if (!_expect(context, LEXER_TOK_LPAREN)) {
+        return (AstStmt*)ii_ast_block_sp(context->ast, keyword_span);
+    }
+
     AstExpr* cond = ii_parser_parse_expression(context);
-    _expect(context, LEXER_TOK_RPAREN);
+
+    if (!_expect(context, LEXER_TOK_RPAREN)) {
+        return (AstStmt*)ii_ast_block_sp(context->ast, keyword_span);
+    }
 
     /* Then branch */
     AstStmt* then_stmt = ii_parser_parse_statement(context);
