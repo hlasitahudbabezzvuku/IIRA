@@ -7,6 +7,6 @@ Node: {
 main(): int = {
     var node: Node;
     node.value = 42;
-    node.next = 0;
+    node.next = null;
     return node.value;
 }
