@@ -164,10 +164,12 @@ TastType* _resolve_type(SemanticContext* context, AstType* type)
     case AST_TYPE_KIND_ARRAY: {
         if (ii_ast_type_get_array_element(type) != nullptr) {
             TastType* element = _resolve_type(context, ii_ast_type_get_array_element(type));
-            if (ii_ast_type_get_array_size(type) != nullptr) {
-                if (ii_ast_expr_get_kind(ii_ast_type_get_array_size(type)) == AST_KIND_LITERAL) {
-                    AstLiteral* lit = (AstLiteral*)ii_ast_type_get_array_size(type);
+            AstExpr* size_expr = ii_ast_type_get_array_size(type);
+            if (size_expr != nullptr) {
+                if (ii_ast_expr_get_kind(size_expr) == AST_KIND_LITERAL) {
+                    AstLiteral* lit = (AstLiteral*)size_expr;
                     if (lit->variant == LITERAL_INT) {
+                        type->variant.array.fixed_size = (uint32_t)lit->literal.int_value;
                         type->tast->size = element->size * (uint32_t)lit->literal.int_value;
                     }
                 }
