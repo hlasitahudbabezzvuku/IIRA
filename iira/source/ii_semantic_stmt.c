@@ -143,8 +143,17 @@ void _analyze_decl_stmt(SemanticContext* context, AstDecl* decl)
         }
     }
 
-    /* Assign slot index for codegen */
-    decl->slot_index = context->next_slot++;
+    /* Assign slot index for codegen - allocate based on type size */
+    uint32_t type_size = 8;
+    if (decl->type != nullptr && decl->type->tast != nullptr) {
+        type_size = decl->type->tast->size;
+        if (type_size == 0) {
+            type_size = 8;
+        }
+    }
+    uint32_t slots_needed = (type_size + 7) / 8;
+    decl->slot_index = context->next_slot;
+    context->next_slot += slots_needed;
     if (context->max_slot < context->next_slot) {
         context->max_slot = context->next_slot;
     }

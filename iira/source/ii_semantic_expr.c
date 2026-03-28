@@ -95,8 +95,17 @@ void _analyze_function_bodies(SemanticContext* context)
 
         ast_foreach_params(func, param)
         {
-            /* Assign slot index to parameter */
-            param->slot_index = context->next_slot++;
+            /* Assign slot index to parameter - allocate based on type size */
+            uint32_t type_size = 8;
+            if (param->type != nullptr && param->type->tast != nullptr) {
+                type_size = param->type->tast->size;
+                if (type_size == 0) {
+                    type_size = 8;
+                }
+            }
+            uint32_t slots_needed = (type_size + 7) / 8;
+            param->slot_index = context->next_slot;
+            context->next_slot += slots_needed;
             if (context->max_slot < context->next_slot) {
                 context->max_slot = context->next_slot;
             }
@@ -164,8 +173,17 @@ void _analyze_function_bodies(SemanticContext* context)
                             param->type = _make_self_type(context, bp);
                         }
                     }
-                    /* Assign slot index to parameter */
-                    param->slot_index = context->next_slot++;
+                    /* Assign slot index to parameter - allocate based on type size */
+                    uint32_t type_size = 8;
+                    if (param->type != nullptr && param->type->tast != nullptr) {
+                        type_size = param->type->tast->size;
+                        if (type_size == 0) {
+                            type_size = 8;
+                        }
+                    }
+                    uint32_t slots_needed = (type_size + 7) / 8;
+                    param->slot_index = context->next_slot;
+                    context->next_slot += slots_needed;
                     if (context->max_slot < context->next_slot) {
                         context->max_slot = context->next_slot;
                     }
