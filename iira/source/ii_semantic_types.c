@@ -76,6 +76,16 @@ void _resolve_all_types(SemanticContext* context)
         }
         ast_foreach_end;
 
+        if (bp->flat_fields != nullptr) {
+            size_t count = uf_con_vector_length(bp->flat_fields);
+            for (size_t i = 0; i < count; i++) {
+                AstField* field = *(AstField**)uf_con_vector_get(bp->flat_fields, i);
+                if (field != nullptr && field->type != nullptr) {
+                    _resolve_type(context, field->type);
+                }
+            }
+        }
+
         ast_foreach_methods(bp, method)
         {
             ast_foreach_overloads(method, overload)

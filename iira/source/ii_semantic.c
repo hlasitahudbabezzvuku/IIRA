@@ -133,6 +133,11 @@ SemanticContext* ii_sem_context_new(Ast* ast, DiagnosticContext* diag, TraceCont
     }
 
     if (_likely_(!context->had_error)) {
+        TRACE_LOG(context->trace, "Phase 3b: Compute field offsets");
+        _compute_all_field_offsets(context);
+    }
+
+    if (_likely_(!context->had_error)) {
         TRACE_LOG(context->trace, "Phase 4: Expression analysis");
         _analyze_function_bodies(context);
     }

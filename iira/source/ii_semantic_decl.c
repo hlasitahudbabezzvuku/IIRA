@@ -14,6 +14,7 @@ static void _validate_blueprint(SemanticContext* context, AstBlueprintDecl* bp);
 static void _check_duplicate_params(SemanticContext* context, UfConVector* params);
 static void _compute_field_offsets(SemanticContext* context, AstBlueprintDecl* bp);
 static void _flatten_blueprint(SemanticContext* context, AstBlueprintDecl* bp);
+void _compute_all_field_offsets(SemanticContext* context);
 
 /*
  * Declaration analysis.
@@ -246,6 +247,17 @@ static void _compute_field_offsets(SemanticContext* context, AstBlueprintDecl* b
     bp_type->tast->alignment = max_alignment;
     bp_type->variant.blueprint.resolved = bp;
     bp_type->tast->c_repr = ":Blueprint";
+}
+
+void _compute_all_field_offsets(SemanticContext* context)
+{
+    TRACE_SCOPE(context->trace);
+
+    ast_foreach_blueprints(context->ast, bp)
+    {
+        _compute_field_offsets(context, bp);
+    }
+    ast_foreach_end;
 }
 
 void _flatten_blueprint(SemanticContext* context, AstBlueprintDecl* bp)

@@ -236,6 +236,7 @@ void _analyze_declarations(SemanticContext* context);
 void _resolve_inheritance(SemanticContext* context);
 void _resolve_blueprint_inheritance(SemanticContext* context, AstBlueprintDecl* bp);
 void _resolve_all_types(SemanticContext* context);
+void _compute_all_field_offsets(SemanticContext* context);
 void _analyze_function_bodies(SemanticContext* context);
 
 /*
