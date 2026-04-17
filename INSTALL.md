@@ -14,7 +14,7 @@
 So, you want to build IIRA? Awesome. This guide will walk you through setting up your environment, compiling the frontend, and running your first IIRA program.
 
 > [!note]
-> IIRA is built primarily for Linux (specifically Fedora/RHEL). But don't worry—if you're gaming on Windows or macOS, I've got you covered with WSL and Homebrew workarounds below.
+> IIRA is built primarily for Linux (specifically Fedora/RHEL). But don't worry—if you're gaming on Windows, I've got you covered with WSL.
 
 
 <br><h2>Inventory Check (Prerequisites)</h2>
@@ -67,23 +67,6 @@ Don't try to build this natively on Windows - it doesn't work. Use the Windows S
 sudo apt update
 sudo apt install build-essential git gcc clang libasan8 libubsan1
 ```
-
-
-<br><h3>macOS</h3>
-
-You'll need Homebrew for this.
-1. Install Homebrew if you haven't:
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
-2. Install the build tools:
-```bash
-brew install gcc git
-```
-
-> [!note]
-> macOS comes with Apple Clang, which might complain about C23 features. If you hit bugs, tell Xmake to use standard GCC by running `export CC=gcc-14` before building).*
 
 
 <br><h3>Installing Xmake</h3>
