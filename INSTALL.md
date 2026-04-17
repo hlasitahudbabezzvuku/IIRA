@@ -27,6 +27,7 @@ Before we can start crafting, make sure you have the following installed:
 | Git | Any recent version | For downloading the source code |
 | Xmake | Latest | The build system (vital) |
 | QBE | Latest | Our compiler backend (built from source) |
+| ASan / UBSan | N/A | Memory and undefined behavior sanitizers (Required for Debug mode) |
 
 
 
@@ -44,7 +45,7 @@ sudo dnf install gcc clang git
 
 For RHEL 8+ or CentOS Stream:
 ```bash
-sudo dnf install gcc gcc-c++ clang git
+sudo dnf install gcc gcc-c++ clang git libasan libubsan
 ```
 
 *Stuck in the past on RHEL 7?* You'll need the DevToolset for a modern GCC:
@@ -64,7 +65,7 @@ Don't try to build this natively on Windows - it doesn't work. Use the Windows S
 
 ```bash
 sudo apt update
-sudo apt install build-essential git gcc clang
+sudo apt install build-essential git gcc clang libasan8 libubsan1
 ```
 
 
@@ -121,6 +122,7 @@ Finally, let's build the compiler.
 ```bash
 git clone https://github.com/hlasitahudbabezzvuku/IIRA.git
 cd IIRA
+xmake f -m release  # optional, but recommended
 xmake build
 ```
 
