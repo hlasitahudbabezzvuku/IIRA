@@ -1,555 +1,205 @@
-# Installing IIRA on Linux
+<div align="center">
+    <h1>IIRA</h1>
+    <h3>Getting your environment ready to build some compilers.</h3>
+    <div>
+        <img src="https://img.shields.io/badge/OPEN_SOURCE-161b22?style=for-the-badge&logo=opensourceinitiative&logoColor=7ee787&labelColor=21262d">
+        <img src="https://img.shields.io/badge/LINUX-161b22?style=for-the-badge&logo=linux&logoColor=ffa657&labelColor=21262d">
+        <img src="https://img.shields.io/badge/C_LANGUAGE-161b22?style=for-the-badge&logo=c&logoColor=58a6ff&labelColor=21262d">
+        <img src="https://img.shields.io/badge/XMAKE-161b22?style=for-the-badge&logo=make&logoColor=d2a8ff&labelColor=21262d">
+    </div>
+</div><br><br>
 
-This guide covers installing and using the IIRA compiler on Linux systems, with specific instructions for Fedora, RHEL, and related distributions. It also includes guidance for Windows (via WSL) and macOS users.
+> *"It's dangerous to go alone! Take this... installation guide."*
 
-## Table of Contents
+So, you want to build IIRA? Awesome. This guide will walk you through setting up your environment, compiling the frontend, and running your first IIRA program.
 
-- [Prerequisites](#prerequisites)
-- [Installing Build Tools on Fedora/RHEL](#installing-build-tools-on-fedorarhel)
-- [Installing QBE from Source](#installing-qbe-from-source)
-- [Building IIRA](#building-iira)
-- [Verifying the Installation](#verifying-the-installation)
-- [Using the Compiler](#using-the-compiler)
-- [Full Compilation Pipeline](#full-compilation-pipeline)
-- [Running the Test Suite](#running-the-test-suite)
-- [Setting Up the Development Environment](#setting-up-the-development-environment)
-- [Troubleshooting](#troubleshooting)
+> [!note]
+> IIRA is built primarily for Linux (specifically Fedora/RHEL). But don't worry—if you're gaming on Windows or macOS, I've got you covered with WSL and Homebrew workarounds below.
 
----
 
-## Prerequisites
+<br><h2>Inventory Check (Prerequisites)</h2>
 
-Before building IIRA, ensure you have the following installed:
+Before we can start crafting, make sure you have the following installed:
 
 | Requirement | Version | Description |
 |-------------|---------|-------------|
 | GCC or Clang | 11+ (GCC) / 13+ (Clang) | C23-compatible compiler |
-| Git | Any recent version | Source control |
-| Xmake | Latest | Build system |
-| QBE | Latest | Backend compiler (must be built from source) |
+| Git | Any recent version | For downloading the source code |
+| Xmake | Latest | The build system (vital) |
+| QBE | Latest | Our compiler backend (built from source) |
 
----
 
-## Installing Build Tools on Fedora/RHEL
 
-### Fedora
+<br><h2>Equipping Your Build Tools</h2>
 
-Install the required packages using `dnf`:
+Depending on your Operating System, gathering your tools looks a bit different.
 
+
+<br><h3>Fedora / RHEL</h3>
+
+If you are on Fedora, you can grab everything easily:
 ```bash
 sudo dnf install gcc clang git
 ```
 
-### RHEL / CentOS / AlmaLinux
-
-For RHEL 8+ or CentOS Stream, you may need to enable additional repositories for modern compiler versions:
-
+For RHEL 8+ or CentOS Stream:
 ```bash
 sudo dnf install gcc gcc-c++ clang git
 ```
 
-For RHEL 7 or older CentOS versions, enable the DevToolset for GCC 11+:
-
+*Stuck in the past on RHEL 7?* You'll need the DevToolset for a modern GCC:
 ```bash
 sudo dnf install centos-release-scl
 sudo dnf install devtoolset-11-gcc devtoolset-11-gcc-c++ clang
 scl enable devtoolset-11 bash
 ```
 
-### Installing Xmake
 
-Xmake is not typically available in standard Fedora/RHEL repositories. Install it via the official script:
+<br><h3>Windows (WSL)</h3>
 
-```bash
-curl -fsSL https://xmake.io/shget.text | bash
-```
-
-After installation, restart your terminal or source your profile:
-
-```bash
-source ~/.bashrc  # or ~/.zshrc
-```
-
-Verify the installation:
-
-```bash
-xmake --version
-```
-
----
-
-## Installing QBE from Source
-
-QBE is the backend compiler used by IIRA. It is not available in standard package repositories and must be built from source.
-
-### Clone and Build QBE
-
-```bash
-git clone https://c9x.me/qbe.git
-cd qbe
-make
-```
-
-This produces a `qbe` binary in the current directory.
-
-### Install QBE System-Wide
-
-```bash
-sudo cp qbe /usr/local/bin/
-```
-
-Or install to your home directory for a local installation:
-
-```bash
-mkdir -p ~/.local/bin
-cp qbe ~/.local/bin/
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-### Verify QBE Installation
-
-```bash
-qbe --version
-```
-
----
-
-## Building IIRA
-
-Clone the repository and build:
-
-```bash
-git clone https://github.com/yourusername/IIRA.git
-cd IIRA
-xmake build
-```
-
-The compiler binary will be created at:
-
-```
-build/linux/x86_64/debug/iirac
-```
-
-### Adding IIRA to Your PATH
-
-For convenience, add the binary to your PATH:
-
-```bash
-echo 'export PATH="$PWD/build/linux/x86_64/debug:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-Or create a symbolic link:
-
-```bash
-sudo ln -s "$PWD/build/linux/x86_64/debug/iirac" /usr/local/bin/iirac
-```
-
----
-
-## Verifying the Installation
-
-Run the compiler with the `--version` flag:
-
-```bash
-iirac --version
-```
-
-Or compile a simple program:
-
-```bash
-echo 'fn main() { printf("Hello, IIRA!\n"); }' > hello.iira
-iirac hello.iira | qbe -o hello
-./hello
-```
-
----
-
-## Using the Compiler
-
-### Basic Usage
-
-```bash
-iirac <input_file>
-```
-
-By default, the compiler outputs QBE IR to stdout.
-
-### Command-Line Options
-
-| Option | Description |
-|--------|-------------|
-| `-h`, `--help` | Print help message and exit |
-| `-v`, `--version` | Print version information |
-| `-s`, `--no-warn` | Suppress all warnings |
-| `--verbose` | Enable verbose output |
-| `--debug` | Enable debug output |
-| `--trace` | Enable tracing output |
-| `-o`, `--output <name>` | Specify output name (without suffix) |
-| `--max-errors <n>` | Maximum errors before exiting |
-| `--show-lexer-output` | Print generated tokens to stdout |
-| `--show-parser-output` | Print parsed AST to stdout |
-| `--show-analyzer-output` | Print analyzed TAST to stdout |
-| `--stop-after-lexer` | Stop after lexical analysis |
-| `--stop-after-parser` | Stop after parsing phase |
-| `--stop-after-analyzer` | Stop after semantic analysis |
-
-### Viewing Intermediate Outputs
-
-You can inspect the compilation pipeline at each stage:
-
-```bash
-# View lexer output (tokens)
-iirac input.iira --show-lexer-output
-
-# View parser output (AST)
-iirac input.iira --show-parser-output
-
-# View analyzer output (typed AST)
-iirac input.iira --show-analyzer-output
-
-# Stop after specific phases
-iirac input.iira --stop-after-lexer
-iirac input.iira --stop-after-parser
-iirac input.iira --stop-after-analyzer
-```
-
----
-
-## Full Compilation Pipeline
-
-### Method 1: Direct Pipeline
-
-The simplest method pipes the compiler output directly to QBE:
-
-```bash
-iirac input.iira | qbe -o output
-chmod +x output
-./output
-```
-
-### Method 2: Save QBE Output First
-
-For inspection or debugging, save the intermediate QBE code:
-
-```bash
-iirac input.iira > output.qbe
-qbe output.qbe -o output
-./output
-```
-
-View the QBE output before compiling:
-
-```bash
-iirac input.iira > output.qbe
-cat output.qbe
-```
-
-### Method 3: Compile with GCC or Clang
-
-QBE outputs assembly, which can be compiled with your preferred compiler:
-
-```bash
-# Generate QBE IR
-iirac input.iira > output.qbe
-
-# Compile QBE IR to assembly with QBE
-qbe output.qbe -o output.s
-
-# Assemble with GCC
-gcc output.s -o output
-./output
-
-# Or with Clang
-clang output.s -o output
-./output
-```
-
-### Complete Example
-
-```bash
-# Create a simple IIRA program
-cat > factorial.iira << 'EOF'
-fn main() {
-    int n = 5;
-    int result = 1;
-    for (int i = 1; i <= n; i = i + 1) {
-        result = result * i;
-    }
-    printf("Factorial of %d is %d\n", n, result);
-}
-EOF
-
-# Compile and run
-iirac factorial.iira | qbe -o factorial
-./factorial
-```
-
-Expected output:
-
-```
-Factorial of 5 is 120
-```
-
----
-
-## Running the Test Suite
-
-The project includes a test suite that validates the compiler against example programs:
-
-```bash
-./test.sh
-```
-
-This script:
-1. Compiles all example programs in `examples/*/*.iira`
-2. Runs error test cases (files prefixed with `fail_`) and verifies they produce errors
-3. Reports PASS/FAIL status for each test
-
-### Understanding Test Results
-
-- **PASS (green)**: Program compiled and ran successfully (or failed as expected for error tests)
-- **FAIL (red)**: Compilation or execution failed unexpectedly
-
-### Adding Your Own Tests
-
-Place `.iira` files in the `examples/` subdirectories:
-- `examples/integration/` - Full program tests
-- `examples/declarations/` - Declaration tests
-- `examples/expressions/` - Expression tests
-- `examples/inheritance/` - Inheritance tests
-
-For error tests, prefix the filename with `fail_`:
-
-```
-examples/integration/fail_syntax_error.iira
-```
-
----
-
-## Setting Up the Development Environment
-
-### Windows (WSL)
-
-Windows Subsystem for Linux provides a full Linux kernel on Windows. This is the recommended approach for Windows users.
-
-#### Step 1: Enable WSL
-
-Open PowerShell as Administrator and run:
-
-```powershell
-wsl --install
-```
-
-Restart your computer when prompted.
-
-#### Step 2: Install a Linux Distribution
-
-From the Microsoft Store, install **Ubuntu** (or your preferred distribution).
-
-#### Step 3: Install Build Tools
+Don't try to build this natively on Windows - it doesn't work. Use the Windows Subsystem for Linux (WSL2).
+1. Open PowerShell as Admin and run: `wsl --install`
+2. Restart your PC, install **Ubuntu** from the Microsoft Store.
+3. Open your new WSL terminal and grab the tools:
 
 ```bash
 sudo apt update
 sudo apt install build-essential git gcc clang
 ```
 
-#### Step 4: Install Xmake
 
-```bash
-curl -fsSL https://xmake.io/shget.text | bash
-source ~/.bashrc
-```
+<br><h3>macOS</h3>
 
-#### Step 5: Install QBE
-
-```bash
-git clone https://c9x.me/qbe.git
-cd qbe
-make
-sudo cp qbe /usr/local/bin/
-```
-
-#### Step 6: Build IIRA
-
-```bash
-git clone https://github.com/yourusername/IIRA.git
-cd IIRA
-xmake build
-```
-
-#### Step 7: Use VS Code (Recommended)
-
-Install **VS Code** and the **WSL extension**. This allows you to edit code in Windows while running the compiler in WSL.
-
-1. Open VS Code
-2. Install the "WSL" extension
-3. Click "Open Folder in WSL" and navigate to your IIRA directory
-4. Open an integrated terminal (Ctrl+`) - it will be a bash shell in WSL
-
-### macOS
-
-macOS requires Homebrew for most development tools.
-
-#### Step 1: Install Homebrew
-
+You'll need Homebrew for this.
+1. Install Homebrew if you haven't:
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-#### Step 2: Install Build Tools
-
+2. Install the build tools:
 ```bash
 brew install gcc git
 ```
 
-macOS includes Clang by default (via Xcode Command Line Tools).
+> [!note]
+> macOS comes with Apple Clang, which might complain about C23 features. If you hit bugs, tell Xmake to use standard GCC by running `export CC=gcc-14` before building).*
 
-#### Step 3: Install Xmake
 
+<br><h3>Installing Xmake</h3>
+
+IIRA uses Xmake. It isn't typically in standard package repos, so grab it via their official script:
 ```bash
-brew install xmake
+curl -fsSL https://xmake.io/shget.text | bash
+source ~/.bashrc  # or ~/.zshrc if don't know what's good
 ```
 
-#### Step 4: Install QBE
+
+<br><h2>Building QBE</h2>
+
+> [!important]
+> Remember the architecture from the README? IIRA only handles the frontend. We rely entirely on [QBE](https://c9x.me/compile/) to turn our Intermediate Language (IL) into actual machine code. 
+
+QBE isn't standard, so we have to build it from source.
 
 ```bash
 git clone https://c9x.me/qbe.git
 cd qbe
 make
-sudo cp qbe /usr/local/bin/
+sudo cp qbe /usr/local/bin/ # or ~/.local/share/bin/ if you're fancy
 ```
 
-#### Step 5: Build IIRA
+Verify you equipped it correctly:
+```bash
+qbe --version
+```
+
+
+<br><h2>Building IIRA</h2>
+
+Finally, let's build the compiler.
 
 ```bash
-git clone https://github.com/yourusername/IIRA.git
+git clone https://github.com/hlasitahudbabezzvuku/IIRA.git
 cd IIRA
 xmake build
 ```
 
-#### Step 6: Configure Compiler (if needed)
+If everything worked, your shiny new compiler binary is sitting at `build/linux/x86_64/debug/iirac`. 
 
-macOS may use Apple Clang, which may have limited C23 support. If you encounter issues:
-
+For convenience, add it to your PATH:
 ```bash
-brew install gcc
-export CC=gcc-14  # Use installed GCC version
-xmake clean
-xmake build
-```
-
----
-
-## Troubleshooting
-
-### "iirac: command not found"
-
-The compiler is not in your PATH. Either:
-1. Add the build directory to your PATH:
-   ```bash
-   export PATH="$PWD/build/linux/x86_64/debug:$PATH"
-   ```
-2. Or use the full path:
-   ```bash
-   ./build/linux/x86_64/debug/iirac input.iira
-   ```
-
-### "qbe: command not found"
-
-QBE is not installed or not in your PATH. Verify the installation:
-
-```bash
-which qbe
-ls -l ~/.local/bin/qbe
-```
-
-If missing, reinstall QBE (see [Installing QBE from Source](#installing-qbe-from-source)).
-
-### "xmake: command not found"
-
-Xmake installation failed or was not sourced. Reinstall:
-
-```bash
-curl -fsSL https://xmake.io/shget.text | bash
+echo 'export PATH="$PWD/build/linux/x86_64/debug:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-### Compilation Errors with GCC
 
-IIRA requires a C23-compatible compiler. Check your GCC version:
+<br><h2>Using the Compiler</h2>
 
+Let's test it:
 ```bash
-gcc --version
+iirac ./examples/integration/test_main_function.iira | qbe -o test.s && qbe > test.s && gcc test.s -o test
+./test
 ```
 
-If using an older GCC on RHEL/CentOS, enable a newer toolset:
 
-```bash
-scl enable devtoolset-11 bash
+<br><h3>The Compilation Pipeline</h3>
+
+If you want to see exactly what's happening under the hood, IIRA lets you inspect every phase of compilation. The full pipeline looks like this:
+
 ```
 
-### QBE Compilation Errors
-
-QBE may produce errors if the generated IR is invalid. Use `--show-analyzer-output` to inspect the intermediate representation:
-
+You can view the intermediate outputs to see how the compiler thinks:
 ```bash
-iirac input.iira --show-analyzer-output > output.qbe 2>&1
-qbe output.qbe
+iirac input.iira --show-lexer-output     # See the raw tokens
+iirac input.iira --show-parser-output    # See the Abstract Syntax Tree (AST)
+iirac input.iira --show-analyzer-output  # See the Typed AST (TAST)
+iirac input.iira                         # See the QBE IL output
+iirac input.iira | qbe                   # See the assembly output
 ```
 
-### Slow Compilation
-
-For faster incremental builds:
-
+You can also save the QBE output to study it, or compile it manually using your favorite C compiler:
 ```bash
-xmake -j$(nproc)  # Use all CPU cores
-```
-
-### Permission Denied When Running Output
-
-Make sure the compiled binary is executable:
-
-```bash
-chmod +x output
+iirac input.iira > output.qbe
+qbe output.qbe -o output.s
+gcc output.s -o output
 ./output
 ```
 
-### Test Suite Failures
 
-If `./test.sh` reports unexpected failures:
+<br><h2>Running Tests</h2>
 
-1. Ensure all dependencies are installed and working:
-   ```bash
-   iirac --version
-   qbe --version
-   ```
+> *"It works on my machine!"* - Someone I liked...
 
-2. Clean and rebuild:
-   ```bash
-   xmake clean
-   xmake build
-   ```
-
-3. Run a specific test manually:
-   ```bash
-   iirac examples/integration/factorial.iira | qbe -o factorial
-   ./factorial
-   ```
-
-### macOS: Header Files Not Found
-
-Ensure Xcode Command Line Tools are installed:
+The project includes a test suite that validates the compiler against example programs. To run the gauntlet:
 
 ```bash
-xcode-select --install
+./test.sh
 ```
 
----
+- **PASS**: The code compiled and ran flawlessly (or failed successfully for intentional error tests).
+- **FAIL**: We broke something. Time to debug.
 
-## Additional Resources
+Want to add your own tests? Drop `.iira` files into the `examples/` subdirectories. If it's a test that *should* fail (like a syntax error), just prefix the file with `fail_` (e.g., `fail_syntax_error.iira`).
 
-- [IIRA Documentation](../README.md) - Language reference and examples
-- [QBE Documentation](https://c9x.me/compile/docs.html) - Backend compiler reference
-- [Xmake Documentation](https://xmake.io/#/) - Build system guide
+
+<br><h2>Troubleshooting</h2>
+
+Things rarely work perfectly on the first try. Here are a few common game-over screens and how to beat them:
+
+- **`iirac: command not found`**
+  Your terminal doesn't know where the compiler is. Make sure you added the build directory to your PATH, or just run it directly using `./build/linux/x86_64/debug/iirac`.
+
+- **`qbe: command not found`**
+  You either skipped the QBE step or it didn't install to your PATH. Head back to the [Building QBE](#the-backend-building-qbe) section.
+
+- **Could not find ASan or UBSan**
+  You need to install ASan and UBSan: `sudo dnf in libasan libubsan`
+
+- **Compilation errors with GCC**
+  IIRA requires a C23-compatible compiler. Run `gcc --version`. If it's less than version 11, you need to update.
+
+- **Slow compilation?**
+  Run `xmake -j$(nproc)` to use all your CPU cores.
+
+- **Permission Denied when running the output?**
+  You forgot to make the generated binary executable. Just cast `chmod +x your_output_file` on it.
